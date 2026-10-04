@@ -4368,6 +4368,8 @@ bdi,
   display: flex;
   justify-content: center;
   min-height: 44px;
+  /* Google's button lives in a light-scheme iframe; on dark pages a mismatched scheme paints it a white box. */
+  color-scheme: light;
 }
 .google-off {
   display: flex;
