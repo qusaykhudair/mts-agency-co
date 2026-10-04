@@ -1606,17 +1606,6 @@ bdi,
   text-align: center;
   color: #6f86c9;
 }
-.footer-pay-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 13px;
-  color: #8f9bbd;
-}
 .footer ul {
   list-style: none;
   display: grid;
@@ -1629,23 +1618,6 @@ bdi,
 }
 .footer ul a:hover {
   color: #fff;
-}
-.footer-pay {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.footer-pay span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 10px;
-  border-radius: 9px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  font-size: 12px;
-  color: #dbe3ff;
 }
 .footer-socials {
   display: flex;

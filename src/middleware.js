@@ -163,6 +163,8 @@ function locals(req, res, next) {
       return req.path + (qs ? '?' + qs : '');
     },
     counts: { unread: 0, pendingOrders: 0, pendingApps: 0 },
+    // Admins are warned when uploads and the database would not survive a redeploy.
+    storageWarning: isAdmin(user) && config.ephemeralStorage,
   });
   if (user) {
     res.locals.counts.unread = get('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND is_read = 0', user.id).n;

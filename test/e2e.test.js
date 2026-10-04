@@ -706,3 +706,40 @@ test('sales chart buckets payments by the store-timezone day', async () => {
   const label = `${Number(today.slice(8))}/${Number(today.slice(5, 7))}`;
   assert.ok((await res.text()).includes(label), 'today appears on the chart');
 });
+
+// Runs a snippet in a fresh Node process with a Railway-like environment (no .env values leak in).
+function runOnRailway(code, extraEnv) {
+  const { execFileSync } = require('child_process');
+  const env = { ...process.env, NODE_ENV: '', APP_URL: '', RAILWAY_ENVIRONMENT_NAME: 'production', RAILWAY_PUBLIC_DOMAIN: 'shop.up.railway.app', ...extraEnv };
+  for (const k of ['DATA_DIR', 'DB_FILE', 'UPLOAD_DIR', 'TRUST_PROXY']) if (!(k in extraEnv)) delete env[k];
+  const out = execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' });
+  return JSON.parse(out.trim().split('\n').pop());
+}
+
+test('on Railway the database and uploads default to the attached volume', () => {
+  const vol = fs.mkdtempSync(path.join(os.tmpdir(), 'mts-volume-'));
+  const show = "const c = require('./src/config'); console.log(JSON.stringify({ dataDir: c.dataDir, uploadDir: c.uploadDir, isProd: c.isProd, trustProxy: c.trustProxy, appUrl: c.appUrl, ephemeral: c.ephemeralStorage }))";
+  const withVolume = runOnRailway(show, { RAILWAY_VOLUME_MOUNT_PATH: vol });
+  assert.equal(withVolume.dataDir, path.resolve(vol));
+  assert.equal(withVolume.uploadDir, path.join(path.resolve(vol), 'uploads'));
+  assert.equal(withVolume.isProd, true);
+  assert.equal(withVolume.trustProxy, 1);
+  assert.equal(withVolume.appUrl, 'https://shop.up.railway.app');
+  assert.equal(withVolume.ephemeral, false);
+
+  const withoutVolume = runOnRailway(show, {});
+  assert.equal(withoutVolume.ephemeral, true, 'admins are warned when nothing is persisted');
+});
+
+test('ADMIN_RESET_PASSWORD replaces the admin password at startup', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mts-reset-'));
+  const boot = `(async () => {
+    require('./src/db').migrate(); require('./src/lib/settings').load(); await require('./src/seed').seed();
+    const { get } = require('./src/db'); const { verifyPassword } = require('./src/lib/auth');
+    const u = get("SELECT password_hash FROM users WHERE email = 'owner@test.local'");
+    console.log(JSON.stringify({ reset: await verifyPassword('new-owner-pass-456', u.password_hash), old: await verifyPassword('first-owner-pass-123', u.password_hash) }));
+  })()`;
+  const env = { DATA_DIR: dir, SEED_DEMO: 'false', ADMIN_EMAIL: 'owner@test.local', ADMIN_PASSWORD: 'first-owner-pass-123' };
+  assert.deepEqual(runOnRailway(boot, env), { reset: false, old: true });
+  assert.deepEqual(runOnRailway(boot, { ...env, ADMIN_RESET_PASSWORD: 'new-owner-pass-456' }), { reset: true, old: false });
+});

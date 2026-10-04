@@ -6,7 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { get, run, tx, toSql } = require('./db');
 const config = require('./config');
-const { hashPassword } = require('./lib/auth');
+const { hashPassword, endAllSessions } = require('./lib/auth');
 const { fromInternational } = require('./lib/phone');
 const settings = require('./lib/settings');
 
@@ -341,6 +341,7 @@ async function ensureAdmin() {
     fs.mkdirSync(config.dataDir, { recursive: true });
     fs.writeFileSync(file, `Admin email: ${email}\nAdmin password: ${password}\n`, { mode: 0o600 });
     console.log(`[seed] Admin account created (${email}). Initial password saved to ${file}`);
+    if (config.onRailway) console.log('[seed] On Railway: set the ADMIN_RESET_PASSWORD variable to choose the admin password, then remove it.');
   } else {
     console.log(`[seed] Admin account created (${email}).`);
   }
@@ -436,9 +437,28 @@ function seedCatalog(sellerId) {
   });
 }
 
+// ADMIN_RESET_PASSWORD gives the admin a new password at startup (for hosts where the initial password file
+// cannot be read, or when the password is forgotten). Existing sessions of that account are signed out.
+async function applyAdminPasswordReset() {
+  const password = config.admin.resetPassword;
+  if (!password) return;
+  if (password.length < 8 || password.length > 128) {
+    console.warn('[seed] ADMIN_RESET_PASSWORD must be 8–128 characters; the password was NOT changed.');
+    return;
+  }
+  const admin =
+    (config.admin.email && get("SELECT id, email FROM users WHERE email = ? AND role = 'admin'", config.admin.email)) ||
+    get("SELECT id, email FROM users WHERE role = 'admin' ORDER BY id LIMIT 1");
+  if (!admin) return;
+  run('UPDATE users SET password_hash = ?, is_blocked = 0 WHERE id = ?', await hashPassword(password), admin.id);
+  endAllSessions(admin.id);
+  console.warn(`[seed] Admin password for ${admin.email} was reset from ADMIN_RESET_PASSWORD. Remove this variable now.`);
+}
+
 async function seed() {
   seedCurrenciesAndPayments();
   const adminId = await ensureAdmin();
+  await applyAdminPasswordReset();
   if (config.seedDemo) {
     const sellerId = adminId || (get("SELECT id FROM users WHERE role = 'admin' ORDER BY id LIMIT 1") || {}).id;
     if (sellerId) tx(() => seedCatalog(sellerId));

@@ -31,6 +31,10 @@ async function main() {
   const app = createApp();
   const server = app.listen(config.port, () => {
     console.log(`MTS Store is running on http://localhost:${config.port}  (store: /store, seller dashboard: /seller)`);
+    if (config.onRailway) console.log(`[storage] database: ${config.dbFile}  uploads: ${config.uploadDir}`);
+    if (config.ephemeralStorage) {
+      console.warn('[storage] WARNING: no Railway volume is attached — orders, accounts and receipts will be lost on the next deploy. Add a volume to this service.');
+    }
   });
   const shutdown = () => server.close(() => process.exit(0));
   process.on('SIGINT', shutdown);
