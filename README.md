@@ -109,7 +109,9 @@ npm test
 
 المتجر يحتاج خادم Node.js (لن يعمل على GitHub Pages لأنها تستضيف ملفات ثابتة فقط).
 
-> **ملاحظة Vercel:** الملف `vercel.json` يجعل Vercel ينشر صفحة الوكالة الثابتة القديمة فقط (`index.html` و `assets/`) كما كانت، لأن Vercel لا يحفظ قاعدة البيانات والإيصالات بين التشغيلات. بعد تشغيل المتجر على استضافة Node وربط الدومين بها، يمكن حذف `vercel.json` أو إيقاف مشروع Vercel.
+> **رابط Vercel القديم:** الملف `vercel.json` يحوّل كل زوار `mts-agency-co.vercel.app` إلى المتجر على Railway (`mts-agency-co-production.up.railway.app`) مع الحفاظ على المسار. إذا تغيّر رابط المتجر (مثلاً بعد ربط دومين خاص) عدّل الرابط داخل `vercel.json`.
+>
+> **فحص الحالة:** الرابط `/healthz` يعرض `storage: persistent` عندما تكون البيانات محفوظة على قرص دائم.
 
 **الخيار 1 — خادم VPS (موصى به):**
 
@@ -139,7 +141,7 @@ NODE_ENV=production pm2 start server.js --name mts-store --node-args="--disable-
 ## هيكل المشروع
 
 ```
-index.html, assets/        صفحة الوكالة الثابتة القديمة (ينشرها Vercel عبر vercel.json؛ خادم Node يحوّل /index.html إلى الصفحة الرئيسية الجديدة)
+index.html, assets/        صفحة الوكالة الثابتة القديمة (لم تعد مستخدمة؛ خادم Node يحوّل /index.html إلى الصفحة الرئيسية الجديدة)
 server.js                  نقطة التشغيل
 src/
   app.js, middleware.js    إعداد Express والأمان (CSP، حماية CSRF، الصلاحيات)

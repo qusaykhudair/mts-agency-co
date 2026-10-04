@@ -4,6 +4,7 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const config = require('./config');
+const { get } = require('./db');
 const { loadUser } = require('./lib/auth');
 const { PUBLIC_DIR } = require('./lib/uploads');
 const COUNTRIES = require('./data/countries.json');
@@ -30,6 +31,11 @@ function createApp() {
   app.use('/uploads', express.static(PUBLIC_DIR, { maxAge: '30d', dotfiles: 'deny', fallthrough: true }));
   app.get('/index.html', (req, res) => res.redirect(301, '/'));
   app.get('/favicon.ico', (req, res) => res.redirect(301, '/static/img/favicon.png'));
+  // Uptime/health check; also tells whether data survives redeploys (Railway volume attached).
+  app.get('/healthz', (req, res) => {
+    get('SELECT 1');
+    res.set('Cache-Control', 'no-store').json({ ok: true, storage: config.ephemeralStorage ? 'ephemeral' : 'persistent' });
+  });
   app.get('/robots.txt', (req, res) => res.type('text').send('User-agent: *\nDisallow: /account\nDisallow: /seller\nDisallow: /api\nDisallow: /files\n'));
 
   /* ---------- Request pipeline ---------- */

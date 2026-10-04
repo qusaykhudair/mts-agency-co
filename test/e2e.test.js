@@ -143,6 +143,10 @@ test('brand homepage shows live catalogue data and agency services', async () =>
   // Every active payment method is listed with its currency.
   assert.ok(html.includes('فودافون كاش') && html.includes('بنك فلسطين'));
 
+  const health = await stranger.get('/healthz');
+  assert.equal(health.status, 200);
+  assert.deepEqual(await health.json(), { ok: true, storage: 'persistent' });
+
   const legacy = await stranger.get('/index.html');
   assert.equal(legacy.status, 301);
   assert.equal(legacy.headers.get('location'), '/');

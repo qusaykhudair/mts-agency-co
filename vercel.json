@@ -1,6 +1,10 @@
 {
-  "builds": [
-    { "src": "index.html", "use": "@vercel/static" },
-    { "src": "assets/**", "use": "@vercel/static" }
+  "builds": [{ "src": "index.html", "use": "@vercel/static" }],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "status": 307,
+      "headers": { "Location": "https://mts-agency-co-production.up.railway.app/$1" }
+    }
   ]
 }
