@@ -1,0 +1,38 @@
+<header class="snav" data-snav>
+  <div class="snav-in">
+    <a class="snav-brand" href="/" aria-label="MTS — الصفحة الرئيسية">
+      <img src="/static/img/logo-96.png" alt="">
+      <span><b>MTS</b><small>Agency &amp; Store</small></span>
+    </a>
+    <nav class="snav-links" aria-label="القائمة الرئيسية">
+      <a href="/store">المتجر</a>
+      <a href="/store/platforms">المنصات</a>
+      <a href="#services">خدماتنا</a>
+      <a href="#how">طريقة الشراء</a>
+      <a href="#faq">الأسئلة الشائعة</a>
+    </nav>
+    <div class="snav-actions">
+      <button class="snav-icon hide-sm" type="button" data-theme-toggle aria-label="تبديل الوضع الليلي"><i class="fa-solid fa-moon" data-theme-icon></i></button>
+      <% if (user) { %>
+        <a class="snav-login hide-sm" href="<%= isStaff ? '/seller' : '/account' %>"><i class="fa-regular fa-user"></i> <%= isStaff ? 'لوحة البائع' : 'حسابي' %></a>
+      <% } else { %>
+        <a class="snav-login hide-sm" href="/login">تسجيل الدخول</a>
+      <% } %>
+      <a class="btn btn-primary snav-cta" href="/store">تسوّق الآن</a>
+      <button class="snav-icon snav-menu" type="button" data-snav-toggle aria-label="القائمة" aria-expanded="false"><i class="fa-solid fa-bars"></i></button>
+    </div>
+  </div>
+  <nav class="snav-sheet" data-snav-sheet hidden aria-label="قائمة الجوال">
+    <a href="/store"><i class="fa-solid fa-store"></i> المتجر</a>
+    <a href="/store/platforms"><i class="fa-solid fa-shapes"></i> المنصات</a>
+    <a href="#services"><i class="fa-solid fa-briefcase"></i> خدماتنا</a>
+    <a href="#how"><i class="fa-solid fa-route"></i> طريقة الشراء</a>
+    <a href="#faq"><i class="fa-solid fa-circle-question"></i> الأسئلة الشائعة</a>
+    <% if (user) { %>
+      <a href="<%= isStaff ? '/seller' : '/account' %>"><i class="fa-regular fa-user"></i> <%= isStaff ? 'لوحة البائع' : 'حسابي' %></a>
+    <% } else { %>
+      <a href="/login"><i class="fa-solid fa-arrow-right-to-bracket"></i> تسجيل الدخول</a>
+    <% } %>
+    <button type="button" data-theme-toggle><i class="fa-solid fa-circle-half-stroke"></i> الوضع الليلي / النهاري</button>
+  </nav>
+</header>

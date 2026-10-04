@@ -1,0 +1,32 @@
+<%- include('../partials/top') %>
+
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-icon" style="background:rgba(37,211,102,.14);color:var(--whatsapp)"><i class="fa-brands fa-whatsapp"></i></div>
+    <h1>خطوة أخيرة!</h1>
+    <p class="sub">أضف رقم الواتساب الخاص بك لنتمكن من التواصل معك بخصوص طلباتك.</p>
+
+    <div class="flex gap-12 mb-16" style="padding:12px;border-radius:14px;background:var(--surface-2);border:1px solid var(--border)">
+      <% if (user.avatar_url) { %><img class="avatar" src="<%= user.avatar_url %>" alt="" referrerpolicy="no-referrer"><% } else { %><span class="avatar"><%= initials(user.name) %></span><% } %>
+      <div class="grow" style="min-width:0"><b style="display:block;line-height:1.4"><%= user.name %></b><small class="muted ellipsis" style="display:block"><%= user.email %></small></div>
+      <% if (user.google_sub) { %><span class="badge badge-brand"><i class="fa-brands fa-google"></i> Google</span><% } %>
+    </div>
+
+    <form class="stack" method="post" action="/auth/complete-profile" data-ajax novalidate>
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field">
+        <label class="label" for="name">الاسم الكامل</label>
+        <div class="input-wrap"><i class="fa-regular fa-user"></i><input class="input" id="name" name="name" value="<%= user.name %>" maxlength="80" required></div>
+        <span class="field-error"></span>
+      </div>
+      <%- include('../partials/phone-input') %>
+      <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-check"></i> حفظ ومتابعة</button>
+    </form>
+
+    <form method="post" action="/logout" class="auth-foot">
+      <button class="link" type="submit" style="font-size:13.5px">تسجيل الخروج واستخدام حساب آخر</button>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/countries.js', '/static/js/phone-input.js'] }) %>

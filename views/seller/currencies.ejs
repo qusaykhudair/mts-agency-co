@@ -1,0 +1,68 @@
+<%- include('../partials/top') %>
+<% const base = items.find((c) => c.is_base) || {}; %>
+
+<div class="page-head">
+  <div><h1>العملات وأسعار الصرف</h1><p>أسعار المنتجات محفوظة بالعملة الأساسية (<%= base.name %> <%= base.symbol %>)، وتُحوَّل لكل عملة حسب السعر أدناه مع التقريب للأعلى.</p></div>
+</div>
+
+<div class="alert alert-brand mb-16"><i class="fa-solid fa-circle-info"></i><div>سعر الصرف = كم وحدة من العملة تساوي <b style="display:inline">1 <%= base.code %></b>. مثال: إذا كان 1 <%= base.code %> = 3.10 شيكل اكتب 3.10. حدّث الأسعار دورياً حسب سعر السوق.</div></div>
+
+<form method="post" action="/seller/currencies" data-ajax novalidate>
+  <section class="card">
+    <div class="table-wrap">
+      <table class="table responsive">
+        <thead><tr><th>العملة</th><th>الاسم</th><th>الرمز</th><th>سعر الصرف</th><th>الكسور العشرية</th><th>الترتيب</th><th>مفعّلة</th><th></th></tr></thead>
+        <tbody>
+          <% items.forEach((c, i) => { %>
+          <tr>
+            <td class="t-first"><input type="hidden" name="c[<%= i %>][code]" value="<%= c.code %>"><b class="mono"><%= c.code %></b> <% if (c.is_base) { %><span class="badge badge-brand">الأساسية</span><% } %><% if (c.methods_count) { %> <span class="badge badge-muted"><%= c.methods_count %> طريقة دفع</span><% } %></td>
+            <td data-label="الاسم"><input class="input input-sm" name="c[<%= i %>][name]" value="<%= c.name %>" maxlength="40" style="min-width:120px"></td>
+            <td data-label="الرمز"><input class="input input-sm" name="c[<%= i %>][symbol]" value="<%= c.symbol %>" maxlength="8" style="width:80px"></td>
+            <td data-label="سعر الصرف"><% if (c.is_base) { %><b>1</b><% } else { %><input class="input input-sm" name="c[<%= i %>][rate]" value="<%= c.rate %>" inputmode="decimal" dir="ltr" style="width:110px"><% } %></td>
+            <td data-label="الكسور"><select class="select input-sm" name="c[<%= i %>][decimals]" style="width:80px"><% [0, 1, 2].forEach((d) => { %><option value="<%= d %>"<%= c.decimals === d ? ' selected' : '' %>><%= d %></option><% }) %></select></td>
+            <td data-label="الترتيب"><input class="input input-sm" type="number" lang="en" name="c[<%= i %>][sort_order]" value="<%= c.sort_order %>" style="width:70px"></td>
+            <td data-label="مفعّلة"><% if (c.is_base) { %><i class="fa-solid fa-check text-success"></i><% } else { %><label class="switch"><input type="checkbox" name="c[<%= i %>][is_active]" value="1"<%= c.is_active ? ' checked' : '' %>><span class="track"></span></label><% } %></td>
+            <td>
+              <% if (!c.is_base) { %>
+              <div class="t-actions">
+                <button class="btn btn-ghost btn-sm" type="submit" form="mb-<%= c.code %>" title="جعلها العملة الأساسية وتحويل جميع الأسعار إليها"><i class="fa-solid fa-anchor"></i> أساسية</button>
+                <button class="btn btn-danger-soft btn-icon btn-sm" type="submit" form="del-<%= c.code %>" aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
+              <% } %>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <div class="card-foot flex flex-wrap gap-12 between">
+      <div class="flex gap-8">
+        <label class="label" for="default_currency" style="white-space:nowrap">عملة العرض الافتراضية للزوار</label>
+        <select class="select input-sm" id="default_currency" name="default_currency" style="width:auto">
+          <option value="">العملة الأساسية</option>
+          <% items.filter((c) => c.is_active).forEach((c) => { %><option value="<%= c.code %>"<%= defaultCurrency === c.code ? ' selected' : '' %>><%= c.name %></option><% }) %>
+        </select>
+      </div>
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ أسعار الصرف</button>
+    </div>
+  </section>
+</form>
+
+<% items.filter((c) => !c.is_base).forEach((c) => { %>
+<form id="mb-<%= c.code %>" method="post" action="/seller/currencies/<%= c.code %>/make-base" data-ajax data-confirm="سيتم تحويل أسعار جميع المنتجات إلى <%= c.name %> وجعلها العملة الأساسية. هل أنت متأكد؟" data-confirm-title="تغيير العملة الأساسية" hidden></form>
+<form id="del-<%= c.code %>" method="post" action="/seller/currencies/<%= c.code %>/delete" data-ajax data-confirm="حذف عملة <%= c.name %>؟" data-confirm-danger hidden></form>
+<% }) %>
+
+<section class="card section">
+  <div class="card-head"><h2><i class="fa-solid fa-plus"></i> إضافة عملة</h2></div>
+  <form class="card-body form-grid cols-3" method="post" action="/seller/currencies/add" data-ajax novalidate>
+    <div class="field"><label class="label" for="ncode">رمز ISO</label><input class="input" id="ncode" name="code" maxlength="3" placeholder="JOD" dir="ltr" style="text-transform:uppercase"><span class="field-error"></span></div>
+    <div class="field"><label class="label" for="nname">الاسم</label><input class="input" id="nname" name="name" maxlength="40" placeholder="دينار أردني"><span class="field-error"></span></div>
+    <div class="field"><label class="label" for="nsymbol">رمز العرض</label><input class="input" id="nsymbol" name="symbol" maxlength="8" placeholder="د.أ"><span class="field-error"></span></div>
+    <div class="field"><label class="label" for="nrate">سعر الصرف مقابل 1 <%= base.code %></label><input class="input" id="nrate" name="rate" inputmode="decimal" dir="ltr" placeholder="0.71"><span class="field-error"></span></div>
+    <div class="field"><label class="label" for="ndec">الكسور العشرية</label><select class="select" id="ndec" name="decimals"><option>0</option><option>1</option><option selected>2</option></select></div>
+    <div class="field" style="align-self:end"><button class="btn btn-soft btn-block" type="submit"><i class="fa-solid fa-plus"></i> إضافة</button></div>
+  </form>
+</section>
+
+<%- include('../partials/bottom') %>

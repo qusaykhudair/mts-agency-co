@@ -1,0 +1,16 @@
+<% if (order.receipt_file) { const url = '/files/receipts/' + order.receipt_file; %>
+  <% if (/^image\/(jpeg|png|webp|gif)$/.test(order.receipt_mime || '')) { %>
+    <a class="receipt-thumb" href="<%= url %>" data-lightbox="<%= url %>" target="_blank" rel="noopener">
+      <img src="<%= url %>" alt="إيصال التحويل للطلب <%= order.code %>" loading="lazy">
+      <span class="zoom"><i class="fa-solid fa-magnifying-glass-plus"></i> تكبير</span>
+    </a>
+  <% } else { %>
+    <div class="receipt-file">
+      <i class="fa-solid <%= order.receipt_mime === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image' %>"></i>
+      <div class="grow"><b style="display:block">إيصال التحويل</b><small class="muted"><%= order.receipt_mime === 'application/pdf' ? 'ملف PDF' : 'صورة HEIC' %></small></div>
+      <a class="btn btn-soft btn-sm" href="<%= url %>" target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> فتح</a>
+    </div>
+  <% } %>
+<% } else { %>
+  <p class="muted small">لا يوجد إيصال مرفق.</p>
+<% } %>

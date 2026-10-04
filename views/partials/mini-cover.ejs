@@ -1,0 +1,3 @@
+<span class="cover cover-sm" style="--c1:<%= o.color1 || '#3e7bff' %>;--c2:<%= o.color2 || '#1b3fbf' %>">
+  <% if (o.product_cover) { %><img class="cover-img" src="<%= o.product_cover %>" alt=""><% } else if (o.platform_logo) { %><span class="cover-tile"><img src="<%= o.platform_logo %>" alt=""></span><% } else { %><i class="fa-solid fa-box" style="color:var(--brand)"></i><% } %>
+</span>

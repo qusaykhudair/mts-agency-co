@@ -1,0 +1,65 @@
+<%- include('../partials/top') %>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <a href="/store">الرئيسية</a>
+  <% head.crumbs.forEach((c) => { %><i class="fa-solid fa-chevron-left"></i><a href="<%= c.href %>"><%= c.label %></a><% }) %>
+  <i class="fa-solid fa-chevron-left"></i><span><%= head.title %></span>
+</nav>
+
+<header class="cat-head" style="--c1:<%= head.c1 || '#3e7bff' %>">
+  <span class="logo" style="<%= head.c1 ? `background:linear-gradient(135deg, ${head.c1}, ${head.c2})` : '' %>">
+    <% if (head.logo) { %><img src="<%= head.logo %>" alt=""><% } else { %><i class="<%= head.icon || 'fa-solid fa-grip' %>"></i><% } %>
+  </span>
+  <div class="grow">
+    <h1><%= head.title %></h1>
+    <% if (head.desc) { %><p><%= head.desc %></p><% } %>
+    <div class="meta">
+      <span class="badge badge-brand"><i class="fa-solid fa-box"></i> <%= total %> منتج متوفر</span>
+      <span class="badge badge-success"><i class="fa-solid fa-bolt"></i> تسليم سريع</span>
+      <span class="badge"><i class="fa-solid fa-shield-halved"></i> دفع آمن</span>
+    </div>
+  </div>
+</header>
+
+<% if (chips.length) { %>
+<div class="chips" style="margin-bottom:14px" aria-label="تصفية">
+  <% chips.forEach((c) => { %>
+    <a class="chip<%= c.active ? ' is-active' : '' %>" href="<%= c.href %>"><% if (c.icon) { %><i class="<%= c.icon %>"></i><% } %> <%= c.label %> <span class="count"><%= c.count %></span></a>
+  <% }) %>
+</div>
+<% } %>
+
+<div class="toolbar">
+  <span class="count"><b><%= total %></b> منتج<% if (pg.pages > 1) { %> · صفحة <%= pg.page %> من <%= pg.pages %><% } %></span>
+  <form method="get" class="flex gap-8" data-autosubmit>
+    <% if (q) { %><input type="hidden" name="q" value="<%= q %>"><% } %>
+    <% if (query.sale) { %><input type="hidden" name="sale" value="<%= query.sale %>"><% } %>
+    <label class="sr-only" for="sort">ترتيب حسب</label>
+    <i class="fa-solid fa-arrow-down-wide-short muted"></i>
+    <select class="select" id="sort" name="sort">
+      <% Object.entries(sortLabels).forEach(([k, label]) => { %><option value="<%= k %>"<%= k === sort ? ' selected' : '' %>><%= label %></option><% }) %>
+    </select>
+    <noscript><button class="btn btn-sm">تطبيق</button></noscript>
+  </form>
+</div>
+
+<% if (items.length) { %>
+  <div class="pgrid wide">
+    <% items.forEach((p) => { %><%- include('../partials/product-card', { p }) %><% }) %>
+  </div>
+  <%- include('../partials/pagination', { pg }) %>
+<% } else { %>
+  <div class="panel">
+    <div class="empty">
+      <span class="ic"><i class="fa-solid fa-box-open"></i></span>
+      <h3><%= q ? 'لا توجد نتائج مطابقة' : 'لا توجد منتجات هنا بعد' %></h3>
+      <p><%= q ? 'جرّب كلمات بحث أخرى أو تصفّح الأقسام. ويمكنك طلب أي اشتراك غير موجود عبر واتساب.' : 'سنضيف اشتراكات جديدة قريباً. يمكنك طلب ما تحتاجه مباشرة عبر واتساب.' %></p>
+      <div class="flex gap-8 flex-wrap" style="justify-content:center">
+        <a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-grip"></i> كل الاشتراكات</a>
+        <a class="btn btn-whatsapp" href="<%= waLink(storeWa, 'مرحباً، أبحث عن اشتراك: ' + (q || head.title)) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اطلب عبر واتساب</a>
+      </div>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/bottom') %>

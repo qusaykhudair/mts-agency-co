@@ -1,0 +1,171 @@
+<%- include('../partials/top') %>
+<%
+  const st = ORDER_STATUS[order.status];
+  const banner = {
+    under_review: ['بانتظار مراجعة الدفع', 'استلمنا إيصال التحويل وسيقوم فريقنا بمراجعته وتأكيد الدفع في أقرب وقت. سيصلك إشعار فور التأكيد.'],
+    payment_rejected: ['تم رفض إيصال الدفع', (order.reject_reason ? 'السبب: ' + order.reject_reason + ' — ' : '') + 'يرجى إرسال إيصال صحيح من النموذج أدناه لإكمال طلبك.'],
+    processing: ['تم تأكيد الدفع ✅', 'نعمل الآن على تجهيز اشتراكك، وسيصلك إشعار فور تسليم البيانات.'],
+    delivered: ['تم تسليم اشتراكك 🎉', 'بيانات الاشتراك أدناه. بعد التأكد من أنها تعمل اضغط «تأكيد الاستلام».'],
+    completed: ['الطلب مكتمل', 'شكراً لثقتك بنا! نتمنى لك تجربة رائعة مع اشتراكك.'],
+    cancelled: ['تم إلغاء الطلب', 'تم إلغاء هذا الطلب. للاستفسار تواصل معنا عبر واتساب.'],
+  }[order.status];
+  const waMsg = `مرحباً MTS Store، بخصوص طلبي رقم ${order.code} (${order.product_title} — ${order.plan_name}).`;
+  const waNotify = `مرحباً MTS Store 👋\nقمت بطلب ${order.product_title} — ${order.plan_name}\nرقم الطلب: ${order.code}\nالمبلغ: ${orderPayText(order)} عبر ${order.payment_method_name}\nوقد أرفقت إيصال التحويل في الطلب.`;
+%>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <a href="/account">حسابي</a><i class="fa-solid fa-chevron-left"></i><a href="/account/orders">طلباتي</a><i class="fa-solid fa-chevron-left"></i><span><%= order.code %></span>
+</nav>
+
+<% if (placed) { %>
+<section class="welcome" style="background:radial-gradient(500px 200px at 10% -40%, rgba(110,231,183,.45), transparent 60%), linear-gradient(135deg, #064e3b, #0f766e)">
+  <div class="flex gap-16">
+    <span class="avatar avatar-lg" style="background:rgba(255,255,255,.16);font-size:26px"><i class="fa-solid fa-check"></i></span>
+    <div>
+      <h1>تم إرسال طلبك بنجاح!</h1>
+      <p>رقم طلبك <b style="color:#fff"><%= order.code %></b> — سنراجع إيصال التحويل ونؤكد الدفع في أقرب وقت ونبلغك فوراً.</p>
+    </div>
+  </div>
+  <div class="flex flex-wrap gap-8">
+    <a class="btn btn-whatsapp" href="<%= waLink(storeWa, waNotify) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> أبلغ المتجر عبر واتساب</a>
+    <a class="btn btn-glass" href="/store"><i class="fa-solid fa-store"></i> متابعة التسوق</a>
+  </div>
+</section>
+<% } %>
+
+<div class="od" data-order-poll="<%= order.code %>" data-status="<%= order.status %>">
+  <div class="od-main">
+    <section class="card card-body stack">
+      <div class="od-head">
+        <%- include('../partials/mini-cover', { o: order }) %>
+        <div class="grow">
+          <b><%= order.product_title %> — <%= order.plan_name %><%= order.quantity > 1 ? ' × ' + order.quantity : '' %></b>
+          <small>طلب رقم <span class="bold text-brand"><%= order.code %></span> · <%= fmtDateTime(order.created_at) %></small>
+        </div>
+        <%- include('../partials/status-badge', { status: order.status }) %>
+      </div>
+      <div class="status-banner <%= st.tone %>">
+        <span class="ic"><i class="<%= st.icon %>"></i></span>
+        <div><b><%= banner[0] %></b><p><%= banner[1] %></p></div>
+      </div>
+      <%- include('../partials/order-stepper', { order }) %>
+    </section>
+
+    <% if (delivery && ['delivered', 'completed'].includes(order.status)) { %>
+    <section class="card delivery-card">
+      <div class="card-head"><h2><i class="fa-solid fa-gift" style="color:var(--success)"></i> بيانات الاشتراك</h2><span class="badge badge-success"><i class="fa-solid fa-lock"></i> خاصة بك</span></div>
+      <div class="card-body">
+        <%- include('../partials/order-delivery', { delivery, order }) %>
+        <% if (order.status === 'delivered') { %>
+        <form class="mt-16" method="post" action="/account/orders/<%= order.code %>/confirm" data-ajax data-confirm="هل تأكدت من أن بيانات الاشتراك تعمل بشكل صحيح؟" data-confirm-title="تأكيد الاستلام">
+          <button class="btn btn-success btn-lg btn-block" type="submit"><i class="fa-solid fa-circle-check"></i> تأكيد الاستلام — الاشتراك يعمل</button>
+          <p class="help center mt-8">إذا واجهت أي مشكلة لا تؤكد الاستلام وتواصل معنا عبر واتساب.</p>
+        </form>
+        <% } %>
+      </div>
+    </section>
+    <% } %>
+
+    <% if (order.status === 'payment_rejected') { %>
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-file-arrow-up" style="color:var(--danger)"></i> إعادة إرسال إيصال الدفع</h2></div>
+      <form class="card-body stack" method="post" action="/account/orders/<%= order.code %>/receipt" enctype="multipart/form-data" data-ajax novalidate>
+        <div class="alert alert-warning"><i class="fa-solid fa-circle-info"></i><div>المبلغ المطلوب: <b style="display:inline"><%- orderPay(order) %></b> عبر <%= order.payment_method_name %>. تأكد أن الإيصال واضح ويُظهر المبلغ والتاريخ واسم المستفيد.</div></div>
+        <div class="form-grid cols-2">
+          <div class="field">
+            <label class="label" for="sender_name">اسم المحوِّل <span class="req">*</span></label>
+            <input class="input" id="sender_name" name="sender_name" value="<%= order.sender_name %>" maxlength="100" required>
+            <span class="field-error"></span>
+          </div>
+          <div class="field">
+            <label class="label" for="sender_account"><%= method ? method.sender_account_label : 'رقم الحساب الذي حوّلت منه' %> <span class="req">*</span></label>
+            <input class="input" id="sender_account" name="sender_account" value="<%= order.sender_account %>" maxlength="60" required dir="ltr" style="text-align:right">
+            <span class="field-error"></span>
+          </div>
+          <div class="field span-2">
+            <span class="label">صورة الإيصال الجديد <span class="req">*</span></span>
+            <div class="uploader" data-uploader>
+              <input type="file" name="receipt" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,application/pdf" required aria-label="رفع صورة الإيصال">
+              <div class="up-empty" data-up-empty><span class="ic"><i class="fa-solid fa-cloud-arrow-up"></i></span><b>اضغط لاختيار صورة الإيصال أو اسحبها إلى هنا</b><small>JPG أو PNG أو WEBP أو PDF — حتى 8 ميجابايت</small></div>
+              <div class="up-preview" data-up-preview hidden>
+                <img data-up-img alt="" hidden><span class="up-file" data-up-file hidden><i class="fa-solid fa-file-pdf"></i></span>
+                <div class="grow"><b data-up-name></b><small data-up-size></small><div><button class="btn btn-soft btn-xs up-change" type="button" data-up-clear><i class="fa-solid fa-rotate"></i> تغيير الملف</button></div></div>
+              </div>
+            </div>
+            <span class="field-error"></span>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-lg" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال الإيصال للمراجعة</button>
+        <div class="progress" data-upload-progress hidden><span style="width:0%"></span></div>
+      </form>
+    </section>
+    <% } %>
+
+    <% if (['delivered', 'completed'].includes(order.status) && order.product_id) { %>
+    <section class="card card-body">
+      <% if (review) { %>
+        <h3 class="form-section-title" style="margin-bottom:10px"><i class="fa-solid fa-star" style="color:var(--gold)"></i> تقييمك</h3>
+        <div class="flex gap-12"><%- include('../partials/stars', { rating: review.rating }) %><small class="muted"><%= fmtDate(review.created_at) %></small></div>
+        <% if (review.comment) { %><p class="text-2 mt-8"><%= review.comment %></p><% } %>
+      <% } else { %>
+        <h3 class="form-section-title" style="margin-bottom:4px"><i class="fa-regular fa-star" style="color:var(--gold)"></i> قيّم تجربتك</h3>
+        <p class="help mb-16">رأيك يساعد العملاء الآخرين ويساعدنا على التحسّن.</p>
+        <form class="stack" method="post" action="/account/orders/<%= order.code %>/review" data-ajax novalidate>
+          <div class="field">
+            <div class="star-input" role="radiogroup" aria-label="التقييم">
+              <% for (let i = 5; i >= 1; i--) { %>
+                <input type="radio" id="star<%= i %>" name="rating" value="<%= i %>"><label for="star<%= i %>" title="<%= i %> نجوم"><i class="fa-solid fa-star"></i></label>
+              <% } %>
+            </div>
+            <span class="field-error"></span>
+          </div>
+          <textarea class="textarea" name="comment" rows="3" maxlength="600" placeholder="اكتب رأيك في الاشتراك وسرعة التسليم (اختياري)"></textarea>
+          <button class="btn btn-primary" type="submit" style="justify-self:start"><i class="fa-solid fa-paper-plane"></i> إرسال التقييم</button>
+        </form>
+      <% } %>
+    </section>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-file-lines"></i> تفاصيل الطلب</h2></div>
+      <div class="card-body kv">
+        <div class="kv-row"><span>رقم الطلب</span><span class="text-brand"><%= order.code %></span></div>
+        <div class="kv-row"><span>المنتج</span><span><% if (order.product_slug) { %><a class="link" href="/store/product/<%= order.product_slug %>"><%= order.product_title %></a><% } else { %><%= order.product_title %><% } %></span></div>
+        <div class="kv-row"><span>الباقة</span><span><%= order.plan_name %> (<%= durationLabel(order.duration_days) %>)</span></div>
+        <div class="kv-row"><span>الكمية</span><span><%= order.quantity %></span></div>
+        <div class="kv-row"><span>الإجمالي</span><span><%- moneyIn(order.total, order.base_currency) %></span></div>
+        <div class="kv-row"><span>طريقة الدفع</span><span><%= order.payment_method_name %></span></div>
+        <div class="kv-row"><span>المبلغ المحوَّل</span><span class="text-brand"><%- orderPay(order) %></span></div>
+        <div class="kv-row"><span>اسم المحوِّل</span><span><%= order.sender_name %></span></div>
+        <div class="kv-row"><span>الحساب المحوَّل منه</span><span dir="ltr"><%= order.sender_account %></span></div>
+        <% if (order.buyer_input) { %><div class="kv-row"><span><%= order.buyer_input_label || 'بيانات التفعيل' %></span><span dir="ltr"><%= order.buyer_input %></span></div><% } %>
+        <% if (order.buyer_note) { %><div class="kv-row"><span>ملاحظاتك</span><span class="pre-line"><%= order.buyer_note %></span></div><% } %>
+      </div>
+    </section>
+  </div>
+
+  <aside class="od-side">
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-receipt"></i> إيصال الدفع</h2></div>
+      <div class="card-body"><%- include('../partials/order-receipt', { order }) %></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-timeline"></i> سجل الطلب</h2></div>
+      <div class="card-body"><%- include('../partials/order-timeline', { events }) %></div>
+    </section>
+
+    <section class="card card-body stack-sm">
+      <h3 class="form-section-title"><i class="fa-solid fa-headset"></i> تحتاج مساعدة؟</h3>
+      <p class="help">تواصل معنا عبر واتساب واذكر رقم الطلب لنساعدك بسرعة.</p>
+      <a class="btn btn-whatsapp btn-block" href="<%= waLink(storeWa, waMsg) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> تواصل بخصوص هذا الطلب</a>
+      <% if (['under_review', 'payment_rejected'].includes(order.status)) { %>
+      <form method="post" action="/account/orders/<%= order.code %>/cancel" data-ajax data-confirm="هل تريد إلغاء هذا الطلب؟ لا يمكن التراجع عن الإلغاء." data-confirm-title="إلغاء الطلب" data-confirm-danger>
+        <button class="btn btn-danger-soft btn-block" type="submit"><i class="fa-solid fa-ban"></i> إلغاء الطلب</button>
+      </form>
+      <% } %>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/order.js'] }) %>

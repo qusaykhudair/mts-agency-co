@@ -1,0 +1,12 @@
+<ul class="timeline">
+  <% events.forEach((e) => { const m = EVENT_META[e.type] || { label: e.type, icon: 'fa-solid fa-circle', tone: 'brand' }; %>
+  <li class="<%= e.is_public ? '' : 'private' %>">
+    <span class="dot <%= m.tone %>"><i class="<%= m.icon %>"></i></span>
+    <div class="grow">
+      <b><%= m.label %><% if (!e.is_public) { %> <span class="badge badge-warning" style="height:20px;font-size:10.5px">خاصة بالفريق</span><% } %></b>
+      <% if (e.message) { %><p class="pre-line"><%= e.message %></p><% } %>
+      <time><%= fmtDateTime(e.created_at) %><% if (locals.showActor && e.actor_name) { %> · <%= e.actor_name %><% } %></time>
+    </div>
+  </li>
+  <% }) %>
+</ul>

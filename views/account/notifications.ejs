@@ -1,0 +1,31 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>الإشعارات</h1><p>كل التحديثات المتعلقة بطلباتك وحسابك.</p></div>
+</div>
+
+<section class="card">
+  <% if (items.length) { %>
+    <div>
+      <% items.forEach((n) => { %>
+      <a class="notif<%= n.is_read ? '' : ' is-unread' %>" href="<%= n.link || '#' %>">
+        <span class="ic <%= n.tone %>"><i class="<%= n.icon || 'fa-solid fa-bell' %>"></i></span>
+        <div class="grow">
+          <b><%= n.title %></b>
+          <% if (n.body) { %><p><%= n.body %></p><% } %>
+          <time><%= timeAgo(n.created_at) %></time>
+        </div>
+      </a>
+      <% }) %>
+    </div>
+  <% } else { %>
+    <div class="empty">
+      <span class="ic"><i class="fa-regular fa-bell"></i></span>
+      <h3>لا توجد إشعارات</h3>
+      <p>ستصلك هنا تنبيهات تأكيد الدفع وتسليم الاشتراكات وأي تحديث على طلباتك.</p>
+    </div>
+  <% } %>
+</section>
+<%- include('../partials/pagination', { pg }) %>
+
+<%- include('../partials/bottom') %>

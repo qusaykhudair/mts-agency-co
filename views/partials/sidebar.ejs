@@ -1,0 +1,96 @@
+<%
+  const act = locals.active || '';
+  const link = (key, href, icon, label, count, hot) => `<a class="sb-link${act === key && key ? ' is-active' : ''}" href="${esc(href)}"><i class="${esc(icon)}"></i><span>${esc(label)}</span>${count ? `<span class="sb-count${hot ? ' is-hot' : ''}">${Number(count)}</span>` : ''}</a>`;
+%>
+<aside class="sidebar" id="sidebar" aria-label="القائمة الجانبية">
+  <div class="sb-head">
+    <a class="sb-brand" href="/store">
+      <img src="/static/img/logo-96.png" alt="MTS">
+      <span><b>MTS <em>Store</em></b><small><%= settings.store_tagline %></small></span>
+    </a>
+    <button class="icon-btn sb-close" type="button" data-sidebar-close aria-label="إغلاق القائمة"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+
+  <div class="sb-body">
+    <% if (navMode === 'seller') { %>
+      <div class="sb-cta"><a class="btn btn-primary btn-block" href="/seller/products/new"><i class="fa-solid fa-plus"></i> إضافة منتج جديد</a></div>
+      <div class="sb-label">لوحة البائع</div>
+      <%- link('seller-home', '/seller', 'fa-solid fa-gauge-high', 'نظرة عامة') %>
+      <%- link('seller-orders', '/seller/orders', 'fa-solid fa-receipt', 'الطلبات', counts.pendingOrders, true) %>
+      <%- link('seller-products', '/seller/products', 'fa-solid fa-boxes-stacked', 'المنتجات') %>
+      <% if (isAdmin) { %>
+        <div class="sb-label">إدارة المتجر</div>
+        <%- link('admin-users', '/seller/users', 'fa-solid fa-users', 'العملاء والمستخدمون') %>
+        <%- link('admin-apps', '/seller/applications', 'fa-solid fa-store', 'طلبات البائعين', counts.pendingApps, true) %>
+        <%- link('admin-platforms', '/seller/platforms', 'fa-solid fa-shapes', 'المنصات') %>
+        <%- link('admin-categories', '/seller/categories', 'fa-solid fa-layer-group', 'الأقسام') %>
+        <%- link('admin-payments', '/seller/payment-methods', 'fa-solid fa-building-columns', 'طرق الدفع') %>
+        <%- link('admin-currencies', '/seller/currencies', 'fa-solid fa-coins', 'العملات وأسعار الصرف') %>
+        <%- link('admin-reviews', '/seller/reviews', 'fa-solid fa-star-half-stroke', 'التقييمات') %>
+        <%- link('admin-settings', '/seller/settings', 'fa-solid fa-sliders', 'إعدادات المتجر') %>
+      <% } %>
+      <div class="sb-label">روابط سريعة</div>
+      <%- link('', '/store', 'fa-solid fa-store', 'عرض المتجر') %>
+      <%- link('', '/account', 'fa-solid fa-user', 'حسابي كمشتري') %>
+    <% } else if (navMode === 'account') { %>
+      <div class="sb-cta"><a class="btn btn-soft btn-block" href="/store"><i class="fa-solid fa-store"></i> تصفّح المتجر</a></div>
+      <div class="sb-label">حسابي</div>
+      <%- link('acc-home', '/account', 'fa-solid fa-house-user', 'نظرة عامة') %>
+      <%- link('acc-orders', '/account/orders', 'fa-solid fa-bag-shopping', 'طلباتي') %>
+      <%- link('acc-subs', '/account/subscriptions', 'fa-solid fa-id-card', 'اشتراكاتي') %>
+      <%- link('acc-notifs', '/account/notifications', 'fa-solid fa-bell', 'الإشعارات', counts.unread, true) %>
+      <%- link('acc-profile', '/account/profile', 'fa-solid fa-user-gear', 'الملف الشخصي') %>
+      <% if (user && user.role === 'buyer') { %><%- link('acc-seller', '/account/become-seller', 'fa-solid fa-store', 'أصبح بائعاً') %><% } %>
+      <% if (isStaff) { %>
+        <div class="sb-label">الإدارة</div>
+        <%- link('', '/seller', 'fa-solid fa-gauge-high', 'لوحة البائع', counts.pendingOrders, true) %>
+      <% } %>
+    <% } else { %>
+      <div class="sb-cta">
+        <% if (!user) { %>
+          <a class="btn btn-primary btn-block" href="/login?next=<%= encodeURIComponent(url) %>"><i class="fa-solid fa-arrow-right-to-bracket"></i> سجّل دخولك</a>
+        <% } else if (isStaff) { %>
+          <a class="btn btn-primary btn-block" href="/seller"><i class="fa-solid fa-gauge-high"></i> لوحة البائع</a>
+        <% } else { %>
+          <a class="btn btn-primary btn-block" href="/account"><i class="fa-solid fa-house-user"></i> لوحة حسابي</a>
+        <% } %>
+      </div>
+      <div class="sb-label">تصفّح المتجر</div>
+      <%- link('home', '/store', 'fa-solid fa-house', 'الرئيسية') %>
+      <%- link('products', '/store/products', 'fa-solid fa-grip', 'جميع الاشتراكات') %>
+      <%- link('platforms', '/store/platforms', 'fa-solid fa-shapes', 'المنصات') %>
+      <%- link('deals', '/store/products?sale=1&sort=deals', 'fa-solid fa-fire', 'أفضل العروض') %>
+      <%- link('help', '/store/help', 'fa-solid fa-circle-question', 'كيف أشتري؟') %>
+      <% if (locals.navCategories && navCategories.length) { %>
+        <div class="sb-label">الأقسام</div>
+        <% navCategories.forEach((c) => { %>
+          <%- link('cat-' + c.slug, '/store/category/' + c.slug, c.icon, c.name, c.product_count) %>
+        <% }) %>
+      <% } %>
+      <% if (user) { %>
+        <div class="sb-label">حسابي</div>
+        <%- link('acc-orders', '/account/orders', 'fa-solid fa-bag-shopping', 'طلباتي') %>
+        <%- link('acc-subs', '/account/subscriptions', 'fa-solid fa-id-card', 'اشتراكاتي') %>
+        <%- link('acc-notifs', '/account/notifications', 'fa-solid fa-bell', 'الإشعارات', counts.unread, true) %>
+      <% } %>
+    <% } %>
+  </div>
+
+  <div class="sb-foot">
+    <a class="sb-card wa" href="<%= waLink(storeWa, 'مرحباً MTS Store، لدي استفسار') %>" target="_blank" rel="noopener">
+      <span class="ic"><i class="fa-brands fa-whatsapp"></i></span>
+      <span><b>الدعم عبر واتساب</b><small>نرد عليك بأسرع وقت</small></span>
+    </a>
+    <% if (navMode === 'store' && !isStaff) { %>
+      <a class="sb-card" href="/account/become-seller">
+        <span class="ic"><i class="fa-solid fa-store"></i></span>
+        <span><b>أصبح بائعاً</b><small>اعرض اشتراكاتك على المتجر</small></span>
+      </a>
+    <% } %>
+    <% if (navMode !== 'store' && user) { %>
+      <form method="post" action="/logout">
+        <button class="sb-link w-full" type="submit"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>تسجيل الخروج</span></button>
+      </form>
+    <% } %>
+  </div>
+</aside>

@@ -1,0 +1,62 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>الطلبات</h1><p>راجع إيصالات التحويل، أكّد الدفع وسلّم الاشتراكات للعملاء.</p></div>
+</div>
+
+<nav class="tabs" aria-label="حالات الطلبات">
+  <% tabs.forEach((t) => { %>
+  <a class="tab<%= t.key === tab ? ' is-active' : '' %>" href="<%= withQuery({ status: t.key || null }) %>"><%= t.label %> <span class="n"><%= t.count %></span></a>
+  <% }) %>
+</nav>
+
+<form class="filters" method="get">
+  <% if (tab) { %><input type="hidden" name="status" value="<%= tab %>"><% } %>
+  <div class="input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input class="input" type="search" name="q" value="<%= q %>" placeholder="ابحث برقم الطلب، اسم العميل، الواتساب، اسم المحوِّل أو رقم الحساب…"></div>
+  <select class="select" name="method" data-autosubmit-field aria-label="طريقة الدفع">
+    <option value="">كل طرق الدفع</option>
+    <% methods.forEach((m) => { %><option value="<%= m.id %>"<%= methodId === m.id ? ' selected' : '' %>><%= m.name %></option><% }) %>
+  </select>
+  <button class="btn btn-soft" type="submit"><i class="fa-solid fa-filter"></i> بحث</button>
+  <% if (q || methodId) { %><a class="btn btn-ghost" href="/seller/orders<%= tab ? '?status=' + tab : '' %>">مسح</a><% } %>
+</form>
+
+<section class="card">
+  <% if (items.length) { %>
+  <div class="table-wrap">
+    <table class="table responsive">
+      <thead><tr><th>الطلب</th><th>العميل</th><th>طريقة الدفع</th><th>المبلغ</th><th>الحالة</th><th>التاريخ</th><th></th></tr></thead>
+      <tbody>
+        <% items.forEach((o) => { %>
+        <tr>
+          <td class="t-first">
+            <div class="t-main">
+              <%- include('../partials/mini-cover', { o }) %>
+              <div><b><%= o.product_title %></b><small><span class="code"><%= o.code %></span> · <%= o.plan_name %><%= o.quantity > 1 ? ' × ' + o.quantity : '' %></small></div>
+            </div>
+          </td>
+          <td data-label="العميل">
+            <div><b style="font-size:13.5px"><%= o.buyer_name %></b><br>
+            <% if (o.buyer_whatsapp) { %><a class="small" style="color:var(--whatsapp)" href="<%= waLink(o.buyer_whatsapp) %>" target="_blank" rel="noopener" dir="ltr"><i class="fa-brands fa-whatsapp"></i> <%= displayWhatsapp(o.buyer_whatsapp) %></a><% } %></div>
+          </td>
+          <td data-label="طريقة الدفع"><span class="small"><%= o.payment_method_name %></span><br><small class="muted" dir="ltr"><%= o.sender_account %></small></td>
+          <td data-label="المبلغ" class="nowrap"><b><%- orderPay(o) %></b></td>
+          <td data-label="الحالة"><%- include('../partials/status-badge', { status: o.status }) %></td>
+          <td data-label="التاريخ" class="nowrap"><small><%= fmtDate(o.created_at) %><br><span class="muted"><%= timeAgo(o.created_at) %></span></small></td>
+          <td><div class="t-actions"><a class="btn <%= o.status === 'under_review' ? 'btn-primary' : 'btn-soft' %> btn-sm" href="/seller/orders/<%= o.code %>"><%= o.status === 'under_review' ? 'مراجعة' : o.status === 'processing' ? 'تسليم' : 'عرض' %></a></div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else { %>
+  <div class="empty">
+    <span class="ic"><i class="fa-solid fa-receipt"></i></span>
+    <h3>لا توجد طلبات</h3>
+    <p><%= q ? 'لا توجد نتائج مطابقة لبحثك.' : 'ستظهر الطلبات هنا فور قيام العملاء بالشراء.' %></p>
+  </div>
+  <% } %>
+</section>
+<%- include('../partials/pagination', { pg }) %>
+
+<%- include('../partials/bottom') %>

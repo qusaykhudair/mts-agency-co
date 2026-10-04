@@ -1,0 +1,24 @@
+<%
+  const pCountry = locals.waCountry || 'PS';
+  const pNumber = locals.waNumber || '';
+%>
+<div class="field">
+  <label class="label" for="wa_number"><i class="fa-brands fa-whatsapp" style="color:var(--whatsapp)"></i> رقم الواتساب <span class="req">*</span></label>
+  <div class="phone-input" dir="ltr" data-phone-input data-initial="<%= pCountry %>">
+    <button class="pi-country" type="button" data-pi-toggle aria-label="اختيار رمز الدولة">
+      <span class="fi fi-<%= (pCountry === 'PS972' ? 'ps' : pCountry).toLowerCase() %>" data-pi-flag></span>
+      <span data-pi-dial>+970</span>
+      <i class="fa-solid fa-chevron-down"></i>
+    </button>
+    <input class="pi-number" id="wa_number" name="wa_number" type="tel" inputmode="tel" autocomplete="tel-national" placeholder="5X XXX XXXX" value="<%= pNumber %>" required data-pi-number>
+    <span class="pi-wa" aria-hidden="true"><i class="fa-brands fa-whatsapp"></i></span>
+    <input type="hidden" name="wa_country" value="<%= pCountry %>" data-pi-country>
+    <div class="pi-pop" data-pi-pop hidden>
+      <input class="pi-search" type="search" placeholder="ابحث باسم الدولة أو الرمز…" data-pi-search aria-label="بحث عن دولة">
+      <ul class="pi-list" data-pi-list role="listbox"></ul>
+    </div>
+  </div>
+  <span class="help">سنستخدمه للتواصل معك بخصوص طلباتك وتسليم الاشتراكات. اختر رمز الدولة ثم اكتب رقمك.</span>
+  <span class="pi-preview" data-pi-preview></span>
+  <span class="field-error" data-error-for="wa_number"></span>
+</div>

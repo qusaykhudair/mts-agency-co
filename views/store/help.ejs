@@ -1,0 +1,44 @@
+<%- include('../partials/top') %>
+
+<nav class="crumbs" aria-label="مسار التنقل"><a href="/store">الرئيسية</a><i class="fa-solid fa-chevron-left"></i><span>كيف أشتري؟</span></nav>
+
+<header class="cat-head">
+  <span class="logo"><i class="fa-solid fa-circle-question"></i></span>
+  <div class="grow">
+    <h1>كيف أشتري من <%= settings.store_name %>؟</h1>
+    <p>دليل سريع لطريقة الشراء والدفع واستلام الاشتراك، مع إجابات أكثر الأسئلة شيوعاً.</p>
+  </div>
+</header>
+
+<div class="steps">
+  <% steps.forEach((s) => { %>
+  <div class="step"><span class="ic"><i class="<%= s.icon %>"></i></span><h3><%= s.title %></h3><p><%= s.text %></p></div>
+  <% }) %>
+</div>
+
+<section class="panel section">
+  <div class="sec-head"><h2 class="sec-title"><span class="ic"><i class="fa-solid fa-wallet"></i></span> طرق الدفع المتاحة</h2></div>
+  <div class="pay-strip">
+    <% methods.forEach((m) => { %>
+    <div class="pay-chip">
+      <span class="pm-icon" style="--pm:<%= m.color %>"><% if (m.logo_url) { %><img src="<%= m.logo_url %>" alt=""><% } else { %><i class="<%= m.icon %>"></i><% } %></span>
+      <div><b><%= m.name %></b><small><%= m.subtitle %> · الدفع بـ<%= m.currency.name %></small></div>
+    </div>
+    <% }) %>
+  </div>
+  <div class="alert alert-brand mt-16"><i class="fa-solid fa-circle-info"></i><div>تظهر تفاصيل الحساب كاملة (رقم الحساب، الآيبان، رقم المحفظة واسم المستفيد) والمبلغ المطلوب تحويله بعملة الطريقة المختارة في صفحة إتمام الطلب بعد تسجيل الدخول.</div></div>
+</section>
+
+<section class="section">
+  <div class="sec-head"><h2 class="sec-title"><span class="ic"><i class="fa-solid fa-comments"></i></span> الأسئلة الشائعة</h2></div>
+  <div class="faq">
+    <% faq.forEach((f, i) => { %><details<%= i === 0 ? ' open' : '' %>><summary><%= f.q %></summary><div class="ans"><%= f.a %></div></details><% }) %>
+  </div>
+</section>
+
+<section class="welcome section">
+  <div><h2 style="color:#fff;font-size:20px">ما زال لديك سؤال؟</h2><p>فريق الدعم جاهز لمساعدتك عبر واتساب.</p></div>
+  <a class="btn btn-whatsapp btn-lg" href="<%= waLink(storeWa, 'مرحباً MTS Store، لدي سؤال') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> راسلنا الآن</a>
+</section>
+
+<%- include('../partials/bottom') %>

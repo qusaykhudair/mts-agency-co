@@ -1,0 +1,23 @@
+<%
+  const s = order.status;
+  const states = {
+    under_review: ['done', 'current', '', ''],
+    payment_rejected: ['done', 'failed', '', ''],
+    processing: ['done', 'done', 'current', ''],
+    delivered: ['done', 'done', 'done', 'done'],
+    completed: ['done', 'done', 'done', 'done'],
+  }[s];
+  const labels = [
+    ['fa-solid fa-paper-plane', 'إرسال الطلب'],
+    [s === 'payment_rejected' ? 'fa-solid fa-xmark' : 'fa-solid fa-magnifying-glass-dollar', s === 'payment_rejected' ? 'الدفع مرفوض' : 'مراجعة الدفع'],
+    ['fa-solid fa-gears', 'تجهيز الاشتراك'],
+    ['fa-solid fa-gift', 'التسليم'],
+  ];
+%>
+<% if (states) { %>
+<div class="stepper" aria-label="مراحل الطلب">
+  <% labels.forEach(([icon, label], i) => { %>
+  <div class="st <%= states[i] %>"><span class="dot"><i class="<%= states[i] === 'done' ? 'fa-solid fa-check' : icon %>"></i></span><span><%= label %></span></div>
+  <% }) %>
+</div>
+<% } %>

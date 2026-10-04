@@ -1,0 +1,7 @@
+<a class="ptile" href="/store/platform/<%= pl.slug %>">
+  <span class="ptile-img" style="--c1:<%= pl.color1 %>;--c2:<%= pl.color2 %>">
+    <% if (pl.logo_url) { %><img src="<%= pl.logo_url %>" alt="<%= pl.name %>" loading="lazy"><% } %>
+  </span>
+  <span class="ptile-name"><%= pl.name %></span>
+  <% if (locals.showCount) { %><small><%= pl.product_count ? pl.product_count + ' منتج' : 'قريباً' %></small><% } %>
+</a>

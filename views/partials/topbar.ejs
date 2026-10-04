@@ -1,0 +1,93 @@
+<header class="topbar" data-topbar>
+  <% if (navMode !== 'bare') { %>
+  <button class="icon-btn sb-toggle" type="button" data-sidebar-open aria-label="فتح القائمة"><i class="fa-solid fa-bars"></i></button>
+  <% } %>
+  <a class="tb-brand" href="<%= navMode === 'seller' ? '/seller' : '/store' %>">
+    <img src="/static/img/logo-96.png" alt="MTS">
+    <span>MTS <em><%= navMode === 'seller' ? 'Seller' : 'Store' %></em></span>
+  </a>
+
+  <% if (navMode === 'store' || navMode === 'bare') { %>
+  <form class="tb-search" action="/store/products" method="get" role="search" data-search>
+    <i class="fa-solid fa-magnifying-glass"></i>
+    <input type="search" name="q" value="<%= query.q || '' %>" placeholder="ابحث عن اشتراك أو منصة… مثل ChatGPT أو Canva" autocomplete="off" aria-label="بحث في المتجر" data-search-input>
+    <div class="search-pop" data-search-pop hidden></div>
+  </form>
+  <% } else { %>
+  <div class="grow"></div>
+  <% } %>
+
+  <div class="tb-actions">
+    <% if (navMode === 'store' || navMode === 'bare') { %>
+    <button class="icon-btn tb-search-toggle" type="button" data-search-toggle aria-label="بحث"><i class="fa-solid fa-magnifying-glass"></i></button>
+    <% } %>
+
+    <% if (currencies.length > 1 && navMode !== 'seller') { %>
+    <div class="dd" data-dd>
+      <button class="cur-btn" type="button" data-dd-toggle aria-label="عملة العرض" title="عملة العرض">
+        <span><%= displayCurrency.symbol %></span><span class="hide-sm"><%= displayCurrency.code %></span>
+        <i class="fa-solid fa-chevron-down" style="font-size:9px"></i>
+      </button>
+      <div class="dd-menu">
+        <% currencies.forEach((c) => { %>
+        <a class="dd-item<%= c.code === displayCurrency.code ? ' is-active' : '' %>" href="/store/currency/<%= c.code %>?next=<%= encodeURIComponent(url) %>" rel="nofollow">
+          <b style="width:28px;text-align:center"><%= c.symbol %></b><span><%= c.name %></span>
+        </a>
+        <% }) %>
+      </div>
+    </div>
+    <% } %>
+
+    <button class="icon-btn hide-sm" type="button" data-theme-toggle aria-label="تبديل الوضع الليلي" title="الوضع الليلي/النهاري">
+      <i class="fa-solid fa-moon" data-theme-icon></i>
+    </button>
+
+    <% if (user) { %>
+    <div class="dd" data-dd data-notif>
+      <button class="icon-btn" type="button" data-dd-toggle aria-label="الإشعارات">
+        <i class="fa-regular fa-bell"></i>
+        <span class="dot" data-notif-count<%= counts.unread ? '' : ' hidden' %>><%= counts.unread > 99 ? '99+' : counts.unread %></span>
+      </button>
+      <div class="dd-menu notif-menu">
+        <div class="dd-head">
+          <b>الإشعارات</b>
+          <button class="btn btn-ghost btn-xs" type="button" data-notif-readall>تحديد الكل كمقروء</button>
+        </div>
+        <div class="notif-list" data-notif-list>
+          <div class="notif"><div class="skeleton" style="width:36px;height:36px"></div><div class="grow"><div class="skeleton" style="height:12px;width:70%"></div><div class="skeleton mt-8" style="height:10px;width:45%"></div></div></div>
+        </div>
+        <a class="notif-foot" href="/account/notifications">عرض جميع الإشعارات</a>
+      </div>
+    </div>
+
+    <div class="dd" data-dd>
+      <button class="user-btn" type="button" data-dd-toggle aria-label="قائمة الحساب">
+        <% if (user.avatar_url) { %><img class="avatar" src="<%= user.avatar_url %>" alt="" referrerpolicy="no-referrer"><% } else { %><span class="avatar"><%= initials(user.name) %></span><% } %>
+        <span class="name"><%= String(user.name).split(' ')[0] %></span>
+        <i class="fa-solid fa-chevron-down" style="font-size:9px;color:var(--text-3)"></i>
+      </button>
+      <div class="dd-menu">
+        <div class="dd-head">
+          <% if (user.avatar_url) { %><img class="avatar" src="<%= user.avatar_url %>" alt="" referrerpolicy="no-referrer"><% } else { %><span class="avatar"><%= initials(user.name) %></span><% } %>
+          <div class="grow"><b class="ellipsis"><%= user.name %></b><small class="ellipsis" style="display:block"><%= user.email %></small></div>
+        </div>
+        <% if (isStaff) { %>
+        <a class="dd-item" href="/seller"><i class="fa-solid fa-gauge-high"></i> لوحة البائع<% if (counts.pendingOrders) { %> <span class="badge badge-danger" style="margin-inline-start:auto"><%= counts.pendingOrders %></span><% } %></a>
+        <% } %>
+        <a class="dd-item" href="/account"><i class="fa-solid fa-house-user"></i> لوحة حسابي</a>
+        <a class="dd-item" href="/account/orders"><i class="fa-solid fa-bag-shopping"></i> طلباتي</a>
+        <a class="dd-item" href="/account/subscriptions"><i class="fa-solid fa-id-card"></i> اشتراكاتي</a>
+        <a class="dd-item" href="/account/profile"><i class="fa-solid fa-user-gear"></i> الملف الشخصي</a>
+        <button class="dd-item" type="button" data-theme-toggle><i class="fa-solid fa-circle-half-stroke"></i> الوضع الليلي/النهاري</button>
+        <div class="dd-sep"></div>
+        <form method="post" action="/logout">
+          <button class="dd-item danger" type="submit"><i class="fa-solid fa-arrow-right-from-bracket"></i> تسجيل الخروج</button>
+        </form>
+      </div>
+    </div>
+    <% } else { %>
+    <a class="btn btn-ghost btn-sm hide-sm" href="/login?next=<%= encodeURIComponent(url) %>">تسجيل الدخول</a>
+    <a class="btn btn-primary btn-sm" href="/register?next=<%= encodeURIComponent(url) %>"><i class="fa-solid fa-user-plus"></i> إنشاء حساب</a>
+    <% } %>
+  </div>
+</header>

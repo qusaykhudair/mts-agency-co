@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl"<% if (theme) { %> data-theme="<%= theme %>"<% } %>>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title><%= locals.fullTitle || (locals.pageTitle ? pageTitle + ' | ' + settings.store_name : settings.store_name + ' — ' + settings.store_tagline) %></title>
+  <meta name="description" content="<%= locals.pageDesc || settings.hero_subtitle %>">
+  <meta name="theme-color" content="#0a1442">
+  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+  <link rel="apple-touch-icon" href="/static/img/logo-256.png">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="<%= settings.store_name %>">
+  <meta property="og:title" content="<%= locals.fullTitle || locals.pageTitle || settings.store_name %>">
+  <meta property="og:description" content="<%= locals.pageDesc || settings.hero_subtitle %>">
+  <% if (locals.noindex) { %><meta name="robots" content="noindex, nofollow"><% } %>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <% if (locals.needFlags) { %>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/flag-icons/7.5.0/css/flag-icons.min.css" integrity="sha512-+WVTaUIzUw5LFzqIqXOT3JVAc5SrMuvHm230I9QAZa6s+QRk8NDPswbHo2miIZj3yiFyV9lAgzO1wVrjdoO4tw==" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <% } %>
+  <link rel="stylesheet" href="<%= asset('/static/css/store.css') %>">
+</head>

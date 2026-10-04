@@ -1,0 +1,112 @@
+<%- include('../partials/top') %>
+<%
+  const m = method || { type: 'bank', icon: 'fa-solid fa-building-columns', color: '#2457e8', is_active: 1, sort_order: 0, details: [], sender_account_label: 'رقم الحساب الذي حوّلت منه' };
+  const rows = m.details.length ? m.details : [{ label: 'رقم الحساب', value: '', copy: true }, { label: 'اسم صاحب الحساب', value: '', copy: true }];
+%>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <a href="/seller">لوحة البائع</a><i class="fa-solid fa-chevron-left"></i><a href="/seller/payment-methods">طرق الدفع</a><i class="fa-solid fa-chevron-left"></i><span><%= method ? method.name : 'جديدة' %></span>
+</nav>
+<div class="page-head"><div><h1><%= method ? 'تعديل: ' + method.name : 'إضافة طريقة دفع' %></h1><p>هذه البيانات تظهر للعميل بالترتيب نفسه مع زر نسخ للحقول المحددة.</p></div></div>
+
+<form method="post" action="<%= method ? '/seller/payment-methods/' + method.id : '/seller/payment-methods' %>" enctype="multipart/form-data" data-ajax novalidate>
+  <div class="dash-grid" style="margin-top:0">
+    <div class="stack">
+      <section class="card card-body form-grid cols-2">
+        <div class="field">
+          <label class="label" for="name">اسم طريقة الدفع <span class="req">*</span></label>
+          <input class="input" id="name" name="name" value="<%= m.name || '' %>" maxlength="60" required placeholder="مثال: بنك فلسطين">
+          <span class="field-error"></span>
+        </div>
+        <div class="field">
+          <label class="label" for="subtitle">وصف قصير</label>
+          <input class="input" id="subtitle" name="subtitle" value="<%= m.subtitle || '' %>" maxlength="100" placeholder="مثال: تحويل بنكي مباشر">
+        </div>
+        <div class="field">
+          <label class="label" for="type">النوع</label>
+          <select class="select" id="type" name="type">
+            <option value="bank"<%= m.type === 'bank' ? ' selected' : '' %>>حساب بنكي</option>
+            <option value="wallet"<%= m.type === 'wallet' ? ' selected' : '' %>>محفظة إلكترونية</option>
+          </select>
+        </div>
+        <div class="field">
+          <label class="label" for="currency_code">عملة الدفع <span class="req">*</span></label>
+          <select class="select" id="currency_code" name="currency_code" required>
+            <% currencies.forEach((c) => { %><option value="<%= c.code %>"<%= m.currency_code === c.code ? ' selected' : '' %>><%= c.name %> (<%= c.symbol %>)</option><% }) %>
+          </select>
+          <span class="help">يُحسب المبلغ المطلوب تحويله بهذه العملة حسب سعر الصرف.</span>
+          <span class="field-error"></span>
+        </div>
+        <div class="field span-2">
+          <label class="label" for="sender_account_label">عنوان حقل «الحساب المحوَّل منه» للعميل</label>
+          <input class="input" id="sender_account_label" name="sender_account_label" value="<%= m.sender_account_label %>" maxlength="80">
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head"><h2><i class="fa-solid fa-list"></i> تفاصيل الحساب</h2></div>
+        <div class="card-body stack">
+          <div class="field" data-field="details"><span class="field-error"></span></div>
+          <div class="repeater" data-repeater>
+            <div class="repeater" data-rep-list>
+              <% rows.forEach((d, i) => { %>
+              <div class="rep-row pair-row" data-rep-row>
+                <div><span class="mini-label">العنوان</span><input class="input" name="details[<%= i %>][label]" value="<%= d.label %>" maxlength="60" data-rep-key="label"></div>
+                <div><span class="mini-label">القيمة</span><input class="input" name="details[<%= i %>][value]" value="<%= d.value %>" maxlength="200" dir="auto" data-rep-key="value"></div>
+                <label class="switch"><input type="checkbox" name="details[<%= i %>][copy]" value="1" data-rep-key="copy"<%= d.copy ? ' checked' : '' %>><span class="track"></span> زر نسخ</label>
+                <button class="btn btn-ghost btn-icon btn-sm rep-remove" type="button" data-rep-remove aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
+              <% }) %>
+            </div>
+            <template data-rep-template>
+              <div class="rep-row pair-row" data-rep-row>
+                <div><span class="mini-label">العنوان</span><input class="input" name="details[__i__][label]" maxlength="60" data-rep-key="label"></div>
+                <div><span class="mini-label">القيمة</span><input class="input" name="details[__i__][value]" maxlength="200" dir="auto" data-rep-key="value"></div>
+                <label class="switch"><input type="checkbox" name="details[__i__][copy]" value="1" checked data-rep-key="copy"><span class="track"></span> زر نسخ</label>
+                <button class="btn btn-ghost btn-icon btn-sm rep-remove" type="button" data-rep-remove aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button>
+              </div>
+            </template>
+            <button class="btn btn-soft btn-sm" type="button" data-rep-add style="justify-self:start"><i class="fa-solid fa-plus"></i> إضافة حقل</button>
+          </div>
+          <div class="field">
+            <label class="label" for="instructions">تعليمات التحويل <span class="opt">(خطوة في كل سطر)</span></label>
+            <textarea class="textarea" id="instructions" name="instructions" rows="4"><%= m.instructions || '' %></textarea>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card card-body stack">
+        <h3 class="form-section-title"><i class="fa-solid fa-palette"></i> المظهر</h3>
+        <div class="field">
+          <span class="label">الأيقونة</span>
+          <div class="flex flex-wrap gap-8">
+            <% icons.forEach(([cls, label]) => { %>
+            <label class="chip" style="cursor:pointer;height:38px" title="<%= label %>"><input type="radio" name="icon" value="<%= cls %>"<%= m.icon === cls ? ' checked' : '' %> style="accent-color:var(--brand)"> <i class="<%= cls %>"></i></label>
+            <% }) %>
+          </div>
+        </div>
+        <div class="field">
+          <span class="label">اللون</span>
+          <div class="color-input"><input type="color" name="color" value="<%= m.color %>"><span class="help">لون الأيقونة والبطاقة</span></div>
+        </div>
+        <div class="img-uploader">
+          <span class="thumb" data-img-preview><% if (m.logo_url) { %><img src="<%= m.logo_url %>" alt=""><% } else { %><i class="<%= m.icon %>" style="font-size:24px;color:<%= m.color %>"></i><% } %></span>
+          <div class="stack-sm grow">
+            <input class="input" type="file" name="logo" accept="image/jpeg,image/png,image/webp,image/gif" data-img-input style="padding-top:10px">
+            <span class="help">شعار رسمي اختياري (يحل محل الأيقونة).</span>
+            <% if (m.logo_url) { %><label class="check small"><input type="checkbox" name="remove_logo" value="1"> حذف الشعار</label><% } %>
+          </div>
+        </div>
+      </section>
+      <section class="card card-body stack">
+        <div class="field"><label class="label" for="sort_order">الترتيب</label><input class="input" id="sort_order" type="number" lang="en" name="sort_order" value="<%= m.sort_order %>" min="0"></div>
+        <label class="switch"><input type="checkbox" name="is_active" value="1"<%= m.is_active ? ' checked' : '' %>><span class="track"></span> مفعّلة للعملاء</label>
+        <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+      </section>
+    </div>
+  </div>
+</form>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/seller.js'] }) %>

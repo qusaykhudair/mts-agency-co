@@ -1,0 +1,75 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>المنتجات</h1><p>أضف الاشتراكات وحدّد الباقات والأسعار والخصومات.</p></div>
+  <div class="actions"><a class="btn btn-primary" href="/seller/products/new"><i class="fa-solid fa-plus"></i> منتج جديد</a></div>
+</div>
+
+<form class="filters" method="get">
+  <div class="input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input class="input" type="search" name="q" value="<%= q %>" placeholder="ابحث باسم المنتج أو المنصة…"></div>
+  <select class="select" name="category" data-autosubmit-field aria-label="القسم">
+    <option value="">كل الأقسام</option>
+    <% categories.forEach((c) => { %><option value="<%= c.id %>"<%= categoryId === c.id ? ' selected' : '' %>><%= c.name %></option><% }) %>
+  </select>
+  <select class="select" name="status" data-autosubmit-field aria-label="الحالة">
+    <option value="">كل الحالات</option>
+    <option value="active"<%= status === 'active' ? ' selected' : '' %>>معروض</option>
+    <option value="inactive"<%= status === 'inactive' ? ' selected' : '' %>>مخفي</option>
+  </select>
+  <button class="btn btn-soft" type="submit"><i class="fa-solid fa-filter"></i> بحث</button>
+</form>
+
+<section class="card">
+  <% if (items.length) { %>
+  <div class="table-wrap">
+    <table class="table responsive">
+      <thead><tr><th>المنتج</th><th>الباقات والأسعار</th><th>المبيعات</th><th>الحالة</th><th></th></tr></thead>
+      <tbody>
+        <% items.forEach((p) => { const prices = p.plans.map((pl) => pl.price); const disc = Math.max(0, ...p.plans.map((pl) => pl.discount || 0)); %>
+        <tr>
+          <td class="t-first">
+            <div class="t-main">
+              <%- include('../partials/mini-cover', { o: { color1: p.color1, color2: p.color2, product_cover: p.cover_url, platform_logo: p.platform_logo } }) %>
+              <div>
+                <b><%= p.title %> <% if (p.is_featured) { %><i class="fa-solid fa-star" style="color:var(--gold);font-size:11px" title="مميز"></i><% } %></b>
+                <small><%= p.platform_name || 'بدون منصة' %> · <%= p.category_name || '—' %><% if (isAdmin && p.seller_store) { %> · <%= p.seller_store %><% } %></small>
+              </div>
+            </div>
+          </td>
+          <td data-label="الباقات">
+            <span class="small"><%= p.plans.length %> باقة</span>
+            <% if (prices.length) { %><br><b class="small"><%- moneyBase(Math.min(...prices)) %><%= prices.length > 1 ? ' – ' : '' %><% if (prices.length > 1) { %><%- moneyBase(Math.max(...prices)) %><% } %></b><% } %>
+            <% if (disc) { %> <span class="badge badge-sale" style="height:20px" dir="ltr">-<%= disc %>%</span><% } %>
+          </td>
+          <td data-label="المبيعات"><b><%= p.sales_count %></b> <small class="muted">· <%= p.views %> مشاهدة</small><% if (p.pending_orders) { %><br><a class="badge badge-warning" href="/seller/orders?status=under_review&q=<%= encodeURIComponent(p.title) %>"><%= p.pending_orders %> بانتظار المراجعة</a><% } %></td>
+          <td data-label="الحالة">
+            <form method="post" action="/seller/products/<%= p.id %>/toggle" data-ajax>
+              <button class="badge <%= p.is_active ? 'badge-success' : 'badge-muted' %>" type="submit" title="اضغط للتبديل" style="cursor:pointer;border:0"><i class="fa-solid <%= p.is_active ? 'fa-eye' : 'fa-eye-slash' %>"></i> <%= p.is_active ? 'معروض' : 'مخفي' %></button>
+            </form>
+          </td>
+          <td>
+            <div class="t-actions">
+              <a class="btn btn-ghost btn-icon btn-sm" href="/store/product/<%= p.slug %>" target="_blank" title="عرض في المتجر" aria-label="عرض في المتجر"><i class="fa-solid fa-up-right-from-square"></i></a>
+              <a class="btn btn-soft btn-sm" href="/seller/products/<%= p.id %>/edit"><i class="fa-solid fa-pen"></i> تعديل</a>
+              <form method="post" action="/seller/products/<%= p.id %>/delete" data-ajax data-confirm="حذف المنتج «<%= p.title %>»؟ إذا كان مرتبطاً بطلبات سيتم إخفاؤه فقط." data-confirm-danger>
+                <button class="btn btn-danger-soft btn-icon btn-sm" type="submit" aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else { %>
+  <div class="empty">
+    <span class="ic"><i class="fa-solid fa-boxes-stacked"></i></span>
+    <h3>لا توجد منتجات</h3>
+    <p>ابدأ بإضافة أول اشتراك مع باقاته وأسعاره ليظهر في المتجر.</p>
+    <a class="btn btn-primary" href="/seller/products/new"><i class="fa-solid fa-plus"></i> إضافة منتج</a>
+  </div>
+  <% } %>
+</section>
+<%- include('../partials/pagination', { pg }) %>
+
+<%- include('../partials/bottom') %>

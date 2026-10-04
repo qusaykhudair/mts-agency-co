@@ -1,0 +1,28 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>طلباتي</h1><p>تابع حالة كل طلب واطّلع على بيانات اشتراكاتك المستلمة.</p></div>
+  <div class="actions"><a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-plus"></i> طلب جديد</a></div>
+</div>
+
+<nav class="tabs" aria-label="تصفية الطلبات">
+  <% tabs.forEach((t) => { %>
+  <a class="tab<%= t.key === tab ? ' is-active' : '' %>" href="/account/orders<%= t.key ? '?tab=' + t.key : '' %>"><%= t.label %> <span class="n"><%= t.count %></span></a>
+  <% }) %>
+</nav>
+
+<% if (items.length) { %>
+  <div class="olist"><% items.forEach((o) => { %><%- include('../partials/order-card', { o }) %><% }) %></div>
+  <%- include('../partials/pagination', { pg }) %>
+<% } else { %>
+  <div class="panel">
+    <div class="empty">
+      <span class="ic"><i class="fa-solid fa-receipt"></i></span>
+      <h3>لا توجد طلبات في هذا القسم</h3>
+      <p>عند إتمام أي طلب سيظهر هنا مع حالته وتفاصيله.</p>
+      <a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-grip"></i> تصفّح الاشتراكات</a>
+    </div>
+  </div>
+<% } %>
+
+<%- include('../partials/bottom') %>

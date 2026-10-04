@@ -1,0 +1,28 @@
+<%- include('../partials/top') %>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <a href="/store">الرئيسية</a><i class="fa-solid fa-chevron-left"></i><span>المنصات</span>
+</nav>
+
+<header class="cat-head">
+  <span class="logo"><i class="fa-solid fa-shapes"></i></span>
+  <div class="grow">
+    <h1>جميع المنصات</h1>
+    <p>اختر المنصة التي تريد الاشتراك بها لعرض جميع الباقات المتوفرة لها.</p>
+    <div class="meta"><span class="badge badge-brand"><i class="fa-solid fa-shapes"></i> <%= totalPlatforms %> منصة</span></div>
+  </div>
+</header>
+
+<% groups.forEach((g) => { %>
+<section class="panel section" style="margin-top:16px">
+  <div class="sec-head">
+    <h2 class="sec-title"><span class="ic"><i class="<%= g.icon %>"></i></span> <%= g.name %></h2>
+    <% if (g.slug) { %><a class="sec-link" href="/store/category/<%= g.slug %>">منتجات القسم <i class="fa-solid fa-arrow-left"></i></a><% } %>
+  </div>
+  <div class="ptiles">
+    <% g.platforms.forEach((pl) => { %><%- include('../partials/platform-tile', { pl, showCount: true }) %><% }) %>
+  </div>
+</section>
+<% }) %>
+
+<%- include('../partials/bottom') %>

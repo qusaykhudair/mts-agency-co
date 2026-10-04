@@ -1,0 +1,41 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>طلبات الانضمام كبائع</h1><p>عند الموافقة يحصل المستخدم على لوحة بائع لإدارة منتجاته وطلباتها.</p></div>
+</div>
+
+<% if (items.length) { %>
+<div class="grid-2">
+  <% items.forEach((a) => { %>
+  <section class="card">
+    <div class="card-head">
+      <div><b style="display:block"><%= a.store_name %></b><small class="muted"><%= a.name %> · <%= fmtDate(a.created_at) %></small></div>
+      <span class="badge <%= a.status === 'pending' ? 'badge-warning' : a.status === 'approved' ? 'badge-success' : 'badge-danger' %>"><%= a.status === 'pending' ? 'بانتظار المراجعة' : a.status === 'approved' ? 'مقبول' : 'مرفوض' %></span>
+    </div>
+    <div class="card-body stack-sm">
+      <p class="pre-line text-2"><%= a.about %></p>
+      <div class="kv">
+        <div class="kv-row"><span>البريد</span><span dir="ltr"><%= a.email %></span></div>
+        <div class="kv-row"><span>واتساب</span><span><% if (a.wa_e164) { %><a style="color:var(--whatsapp)" href="<%= waLink(a.wa_e164) %>" target="_blank" rel="noopener" dir="ltr"><%= displayWhatsapp(a.wa_e164) %></a><% } else { %>—<% } %></span></div>
+        <% if (a.admin_note) { %><div class="kv-row"><span>ملاحظة</span><span><%= a.admin_note %></span></div><% } %>
+      </div>
+    </div>
+    <% if (a.status === 'pending') { %>
+    <div class="card-foot flex gap-8 flex-wrap">
+      <form method="post" action="/seller/applications/<%= a.id %>/approve" data-ajax data-confirm="الموافقة ومنح «<%= a.name %>» صلاحيات البائع؟">
+        <button class="btn btn-success btn-sm" type="submit"><i class="fa-solid fa-check"></i> موافقة</button>
+      </form>
+      <form method="post" action="/seller/applications/<%= a.id %>/reject" data-ajax data-confirm="رفض هذا الطلب؟" data-confirm-danger data-prompt="سبب الرفض (اختياري — يظهر للمستخدم)" data-prompt-name="note" data-prompt-optional>
+        <button class="btn btn-danger-soft btn-sm" type="submit"><i class="fa-solid fa-xmark"></i> رفض</button>
+      </form>
+      <a class="btn btn-ghost btn-sm" href="/seller/users/<%= a.user_id %>">ملف المستخدم</a>
+    </div>
+    <% } %>
+  </section>
+  <% }) %>
+</div>
+<% } else { %>
+<section class="card"><div class="empty"><span class="ic"><i class="fa-solid fa-store"></i></span><h3>لا توجد طلبات</h3><p>ستظهر هنا طلبات المستخدمين الراغبين بالبيع في المتجر.</p></div></section>
+<% } %>
+
+<%- include('../partials/bottom') %>

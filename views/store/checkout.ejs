@@ -1,0 +1,165 @@
+<%- include('../partials/top') %>
+<% const isLatin = (v) => /^[\x00-\x7F]+$/.test(String(v)); %>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <a href="/store">الرئيسية</a><i class="fa-solid fa-chevron-left"></i>
+  <a href="/store/product/<%= product.slug %>"><%= product.title %></a><i class="fa-solid fa-chevron-left"></i>
+  <span>إتمام الطلب</span>
+</nav>
+
+<div class="co-steps" data-co-steps>
+  <span class="co-step is-done"><b><i class="fa-solid fa-check"></i></b> اختيار الباقة</span>
+  <span class="co-step is-active" data-co-step="pay"><b>2</b> طريقة الدفع والتحويل</span>
+  <span class="co-step" data-co-step="proof"><b>3</b> إرفاق الإيصال</span>
+  <span class="co-step" data-co-step="done"><b>4</b> استلام الاشتراك</span>
+</div>
+
+<form class="checkout" method="post" action="/store/checkout" enctype="multipart/form-data" data-ajax data-checkout novalidate>
+  <input type="hidden" name="product_id" value="<%= product.id %>">
+  <input type="hidden" name="plan_id" value="<%= plan.id %>">
+  <input type="hidden" name="quantity" value="<%= quantity %>">
+
+  <div>
+    <section class="card co-block">
+      <h2 class="co-title"><span class="n">1</span> اختر طريقة الدفع</h2>
+      <p class="co-sub">اختر الطريقة التي ستحوّل من خلالها، وستظهر لك تفاصيل الحساب والمبلغ المطلوب تحويله بدقة.</p>
+
+      <% if (!methods.length) { %>
+        <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i><div>لا توجد طرق دفع مفعّلة حالياً. تواصل معنا عبر واتساب لإتمام طلبك.</div></div>
+      <% } %>
+
+      <div class="field">
+        <div class="pm-grid" role="radiogroup" aria-label="طرق الدفع">
+          <% methods.forEach((m) => { %>
+          <label class="pm-card">
+            <input type="radio" name="payment_method_id" value="<%= m.id %>" data-pm-radio data-sender-label="<%= m.sender_account_label %>" data-pay-text="<%= m.amountText %>">
+            <span class="pm-icon" style="--pm:<%= m.color %>"><% if (m.logo_url) { %><img src="<%= m.logo_url %>" alt=""><% } else { %><i class="<%= m.icon %>"></i><% } %></span>
+            <span class="pm-text"><b><%= m.name %></b><small><%= m.subtitle %></small></span>
+            <span class="pm-amount"><%- moneyMajor(m.amount, m.currency.code) %></span>
+            <i class="pm-check fa-solid fa-check"></i>
+          </label>
+          <% }) %>
+        </div>
+        <span class="field-error"></span>
+      </div>
+
+      <% methods.forEach((m) => { %>
+      <div class="pm-details" data-pm-details="<%= m.id %>" hidden>
+        <div class="pay-amount">
+          <div><span>المبلغ المطلوب تحويله</span><small>بعملة <%= m.currency.name %> عبر <%= m.name %></small></div>
+          <div class="flex gap-8">
+            <b><%- moneyMajor(m.amount, m.currency.code) %></b>
+            <button class="copy-btn" type="button" data-copy="<%= m.amount %>" aria-label="نسخ المبلغ"><i class="fa-regular fa-copy"></i></button>
+          </div>
+        </div>
+        <div class="copy-list">
+          <% m.details.forEach((d) => { %>
+          <div class="copy-row">
+            <span class="k"><%= d.label %></span>
+            <span class="v<%= isLatin(d.value) ? ' ltr' : '' %>"<%= isLatin(d.value) ? ' dir=ltr' : '' %>><%= d.value %></span>
+            <% if (d.copy) { %><button class="copy-btn" type="button" data-copy="<%= d.value %>"><i class="fa-regular fa-copy"></i> نسخ</button><% } %>
+          </div>
+          <% }) %>
+        </div>
+        <% if (m.steps.length) { %>
+        <ol class="pm-steps">
+          <% m.steps.forEach((s) => { %><li><%= s %></li><% }) %>
+        </ol>
+        <% } %>
+      </div>
+      <% }) %>
+    </section>
+
+    <section class="card co-block" data-proof-block>
+      <h2 class="co-title"><span class="n">2</span> بيانات التحويل وإيصال الدفع</h2>
+      <p class="co-sub">بعد إتمام التحويل أدخل البيانات التالية وأرفق صورة واضحة للإيصال ليقوم فريقنا بالتحقق منها.</p>
+      <div class="form-grid cols-2">
+        <div class="field">
+          <label class="label" for="sender_name">اسم المحوِّل <span class="req">*</span></label>
+          <div class="input-wrap"><i class="fa-solid fa-user"></i><input class="input" id="sender_name" name="sender_name" value="<%= user.name %>" maxlength="100" required autocomplete="name"></div>
+          <span class="help">الاسم كما يظهر في الحساب أو المحفظة التي حوّلت منها</span>
+          <span class="field-error"></span>
+        </div>
+        <div class="field">
+          <label class="label" for="sender_account"><span data-sender-label>رقم الحساب الذي حوّلت منه</span> <span class="req">*</span></label>
+          <div class="input-wrap"><i class="fa-solid fa-hashtag"></i><input class="input" id="sender_account" name="sender_account" maxlength="60" required dir="ltr" style="text-align:right" inputmode="text" placeholder="مثال: 0599123456"></div>
+          <span class="help">رقم الحساب البنكي أو رقم المحفظة المستخدم في التحويل</span>
+          <span class="field-error"></span>
+        </div>
+
+        <% if (product.buyer_input_label) { %>
+        <div class="field span-2">
+          <label class="label" for="buyer_input"><%= product.buyer_input_label %> <span class="req">*</span></label>
+          <div class="input-wrap"><i class="fa-solid fa-at"></i><input class="input" id="buyer_input" name="buyer_input" maxlength="200" required dir="ltr" style="text-align:right" placeholder="<%= product.buyer_input_placeholder || '' %>"></div>
+          <span class="help">نستخدم هذه البيانات لتفعيل اشتراكك فقط.</span>
+          <span class="field-error"></span>
+        </div>
+        <% } %>
+
+        <div class="field span-2">
+          <span class="label">صورة إيصال التحويل <span class="req">*</span></span>
+          <div class="uploader" data-uploader>
+            <input type="file" name="receipt" accept="image/jpeg,image/png,image/webp,image/gif,image/heic,image/heif,application/pdf" required aria-label="رفع صورة الإيصال">
+            <div class="up-empty" data-up-empty>
+              <span class="ic"><i class="fa-solid fa-cloud-arrow-up"></i></span>
+              <b>اضغط لاختيار صورة الإيصال أو اسحبها إلى هنا</b>
+              <small>JPG أو PNG أو WEBP أو PDF — حتى 8 ميجابايت</small>
+            </div>
+            <div class="up-preview" data-up-preview hidden>
+              <img data-up-img alt="معاينة الإيصال" hidden>
+              <span class="up-file" data-up-file hidden><i class="fa-solid fa-file-pdf"></i></span>
+              <div class="grow">
+                <b data-up-name></b>
+                <small data-up-size></small>
+                <div><button class="btn btn-soft btn-xs up-change" type="button" data-up-clear><i class="fa-solid fa-rotate"></i> تغيير الملف</button></div>
+              </div>
+            </div>
+          </div>
+          <span class="field-error"></span>
+        </div>
+
+        <div class="field span-2">
+          <label class="label" for="buyer_note">ملاحظات إضافية <span class="opt">(اختياري)</span></label>
+          <textarea class="textarea" id="buyer_note" name="buyer_note" rows="3" maxlength="500" placeholder="أي معلومة تساعدنا في تجهيز طلبك…"></textarea>
+        </div>
+
+        <div class="field span-2">
+          <label class="check"><input type="checkbox" name="agree" value="1" required>
+            <span>أؤكد أنني حوّلت المبلغ المطلوب وأن بيانات التحويل والإيصال صحيحة، وأوافق على <a class="link" href="/store/terms" target="_blank">الشروط والأحكام</a>.</span>
+          </label>
+          <span class="field-error"></span>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <aside class="checkout-side stack">
+    <div class="card card-body">
+      <h3 class="form-section-title" style="margin-bottom:14px"><i class="fa-solid fa-receipt"></i> ملخص الطلب</h3>
+      <div class="summary-item">
+        <%- include('../partials/mini-cover', { o: { color1: product.color1, color2: product.color2, product_cover: product.cover_url, platform_logo: product.platform_logo } }) %>
+        <div class="grow"><b><%= product.title %></b><small><%= product.platform_name %></small></div>
+      </div>
+      <div class="sum-lines">
+        <div class="sum-line"><span>الباقة</span><b><%= plan.name %></b></div>
+        <div class="sum-line"><span>المدة</span><b><%= durationLabel(plan.duration_days) %></b></div>
+        <div class="sum-line"><span>سعر الوحدة</span><b><%- money(plan.price) %></b></div>
+        <div class="sum-line"><span>الكمية</span><b>× <%= quantity %></b></div>
+        <% if (plan.old_price) { %>
+        <div class="sum-line"><span>وفّرت</span><b class="text-success"><%- money((plan.old_price - plan.price) * quantity) %></b></div>
+        <% } %>
+        <div class="sum-line total"><span>الإجمالي</span><b><%- money(total) %></b></div>
+        <div class="sum-line" data-pay-line hidden><span>المطلوب تحويله</span><b class="text-brand" data-pay-amount></b></div>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block mt-16" type="submit"<%= methods.length ? '' : ' disabled' %>><i class="fa-solid fa-paper-plane"></i> إرسال الطلب للمراجعة</button>
+      <div class="progress mt-8" data-upload-progress hidden><span style="width:0%"></span></div>
+      <p class="buy-note" style="text-align:start;align-items:flex-start"><i class="fa-solid fa-circle-info" style="margin-top:4px"></i> <%= checkoutNote %></p>
+    </div>
+    <div class="alert alert-success">
+      <i class="fa-brands fa-whatsapp"></i>
+      <div><b>تحتاج مساعدة في التحويل؟</b>تواصل معنا عبر <a class="link" href="<%= waLink(storeWa, 'مرحباً، أحتاج مساعدة في الدفع لطلب: ' + product.title) %>" target="_blank" rel="noopener">واتساب</a> وسنرشدك خطوة بخطوة.</div>
+    </div>
+  </aside>
+</form>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/checkout.js'] }) %>

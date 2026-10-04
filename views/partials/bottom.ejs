@@ -1,0 +1,79 @@
+<% const navMode = locals.nav || 'store'; const act = locals.active || ''; %>
+  </main>
+  <% if (navMode === 'site') { %>
+  <%- include('footer') %>
+  <% } else { %>
+  <% if (navMode === 'store' || navMode === 'bare') { %>
+  <%- include('footer') %>
+  <% } else { %>
+  <footer class="footer" style="margin-top:10px;background:transparent;color:var(--text-3)">
+    <div class="footer-in" style="padding:14px 20px 22px">
+      <div class="footer-bottom" style="margin:0;border:0;padding:0;color:var(--text-3)">
+        <span>© <%= new Date().getFullYear() %> <%= settings.store_name %> — جميع الحقوق محفوظة</span>
+        <a href="/store" style="color:var(--text-2)">العودة إلى المتجر</a>
+      </div>
+    </div>
+  </footer>
+  <% } %>
+</div>
+  <% } %>
+
+<% if (navMode === 'store' || navMode === 'site') { %>
+<a class="wa-float" href="<%= waLink(storeWa, 'مرحباً MTS Store، لدي استفسار') %>" target="_blank" rel="noopener" aria-label="تواصل عبر واتساب"><i class="fa-brands fa-whatsapp"></i></a>
+<% } %>
+
+<nav class="bottom-nav" aria-label="التنقل السفلي">
+  <% if (navMode === 'seller') { %>
+    <a href="/seller" class="<%= act === 'seller-home' ? 'is-active' : '' %>"><i class="fa-solid fa-gauge-high"></i>الرئيسية</a>
+    <a href="/seller/orders" class="<%= act === 'seller-orders' ? 'is-active' : '' %>"><i class="fa-solid fa-receipt"></i>الطلبات<% if (counts.pendingOrders) { %><span class="bn-dot"><%= counts.pendingOrders %></span><% } %></a>
+    <a href="/seller/products" class="<%= act === 'seller-products' ? 'is-active' : '' %>"><i class="fa-solid fa-boxes-stacked"></i>المنتجات</a>
+    <button type="button" data-sidebar-open><i class="fa-solid fa-bars"></i>القائمة</button>
+  <% } else { %>
+    <a href="<%= navMode === 'site' ? '/' : '/store' %>" class="<%= act === 'home' ? 'is-active' : '' %>"><i class="fa-solid fa-house"></i>الرئيسية</a>
+    <% if (navMode === 'bare' || navMode === 'site') { %>
+    <a href="/store/products"><i class="fa-solid fa-grip"></i>الاشتراكات</a>
+    <% } else { %>
+    <button type="button" data-sidebar-open><i class="fa-solid fa-layer-group"></i>الأقسام</button>
+    <% } %>
+    <a href="/account/orders" class="<%= act === 'acc-orders' ? 'is-active' : '' %>"><i class="fa-solid fa-bag-shopping"></i>طلباتي</a>
+    <% if (user) { %>
+    <a href="/account" class="<%= ['acc-home', 'acc-profile', 'acc-subs', 'acc-notifs'].includes(act) ? 'is-active' : '' %>"><i class="fa-solid fa-user"></i>حسابي<% if (counts.unread) { %><span class="bn-dot"><%= counts.unread %></span><% } %></a>
+    <% } else { %>
+    <a href="/login?next=<%= encodeURIComponent(url) %>"><i class="fa-solid fa-arrow-right-to-bracket"></i>دخول</a>
+    <% } %>
+  <% } %>
+</nav>
+
+<div class="toasts" id="toasts" aria-live="polite"></div>
+
+<dialog class="modal" id="confirmDialog">
+  <form method="dialog">
+    <div class="modal-head"><h3><i class="fa-solid fa-circle-question" style="color:var(--brand)"></i> <span data-confirm-title>تأكيد الإجراء</span></h3><button class="icon-btn" value="cancel" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>
+    <div class="modal-body">
+      <p data-confirm-text style="color:var(--text-2)"></p>
+      <div class="field mt-16" data-confirm-prompt hidden>
+        <label class="label" data-confirm-prompt-label></label>
+        <textarea class="textarea" data-confirm-input rows="3" maxlength="500"></textarea>
+        <span class="field-error">هذا الحقل مطلوب</span>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" value="ok" data-confirm-ok>تأكيد</button>
+      <button class="btn btn-ghost" value="cancel">إلغاء</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog class="modal wide" id="imageDialog">
+  <div class="modal-head"><h3><i class="fa-solid fa-image" style="color:var(--brand)"></i> معاينة</h3>
+    <div class="flex gap-8"><a class="btn btn-soft btn-sm" data-image-open target="_blank" rel="noopener"><i class="fa-solid fa-up-right-from-square"></i> فتح الأصل</a><button class="icon-btn" type="button" data-dialog-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button></div>
+  </div>
+  <img class="modal-img" data-image-target alt="">
+</dialog>
+
+<script src="<%= asset('/static/js/app.js') %>" defer></script>
+<% (locals.scripts || []).forEach((s) => { %>
+<script src="<%= s.startsWith('http') ? s : asset(s) %>" defer></script>
+<% }) %>
+</body>
+</html>

@@ -1,0 +1,215 @@
+<%- include('../partials/top') %>
+
+<%
+  const [heroLead, ...heroRest] = settings.hero_title.split('…');
+  const picks = popular.slice(0, 4);
+%>
+<div class="sh-top">
+  <section class="sh-hero">
+    <div class="sh-hero-copy">
+      <span class="sh-eyebrow"><i class="fa-solid fa-circle-check"></i> <%= totals.products %> اشتراكاً أصلياً من <%= totals.platforms %> منصة عالمية</span>
+      <h1><%= heroLead.trim() %><% if (heroRest.length) { %>…<br><span><%= heroRest.join('…').trim() %></span><% } %></h1>
+      <p><%= settings.hero_subtitle %></p>
+      <div class="sh-actions">
+        <a class="btn btn-primary btn-lg" href="/store/products">تسوّق الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
+        <a class="btn btn-lg" href="/store/products?sale=1&sort=deals"><i class="fa-solid fa-fire" style="color:var(--sale)"></i> أقوى العروض</a>
+      </div>
+    </div>
+    <% if (picks.length) { %>
+    <div class="sh-picks">
+      <span class="sh-picks-title">الأكثر طلباً الآن</span>
+      <% picks.forEach((p) => { %>
+      <a class="sh-pick" href="/store/product/<%= p.slug %>">
+        <span class="sh-pick-tile" style="--c1:<%= p.color1 %>;--c2:<%= p.color2 %>"><img src="<%= p.platform_logo %>" alt="" loading="lazy"></span>
+        <span class="grow"><b><%= p.title.split('—')[0].trim() %></b><small>يبدأ من <%- money(p.cheapest.price) %></small></span>
+        <i class="fa-solid fa-chevron-left"></i>
+      </a>
+      <% }) %>
+    </div>
+    <% } %>
+  </section>
+
+  <% if (spotlight) { %>
+  <aside class="sh-deal" style="--c1:<%= spotlight.color1 %>" aria-label="عرض لفترة محدودة">
+    <span class="sh-deal-label"><i class="fa-solid fa-bolt"></i> عرض لفترة محدودة</span>
+    <div class="sh-deal-head">
+      <span class="sh-deal-tile" style="--c1:<%= spotlight.color1 %>;--c2:<%= spotlight.color2 %>"><img src="<%= spotlight.platform_logo %>" alt=""></span>
+      <div><b><%= spotlight.title.split('—')[0].trim() %></b><small><%= spotlightPlan.name %><% if (spotlight.delivery_time) { %> · <%= spotlight.delivery_time %><% } %></small></div>
+    </div>
+    <div class="sh-deal-price">
+      <b><%- money(spotlightPlan.price) %></b>
+      <s><%- money(spotlightPlan.old_price) %></s>
+      <span class="h-save">وفّر <%= spotlightPlan.discount %>%</span>
+    </div>
+    <% if (spotlight.offer_end) { %>
+    <div class="sh-deal-timer"><span>ينتهي العرض خلال</span><span class="countdown" data-countdown="<%= spotlight.offer_end.toISOString() %>"></span></div>
+    <% } %>
+    <a class="btn btn-block h-btn-light" href="/store/product/<%= spotlight.slug %>?plan=<%= spotlightPlan.id %>">احصل على العرض <i class="fa-solid fa-arrow-left"></i></a>
+  </aside>
+  <% } %>
+</div>
+
+<% if (navCategories.length) { %>
+<div class="chips section" style="margin-top:16px" aria-label="الأقسام">
+  <a class="chip is-active" href="/store/products"><i class="fa-solid fa-grip"></i> الكل</a>
+  <% navCategories.forEach((c) => { %>
+    <a class="chip" href="/store/category/<%= c.slug %>"><i class="<%= c.icon %>"></i> <%= c.name %> <span class="count"><%= c.product_count %></span></a>
+  <% }) %>
+</div>
+<% } %>
+
+<div class="sh-assure section">
+  <% trust.forEach((t) => { %>
+  <div class="sh-assure-item"><i class="<%= t.icon %>"></i><span><b><%= t.title %></b><small><%= t.text %></small></span></div>
+  <% }) %>
+</div>
+
+<% if (platforms.length) { %>
+<section class="panel section">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-star"></i></span> المنصات الأكثر طلباً</h2>
+      <p class="sec-sub">اختر المنصة لعرض جميع اشتراكاتها المتاحة</p>
+    </div>
+    <a class="sec-link" href="/store/platforms">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
+  </div>
+  <div class="ptiles">
+    <% platforms.forEach((pl) => { %><%- include('../partials/platform-tile', { pl }) %><% }) %>
+  </div>
+</section>
+<% } %>
+
+<% if (newest.length) { %>
+<section class="panel section" data-hscroll>
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-wand-magic-sparkles"></i></span> وصل حديثاً</h2>
+      <p class="sec-sub">أحدث الاشتراكات المضافة إلى المتجر</p>
+    </div>
+    <div class="flex gap-12">
+      <a class="sec-link" href="/store/products?sort=newest">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
+      <div class="hs-nav"><button type="button" data-hs-prev aria-label="السابق"><i class="fa-solid fa-chevron-right"></i></button><button type="button" data-hs-next aria-label="التالي"><i class="fa-solid fa-chevron-left"></i></button></div>
+    </div>
+  </div>
+  <div class="hscroll" data-hs-track>
+    <% newest.forEach((p) => { %><%- include('../partials/product-card', { p }) %><% }) %>
+  </div>
+</section>
+<% } %>
+
+<% if (deals.length) { %>
+<section class="panel section" data-hscroll>
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title"><span class="ic" style="background:var(--danger-bg);color:var(--sale)"><i class="fa-solid fa-fire"></i></span> أفضل العروض</h2>
+      <p class="sec-sub">اشتراكات بخصومات حقيقية — الكمية والوقت محدودان</p>
+    </div>
+    <div class="flex gap-12">
+      <a class="sec-link" href="/store/products?sale=1&sort=deals">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
+      <div class="hs-nav"><button type="button" data-hs-prev aria-label="السابق"><i class="fa-solid fa-chevron-right"></i></button><button type="button" data-hs-next aria-label="التالي"><i class="fa-solid fa-chevron-left"></i></button></div>
+    </div>
+  </div>
+  <div class="hscroll" data-hs-track>
+    <% deals.forEach((p) => { %><%- include('../partials/product-card', { p }) %><% }) %>
+  </div>
+</section>
+<% } %>
+
+<% if (methods.length) { %>
+<section class="panel section">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-wallet"></i></span> ادفع بالطريقة التي تناسبك</h2>
+      <p class="sec-sub">تحويل مباشر بدون بطاقات ائتمان — تظهر لك تفاصيل الحساب والمبلغ بدقة عند الطلب</p>
+    </div>
+    <a class="sec-link" href="/store/help">كيف أدفع؟ <i class="fa-solid fa-arrow-left"></i></a>
+  </div>
+  <div class="pay-strip">
+    <% methods.forEach((m) => { %>
+    <div class="pay-chip">
+      <span class="pm-icon" style="--pm:<%= m.color %>"><% if (m.logo_url) { %><img src="<%= m.logo_url %>" alt=""><% } else { %><i class="<%= m.icon %>"></i><% } %></span>
+      <div><b><%= m.name %></b><small><%= m.subtitle %> · <%= m.currency.name %></small></div>
+    </div>
+    <% }) %>
+  </div>
+</section>
+<% } %>
+
+<% if (popular.length) { %>
+<section class="section">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-crown"></i></span> الأكثر طلباً</h2>
+      <p class="sec-sub">الاشتراكات المفضّلة لدى عملائنا</p>
+    </div>
+    <a class="sec-link" href="/store/products">كل الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
+  </div>
+  <div class="pgrid">
+    <% popular.forEach((p) => { %><%- include('../partials/product-card', { p }) %><% }) %>
+  </div>
+</section>
+<% } %>
+
+<section class="section">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-route"></i></span> كيف تشتري خلال دقائق؟</h2>
+      <p class="sec-sub">أربع خطوات بسيطة من اختيار الاشتراك حتى استلامه</p>
+    </div>
+  </div>
+  <div class="steps">
+    <% steps.forEach((s) => { %>
+    <div class="step"><span class="ic"><i class="<%= s.icon %>"></i></span><h3><%= s.title %></h3><p><%= s.text %></p></div>
+    <% }) %>
+  </div>
+</section>
+
+<% if (reviews.length) { %>
+<section class="section">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title"><span class="ic" style="background:var(--warning-bg);color:var(--gold)"><i class="fa-solid fa-star"></i></span> آراء عملائنا</h2>
+      <p class="sec-sub">تقييمات حقيقية من مشترين أكملوا طلباتهم</p>
+    </div>
+  </div>
+  <div class="grid-3">
+    <% reviews.forEach((r) => { %>
+    <div class="review">
+      <div class="review-head">
+        <span class="avatar avatar-sm"><%= initials(r.author_name) %></span>
+        <div class="grow"><b><%= r.author_name %></b><small><%= timeAgo(r.created_at) %></small></div>
+        <%- include('../partials/stars', { rating: r.rating }) %>
+      </div>
+      <p><%= r.comment %></p>
+      <a class="on-product" href="/store/product/<%= r.product_slug %>"><i class="fa-solid fa-tag"></i> <%= r.product_title %></a>
+    </div>
+    <% }) %>
+  </div>
+</section>
+<% } %>
+
+<section class="section">
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-circle-question"></i></span> الأسئلة الشائعة</h2>
+      <p class="sec-sub">كل ما تحتاج معرفته قبل الشراء</p>
+    </div>
+    <a class="sec-link" href="/store/help">المزيد <i class="fa-solid fa-arrow-left"></i></a>
+  </div>
+  <div class="faq">
+    <% faq.slice(0, 5).forEach((f, i) => { %>
+    <details<%= i === 0 ? ' open' : '' %>><summary><%= f.q %></summary><div class="ans"><%= f.a %></div></details>
+    <% }) %>
+  </div>
+</section>
+
+<section class="sh-request section" style="margin-bottom:0">
+  <span class="sh-request-ic"><i class="fa-brands fa-whatsapp"></i></span>
+  <div class="grow">
+    <h2>تبحث عن اشتراك غير موجود؟</h2>
+    <p>راسلنا عبر واتساب وسنوفّره لك بأفضل سعر وبأسرع وقت.</p>
+  </div>
+  <a class="btn btn-whatsapp btn-lg" href="<%= waLink(storeWa, 'مرحباً MTS Store، أبحث عن اشتراك غير موجود في المتجر: ') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اطلب عبر واتساب</a>
+</section>
+
+<%- include('../partials/bottom') %>

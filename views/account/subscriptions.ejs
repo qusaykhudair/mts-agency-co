@@ -1,0 +1,60 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>اشتراكاتي</h1><p>جميع الاشتراكات التي استلمتها مع المدة المتبقية لكل اشتراك.</p></div>
+</div>
+
+<% if (!activeSubs.length && !expiredSubs.length) { %>
+  <div class="panel">
+    <div class="empty">
+      <span class="ic"><i class="fa-solid fa-id-card"></i></span>
+      <h3>لا توجد اشتراكات بعد</h3>
+      <p>بعد تسليم أي طلب سيظهر اشتراكك هنا مع تاريخ انتهائه ورابط سريع للتجديد.</p>
+      <a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-grip"></i> تصفّح الاشتراكات</a>
+    </div>
+  </div>
+<% } %>
+
+<% if (activeSubs.length) { %>
+<h2 class="sec-title" style="margin-bottom:12px"><span class="ic" style="background:var(--success-bg);color:var(--success)"><i class="fa-solid fa-circle-check"></i></span> النشطة (<%= activeSubs.length %>)</h2>
+<div class="grid-3">
+  <% activeSubs.forEach((s) => { %>
+  <div class="sub-card">
+    <div class="top">
+      <%- include('../partials/mini-cover', { o: s }) %>
+      <div class="grow"><b><%= s.product_title %></b><small><%= s.plan_name %> · <%= s.code %></small></div>
+    </div>
+    <% if (s.progress !== null) { %>
+      <div class="flex between small"><span class="muted">ينتهي في <%= fmtDate(s.expires_at) %></span><b class="<%= s.daysLeft <= 7 ? 'text-warning' : 'text-success' %>"><%= s.daysLeft > 0 ? 'متبقٍ ' + daysText(s.daysLeft) : 'ينتهي اليوم' %></b></div>
+      <div class="progress <%= s.daysLeft <= 3 ? 'danger' : s.daysLeft <= 7 ? 'warn' : '' %>"><span style="width:<%= s.progress %>%"></span></div>
+    <% } else { %>
+      <span class="badge badge-success"><i class="fa-solid fa-infinity"></i> بدون تاريخ انتهاء</span>
+    <% } %>
+    <div class="flex gap-8">
+      <a class="btn btn-soft btn-sm grow" href="/account/orders/<%= s.code %>"><i class="fa-solid fa-key"></i> عرض البيانات</a>
+      <% if (s.product_slug) { %><a class="btn btn-primary btn-sm grow" href="/store/product/<%= s.product_slug %>"><i class="fa-solid fa-rotate-right"></i> تجديد</a><% } %>
+    </div>
+  </div>
+  <% }) %>
+</div>
+<% } %>
+
+<% if (expiredSubs.length) { %>
+<h2 class="sec-title" style="margin:26px 0 12px"><span class="ic" style="background:var(--muted-bg);color:var(--text-3)"><i class="fa-solid fa-hourglass-end"></i></span> المنتهية (<%= expiredSubs.length %>)</h2>
+<div class="grid-3">
+  <% expiredSubs.forEach((s) => { %>
+  <div class="sub-card" style="opacity:.85">
+    <div class="top">
+      <%- include('../partials/mini-cover', { o: s }) %>
+      <div class="grow"><b><%= s.product_title %></b><small>انتهى في <%= fmtDate(s.expires_at) %></small></div>
+    </div>
+    <div class="flex gap-8">
+      <a class="btn btn-ghost btn-sm grow" href="/account/orders/<%= s.code %>">التفاصيل</a>
+      <% if (s.product_slug) { %><a class="btn btn-primary btn-sm grow" href="/store/product/<%= s.product_slug %>"><i class="fa-solid fa-rotate-right"></i> اشترك مجدداً</a><% } %>
+    </div>
+  </div>
+  <% }) %>
+</div>
+<% } %>
+
+<%- include('../partials/bottom') %>

@@ -1,0 +1,37 @@
+<% const pc = p.cheapest; %>
+<article class="pcard">
+  <a class="cover" href="/store/product/<%= p.slug %>" style="--c1:<%= p.color1 || '#3e7bff' %>;--c2:<%= p.color2 || '#1b3fbf' %>" aria-label="<%= p.title %>">
+    <% if (p.cover_url) { %>
+      <img class="cover-img" src="<%= p.cover_url %>" alt="" loading="lazy">
+    <% } else if (p.platform_logo) { %>
+      <span class="cover-tile"><img src="<%= p.platform_logo %>" alt="" loading="lazy"></span>
+    <% } %>
+    <span class="cover-badges">
+      <% if (p.max_discount > 0) { %><span class="badge badge-sale" dir="ltr">-<%= p.max_discount %>%</span><% } %>
+      <% if (p.badge) { %><span class="badge badge-gold"><%= p.badge %></span><% } else if (p.is_new && !p.max_discount) { %><span class="badge badge-new">جديد</span><% } %>
+    </span>
+    <% if (p.offer_end && p.max_discount > 0) { %>
+      <span class="cover-timer"><i class="fa-solid fa-stopwatch"></i><span data-countdown="<%= p.offer_end.toISOString() %>" data-compact></span></span>
+    <% } else if (pc) { %>
+      <span class="cover-tag"><i class="fa-regular fa-calendar"></i><%= p.plan_count > 1 ? p.plan_count + ' باقات' : durationLabel(pc.duration_days) %></span>
+    <% } %>
+  </a>
+  <div class="pcard-body">
+    <% if (p.platform_name) { %><a class="pcard-platform" href="/store/platform/<%= p.platform_slug %>"><%= p.platform_name %></a><% } %>
+    <h3 class="pcard-title"><a href="/store/product/<%= p.slug %>"><%= p.title %></a></h3>
+    <div class="pcard-meta">
+      <% if (p.rating_count > 0) { %>
+        <span class="rating"><i class="fa-solid fa-star"></i><%= p.rating_avg %><small>(<%= p.rating_count %>)</small></span>
+      <% } %>
+      <span><i class="fa-solid fa-bolt" style="color:var(--warning)"></i> <%= p.delivery_time || 'تسليم سريع' %></span>
+    </div>
+  </div>
+  <div class="pcard-foot">
+    <div class="price">
+      <% if (p.plan_count > 1) { %><span class="from">يبدأ من</span><% } %>
+      <% if (pc && pc.old_price) { %><s class="price-old"><%- money(pc.old_price) %></s><% } %>
+      <b class="price-now"><%- money(pc ? pc.price : 0) %></b>
+    </div>
+    <a class="cart-btn" href="/store/product/<%= p.slug %>" aria-label="شراء <%= p.title %>"><i class="fa-solid fa-cart-shopping"></i></a>
+  </div>
+</article>

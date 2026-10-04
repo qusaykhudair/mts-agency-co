@@ -1,0 +1,36 @@
+<%- include('../partials/top') %>
+
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
+    <h1>تسجيل الدخول</h1>
+    <p class="sub">أهلاً بعودتك! سجّل دخولك لمتابعة طلباتك واشتراكاتك.</p>
+
+    <%- include('../partials/google-button', { mode: 'signin', next }) %>
+
+    <div class="auth-divider">أو بالبريد الإلكتروني</div>
+
+    <form class="stack" method="post" action="/login" data-ajax novalidate>
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field">
+        <label class="label" for="email">البريد الإلكتروني</label>
+        <div class="input-wrap"><i class="fa-regular fa-envelope"></i><input class="input" id="email" type="email" name="email" autocomplete="email" required dir="ltr" style="text-align:right" placeholder="name@example.com"></div>
+        <span class="field-error"></span>
+      </div>
+      <div class="field">
+        <div class="flex between"><label class="label" for="password">كلمة المرور</label><a class="link small" href="/forgot-password">نسيت كلمة المرور؟</a></div>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock"></i>
+          <input class="input has-toggle" id="password" type="password" name="password" autocomplete="current-password" required>
+          <button class="pw-toggle" type="button" data-pw-toggle aria-label="إظهار كلمة المرور"><i class="fa-regular fa-eye"></i></button>
+        </div>
+        <span class="field-error"></span>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> تسجيل الدخول</button>
+    </form>
+
+    <p class="auth-foot">ليس لديك حساب؟ <a class="link" href="/register<%= next ? '?next=' + encodeURIComponent(next) : '' %>">أنشئ حساباً جديداً</a></p>
+  </div>
+</div>
+
+<%- include('../partials/bottom', { scripts: googleClientId ? ['https://accounts.google.com/gsi/client', '/static/js/google-auth.js'] : [] }) %>

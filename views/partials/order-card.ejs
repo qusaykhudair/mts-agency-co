@@ -1,0 +1,11 @@
+<a class="ocard" href="<%= locals.href || '/account/orders/' + o.code %>">
+  <%- include('mini-cover', { o }) %>
+  <div class="o-info">
+    <b><%= o.product_title %> — <%= o.plan_name %><%= o.quantity > 1 ? ' × ' + o.quantity : '' %></b>
+    <small><span class="code bold text-brand"><%= o.code %></span> · <%= fmtDate(o.created_at) %> · <%= o.payment_method_name %></small>
+  </div>
+  <div class="o-side">
+    <%- include('status-badge', { status: o.status }) %>
+    <span class="money-wrap bold"><%- orderPay(o) %></span>
+  </div>
+</a>

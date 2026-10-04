@@ -1,0 +1,118 @@
+<%- include('../partials/top') %>
+
+<section class="welcome">
+  <div>
+    <h1>لوحة البائع 📊</h1>
+    <p>مرحباً <%= user.name.split(' ')[0] %>، هذه نظرة سريعة على أداء متجرك اليوم <%= fmtDate(new Date()) %>.</p>
+  </div>
+  <div class="flex flex-wrap gap-8">
+    <a class="btn btn-primary" href="/seller/orders?status=under_review"><i class="fa-solid fa-receipt"></i> مراجعة الطلبات<% if (stats.pending) { %> (<%= stats.pending %>)<% } %></a>
+    <a class="btn btn-glass" href="/seller/products/new"><i class="fa-solid fa-plus"></i> إضافة منتج</a>
+  </div>
+</section>
+
+<% if (stats.pending) { %>
+<div class="alert alert-warning mb-16">
+  <i class="fa-solid fa-bell"></i>
+  <div class="grow"><b>لديك <%= stats.pending %> طلب بانتظار مراجعة إيصال الدفع</b>راجع الإيصالات وأكّد الدفع لتسليم الاشتراكات للعملاء بسرعة.</div>
+  <a class="btn btn-sm btn-dark" href="/seller/orders?status=under_review">مراجعة الآن</a>
+</div>
+<% } %>
+
+<div class="stats">
+  <div class="stat"><span class="ic"><i class="fa-solid fa-sack-dollar"></i></span><div><small>مبيعات هذا الشهر</small><b><%- moneyBase(stats.month_revenue) %></b><span class="delta">من الطلبات المؤكد دفعها</span></div></div>
+  <div class="stat warning"><span class="ic"><i class="fa-solid fa-hourglass-half"></i></span><div><small>بانتظار مراجعة الدفع</small><b><%= stats.pending %></b><a class="stretch" href="/seller/orders?status=under_review" aria-label="الطلبات بانتظار المراجعة"></a></div></div>
+  <div class="stat info"><span class="ic"><i class="fa-solid fa-gears"></i></span><div><small>مدفوعة بانتظار التسليم</small><b><%= stats.processing %></b><a class="stretch" href="/seller/orders?status=processing" aria-label="الطلبات قيد التجهيز"></a></div></div>
+  <div class="stat success"><span class="ic"><i class="fa-solid fa-circle-check"></i></span><div><small>طلبات تم تسليمها</small><b><%= stats.delivered %></b><a class="stretch" href="/seller/orders?status=delivered" aria-label="الطلبات المسلّمة"></a></div></div>
+</div>
+
+<div class="dash-grid">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head">
+        <h2><i class="fa-solid fa-chart-column"></i> المبيعات — آخر 14 يوماً</h2>
+        <span class="badge badge-brand"><%- moneyBase(chartTotal) %></span>
+      </div>
+      <div class="card-body">
+        <div class="chart" role="img" aria-label="مخطط المبيعات اليومية">
+          <% chart.forEach((c) => { const h = c.amount ? Math.max(4, Math.round((c.amount / chartMax) * 100)) : 2; %>
+          <div class="bar">
+            <span class="tip"><%= c.label %> · <%- moneyBase(c.amount) %> · <%= c.n %> طلب</span>
+            <span class="fill<%= c.amount ? '' : ' zero' %>" style="height:<%= h %>%"></span>
+            <small><%= c.label %></small>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-list-check"></i> طلبات تحتاج إجراء</h2><a class="sec-link" href="/seller/orders">كل الطلبات <i class="fa-solid fa-arrow-left"></i></a></div>
+      <% if (queue.length) { %>
+      <div class="table-wrap">
+        <table class="table responsive">
+          <thead><tr><th>الطلب</th><th>العميل</th><th>المبلغ</th><th>الحالة</th><th></th></tr></thead>
+          <tbody>
+            <% queue.forEach((o) => { %>
+            <tr>
+              <td class="t-first"><div class="t-main"><%- include('../partials/mini-cover', { o }) %><div><b><%= o.product_title %></b><small><span class="code"><%= o.code %></span> · <%= timeAgo(o.created_at) %></small></div></div></td>
+              <td data-label="العميل"><%= o.buyer_name %></td>
+              <td data-label="المبلغ" class="nowrap"><b><%- orderPay(o) %></b><br><small class="muted"><%= o.payment_method_name %></small></td>
+              <td data-label="الحالة"><%- include('../partials/status-badge', { status: o.status }) %></td>
+              <td><div class="t-actions"><a class="btn btn-primary btn-sm" href="/seller/orders/<%= o.code %>"><%= o.status === 'under_review' ? 'مراجعة' : 'تسليم' %> <i class="fa-solid fa-arrow-left"></i></a></div></td>
+            </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+      <% } else { %>
+      <div class="empty" style="padding:30px 10px">
+        <span class="ic" style="background:var(--success-bg);color:var(--success)"><i class="fa-solid fa-mug-hot"></i></span>
+        <h3>لا توجد طلبات معلّقة</h3>
+        <p>كل الطلبات تمت معالجتها. ستصلك إشعارات فور وصول طلب جديد.</p>
+      </div>
+      <% } %>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card card-body">
+      <h3 class="form-section-title" style="margin-bottom:10px"><i class="fa-solid fa-chart-pie"></i> ملخص المتجر</h3>
+      <div class="kv">
+        <div class="kv-row"><span>إجمالي الإيرادات</span><span><%- moneyBase(stats.total_revenue) %></span></div>
+        <div class="kv-row"><span>عدد الطلبات</span><span><%= stats.orders_count %></span></div>
+        <div class="kv-row"><span>عدد العملاء</span><span><%= stats.customers %></span></div>
+        <div class="kv-row"><span>عدد المنتجات</span><span><%= productCount %></span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-trophy"></i> الأكثر مبيعاً</h2><a class="sec-link" href="/seller/products">المنتجات <i class="fa-solid fa-arrow-left"></i></a></div>
+      <div class="card-body stack-sm">
+        <% if (topProducts.length) { %>
+          <% topProducts.forEach((p, i) => { %>
+          <a class="flex gap-12" href="/seller/products/<%= p.id %>/edit">
+            <span class="badge <%= i === 0 ? 'badge-gold' : 'badge-muted' %>" style="min-width:26px;justify-content:center"><%= i + 1 %></span>
+            <%- include('../partials/mini-cover', { o: p }) %>
+            <span class="grow" style="min-width:0"><b class="ellipsis" style="display:block;font-size:13.5px"><%= p.title %></b><small class="muted"><%= p.sales_count %> عملية بيع · <%= p.views %> مشاهدة</small></span>
+          </a>
+          <% }) %>
+        <% } else { %>
+          <p class="muted small">لا توجد منتجات بعد.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <% if (isAdmin) { %>
+    <section class="card card-body stack-sm">
+      <h3 class="form-section-title"><i class="fa-solid fa-bolt"></i> إدارة سريعة</h3>
+      <a class="btn btn-soft btn-block" href="/seller/payment-methods"><i class="fa-solid fa-building-columns"></i> طرق الدفع وأرقام الحسابات</a>
+      <a class="btn btn-soft btn-block" href="/seller/currencies"><i class="fa-solid fa-coins"></i> أسعار الصرف</a>
+      <a class="btn btn-soft btn-block" href="/seller/settings"><i class="fa-solid fa-sliders"></i> إعدادات المتجر</a>
+      <% if (counts.pendingApps) { %><a class="btn btn-ghost btn-block" href="/seller/applications"><i class="fa-solid fa-store"></i> طلبات بائعين جديدة (<%= counts.pendingApps %>)</a><% } %>
+    </section>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/bottom') %>

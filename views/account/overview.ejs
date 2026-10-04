@@ -1,0 +1,95 @@
+<%- include('../partials/top') %>
+
+<section class="welcome">
+  <div class="flex gap-16">
+    <% if (user.avatar_url) { %><img class="avatar avatar-lg" src="<%= user.avatar_url %>" alt="" referrerpolicy="no-referrer"><% } else { %><span class="avatar avatar-lg" style="background:rgba(255,255,255,.14)"><%= initials(user.name) %></span><% } %>
+    <div>
+      <h1>أهلاً، <%= user.name.split(' ')[0] %> 👋</h1>
+      <p>تابع طلباتك واشتراكاتك وإشعاراتك من مكان واحد.</p>
+    </div>
+  </div>
+  <div class="flex flex-wrap gap-8">
+    <a class="btn btn-primary" href="/store"><i class="fa-solid fa-bag-shopping"></i> تسوّق الآن</a>
+    <a class="btn btn-glass" href="/account/orders"><i class="fa-solid fa-receipt"></i> طلباتي</a>
+  </div>
+</section>
+
+<% attention.forEach((a) => { %>
+<div class="alert alert-danger mb-16">
+  <i class="fa-solid fa-triangle-exclamation"></i>
+  <div class="grow"><b>تم رفض إيصال الدفع للطلب <%= a.code %> (<%= a.product_title %>)</b><%= a.reject_reason %> — أرسل إيصالاً صحيحاً لإكمال طلبك.</div>
+  <a class="btn btn-danger btn-sm" href="/account/orders/<%= a.code %>">إعادة الإرسال</a>
+</div>
+<% }) %>
+
+<div class="stats">
+  <div class="stat"><span class="ic"><i class="fa-solid fa-bag-shopping"></i></span><div><small>إجمالي الطلبات</small><b><%= stats.total %></b><a class="stretch" href="/account/orders" aria-label="كل الطلبات"></a></div></div>
+  <div class="stat warning"><span class="ic"><i class="fa-solid fa-hourglass-half"></i></span><div><small>طلبات قيد التنفيذ</small><b><%= stats.open %></b><a class="stretch" href="/account/orders?tab=review" aria-label="الطلبات قيد التنفيذ"></a></div></div>
+  <div class="stat success"><span class="ic"><i class="fa-solid fa-id-card"></i></span><div><small>اشتراكات نشطة</small><b><%= activeSubs %></b><a class="stretch" href="/account/subscriptions" aria-label="اشتراكاتي"></a></div></div>
+  <div class="stat info"><span class="ic"><i class="fa-solid fa-coins"></i></span><div><small>إجمالي مشترياتك</small><b><%- money(stats.spent) %></b></div></div>
+</div>
+
+<div class="dash-grid">
+  <section class="card">
+    <div class="card-head"><h2><i class="fa-solid fa-clock-rotate-left"></i> آخر الطلبات</h2><a class="sec-link" href="/account/orders">عرض الكل <i class="fa-solid fa-arrow-left"></i></a></div>
+    <div class="card-body">
+      <% if (recent.length) { %>
+        <div class="olist"><% recent.forEach((o) => { %><%- include('../partials/order-card', { o }) %><% }) %></div>
+      <% } else { %>
+        <div class="empty" style="padding:30px 10px">
+          <span class="ic"><i class="fa-solid fa-bag-shopping"></i></span>
+          <h3>لا توجد طلبات بعد</h3>
+          <p>ابدأ بتصفح الاشتراكات واختر ما يناسبك، وسيظهر طلبك هنا لتتابعه خطوة بخطوة.</p>
+          <a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-grip"></i> تصفّح الاشتراكات</a>
+        </div>
+      <% } %>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-id-card"></i> اشتراكاتي النشطة</h2><a class="sec-link" href="/account/subscriptions">الكل <i class="fa-solid fa-arrow-left"></i></a></div>
+      <div class="card-body stack-sm">
+        <% if (subs.length) { %>
+          <% subs.forEach((s) => { %>
+          <a class="sub-card" href="/account/orders/<%= s.code %>">
+            <div class="top">
+              <%- include('../partials/mini-cover', { o: s }) %>
+              <div class="grow"><b><%= s.product_title %></b><small><%= s.plan_name %> · <%= s.daysLeft === null ? 'بدون انتهاء' : s.daysLeft > 0 ? 'متبقٍ ' + daysText(s.daysLeft) : 'ينتهي اليوم' %></small></div>
+            </div>
+            <% if (s.progress !== null) { %><div class="progress <%= s.daysLeft <= 3 ? 'danger' : s.daysLeft <= 7 ? 'warn' : '' %>"><span style="width:<%= s.progress %>%"></span></div><% } %>
+          </a>
+          <% }) %>
+        <% } else { %>
+          <p class="muted small center" style="padding:14px 0">لا توجد اشتراكات نشطة حالياً.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card card-body">
+      <h3 class="form-section-title" style="margin-bottom:10px"><i class="fa-solid fa-address-card"></i> بيانات التواصل</h3>
+      <div class="kv">
+        <div class="kv-row"><span>البريد</span><span class="ltr" dir="ltr"><%= user.email %></span></div>
+        <div class="kv-row"><span>واتساب</span><span dir="ltr"><%= displayWhatsapp(user.wa_e164) %></span></div>
+      </div>
+      <a class="btn btn-soft btn-sm btn-block mt-16" href="/account/profile"><i class="fa-solid fa-pen"></i> تعديل البيانات</a>
+    </section>
+
+    <% if (user.role === 'buyer') { %>
+    <a class="sb-card" href="/account/become-seller">
+      <span class="ic"><i class="fa-solid fa-store"></i></span>
+      <span class="grow"><b>أصبح بائعاً في المتجر</b><small><%= application ? (application.status === 'pending' ? 'طلبك قيد المراجعة' : application.status === 'rejected' ? 'يمكنك إعادة التقديم' : 'تمت الموافقة') : 'اعرض اشتراكاتك لآلاف العملاء' %></small></span>
+      <i class="fa-solid fa-chevron-left muted"></i>
+    </a>
+    <% } %>
+  </div>
+</div>
+
+<% if (recommended.length) { %>
+<section class="section">
+  <div class="sec-head"><h2 class="sec-title"><span class="ic"><i class="fa-solid fa-thumbs-up"></i></span> مقترحات لك</h2><a class="sec-link" href="/store/products">المزيد <i class="fa-solid fa-arrow-left"></i></a></div>
+  <div class="pgrid"><% recommended.forEach((p) => { %><%- include('../partials/product-card', { p }) %><% }) %></div>
+</section>
+<% } %>
+
+<%- include('../partials/bottom') %>

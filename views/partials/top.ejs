@@ -1,0 +1,20 @@
+<% const navMode = locals.nav || 'store'; %>
+<%- include('head') %>
+<body class="nav-<%= navMode %>">
+<% if (locals.flash && flash.message) { %><div id="flashData" data-type="<%= flash.type %>" data-message="<%= flash.message %>" hidden></div><% } %>
+<% if (navMode === 'site') { %>
+<%- include('site-nav') %>
+<main id="main" class="site-main">
+<% } else { %>
+<% if (navMode !== 'bare') { %><%- include('sidebar', { navMode }) %><% } %>
+<div class="sidebar-backdrop" data-sidebar-close></div>
+<div class="shell">
+  <% if (navMode === 'store' && settings.announcement && !locals.announceHidden) { %>
+  <div class="announce" data-announce="<%= locals.announceHash %>">
+    <span><%= settings.announcement %></span>
+    <button class="announce-close" type="button" data-announce-close aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <% } %>
+  <%- include('topbar', { navMode }) %>
+  <main class="main" id="main">
+<% } %>

@@ -1,0 +1,41 @@
+<%- include('../partials/top') %>
+<% const isLatin = (v) => /^[\x00-\x7F]+$/.test(String(v || '')); %>
+
+<div class="page-head">
+  <div><h1>طرق الدفع</h1><p>تفاصيل الحسابات التي تظهر للعميل عند اختيار طريقة الدفع في صفحة إتمام الطلب.</p></div>
+  <div class="actions"><a class="btn btn-primary" href="/seller/payment-methods/new"><i class="fa-solid fa-plus"></i> طريقة دفع جديدة</a></div>
+</div>
+
+<div class="grid-2">
+  <% items.forEach((m) => { %>
+  <section class="card" style="<%= m.is_active ? '' : 'opacity:.7' %>">
+    <div class="card-head">
+      <div class="flex gap-12">
+        <span class="pm-icon" style="--pm:<%= m.color %>"><% if (m.logo_url) { %><img src="<%= m.logo_url %>" alt=""><% } else { %><i class="<%= m.icon %>"></i><% } %></span>
+        <div><b style="display:block"><%= m.name %></b><small class="muted"><%= m.subtitle || '' %></small></div>
+      </div>
+      <span class="badge <%= m.is_active ? 'badge-success' : 'badge-muted' %>"><%= m.is_active ? 'مفعّلة' : 'متوقفة' %></span>
+    </div>
+    <div class="card-body">
+      <div class="kv">
+        <div class="kv-row"><span>عملة الدفع</span><span><%= m.currency ? m.currency.name + ' (' + m.currency.symbol + ')' : m.currency_code %></span></div>
+        <% m.details.forEach((d) => { %>
+        <div class="kv-row"><span><%= d.label %></span><span<%= isLatin(d.value) ? ' dir=ltr' : '' %>><%= d.value %></span></div>
+        <% }) %>
+        <div class="kv-row"><span>الطلبات عبرها</span><span><%= m.orders_count %></span></div>
+      </div>
+    </div>
+    <div class="card-foot flex gap-8 flex-wrap">
+      <a class="btn btn-soft btn-sm" href="/seller/payment-methods/<%= m.id %>/edit"><i class="fa-solid fa-pen"></i> تعديل</a>
+      <form method="post" action="/seller/payment-methods/<%= m.id %>/toggle" data-ajax>
+        <button class="btn btn-ghost btn-sm" type="submit"><i class="fa-solid <%= m.is_active ? 'fa-pause' : 'fa-play' %>"></i> <%= m.is_active ? 'إيقاف' : 'تفعيل' %></button>
+      </form>
+      <form method="post" action="/seller/payment-methods/<%= m.id %>/delete" data-ajax data-confirm="حذف طريقة الدفع «<%= m.name %>»؟" data-confirm-danger style="margin-inline-start:auto">
+        <button class="btn btn-danger-soft btn-sm" type="submit"><i class="fa-solid fa-trash-can"></i> حذف</button>
+      </form>
+    </div>
+  </section>
+  <% }) %>
+</div>
+
+<%- include('../partials/bottom') %>

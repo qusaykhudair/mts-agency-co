@@ -1,0 +1,40 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>المنصات</h1><p>المنصات (ChatGPT، Canva، CapCut…) تحدد شعار وألوان المنتجات وتظهر في صفحة «المنصات الأكثر طلباً».</p></div>
+  <div class="actions"><a class="btn btn-primary" href="/seller/platforms/new"><i class="fa-solid fa-plus"></i> منصة جديدة</a></div>
+</div>
+
+<section class="card">
+  <div class="table-wrap">
+    <table class="table responsive">
+      <thead><tr><th>المنصة</th><th>القسم</th><th>المنتجات</th><th>الترتيب</th><th>الحالة</th><th></th></tr></thead>
+      <tbody>
+        <% items.forEach((pl) => { %>
+        <tr>
+          <td class="t-first">
+            <div class="t-main">
+              <span class="ptile-img" style="--c1:<%= pl.color1 %>;--c2:<%= pl.color2 %>;width:46px;border-radius:13px;flex-shrink:0"><% if (pl.logo_url) { %><img src="<%= pl.logo_url %>" alt=""><% } %></span>
+              <div><b><%= pl.name %> <% if (pl.is_featured) { %><span class="badge badge-gold" style="height:20px;font-size:10.5px">الأكثر طلباً</span><% } %></b><small dir="ltr">/store/platform/<%= pl.slug %></small></div>
+            </div>
+          </td>
+          <td data-label="القسم"><%= pl.category_name || '—' %></td>
+          <td data-label="المنتجات"><%= pl.product_count %></td>
+          <td data-label="الترتيب"><%= pl.sort_order %></td>
+          <td data-label="الحالة"><span class="badge <%= pl.is_active ? 'badge-success' : 'badge-muted' %>"><%= pl.is_active ? 'ظاهرة' : 'مخفية' %></span></td>
+          <td>
+            <div class="t-actions">
+              <a class="btn btn-soft btn-sm" href="/seller/platforms/<%= pl.id %>/edit"><i class="fa-solid fa-pen"></i> تعديل</a>
+              <form method="post" action="/seller/platforms/<%= pl.id %>/delete" data-ajax data-confirm="حذف منصة «<%= pl.name %>»؟" data-confirm-danger>
+                <button class="btn btn-danger-soft btn-icon btn-sm" type="submit" aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<%- include('../partials/bottom') %>

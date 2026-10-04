@@ -1,0 +1,26 @@
+<% const isUrl = (v) => /^https?:\/\/\S+$/i.test(String(v || '').trim()); %>
+<div class="creds">
+  <% (delivery.fields || []).forEach((f) => { %>
+  <div class="cred">
+    <span class="k"><%= f.label %></span>
+    <% if (f.secret) { %>
+      <span class="v masked" data-secret="<%= f.value %>">••••••••</span>
+      <button class="copy-btn" type="button" data-reveal aria-label="إظهار"><i class="fa-regular fa-eye"></i></button>
+    <% } else if (isUrl(f.value)) { %>
+      <span class="v"><a href="<%= f.value.trim() %>" target="_blank" rel="noopener noreferrer"><%= f.value %></a></span>
+    <% } else { %>
+      <span class="v"><%= f.value %></span>
+    <% } %>
+    <button class="copy-btn" type="button" data-copy="<%= f.value %>"><i class="fa-regular fa-copy"></i> نسخ</button>
+  </div>
+  <% }) %>
+</div>
+<% if (delivery.note) { %>
+<div class="alert alert-brand mt-16"><i class="fa-solid fa-circle-info"></i><div class="pre-line"><%= delivery.note %></div></div>
+<% } %>
+<% if (order.expires_at) { const left = daysLeft(order.expires_at); %>
+<div class="flex flex-wrap gap-8 mt-16">
+  <span class="badge badge-lg <%= left > 7 ? 'badge-success' : left > 0 ? 'badge-warning' : 'badge-danger' %>"><i class="fa-regular fa-calendar-check"></i> صالح حتى <%= fmtDate(order.expires_at) %></span>
+  <span class="badge badge-lg badge-muted"><%= left > 0 ? 'متبقٍ ' + daysText(left) : 'انتهت مدة الاشتراك' %></span>
+</div>
+<% } %>

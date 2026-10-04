@@ -1,0 +1,78 @@
+<%- include('../partials/top') %>
+<% const u = member; %>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <a href="/seller">لوحة البائع</a><i class="fa-solid fa-chevron-left"></i><a href="/seller/users">المستخدمون</a><i class="fa-solid fa-chevron-left"></i><span><%= u.name %></span>
+</nav>
+
+<div class="dash-grid" style="margin-top:0">
+  <div class="stack">
+    <section class="card card-body">
+      <div class="flex gap-16 flex-wrap">
+        <% if (u.avatar_url) { %><img class="avatar avatar-lg" src="<%= u.avatar_url %>" alt="" referrerpolicy="no-referrer"><% } else { %><span class="avatar avatar-lg"><%= initials(u.name) %></span><% } %>
+        <div class="grow">
+          <h1 style="font-size:21px"><%= u.name %> <span class="badge badge-<%= ROLES[u.role].tone %>"><%= ROLES[u.role].label %></span><% if (u.is_blocked) { %> <span class="badge badge-danger">موقوف</span><% } %></h1>
+          <p class="muted small" dir="ltr" style="text-align:right"><%= u.email %></p>
+          <p class="muted small">عضو منذ <%= fmtDate(u.created_at) %><% if (u.last_login_at) { %> · آخر دخول <%= timeAgo(u.last_login_at) %><% } %></p>
+        </div>
+        <% if (u.wa_e164) { %><a class="btn btn-whatsapp" href="<%= waLink(u.wa_e164, 'مرحباً ' + u.name.split(' ')[0] + '، معك فريق ' + settings.store_name + '.') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> <bdi dir="ltr"><%= displayWhatsapp(u.wa_e164) %></bdi></a><% } %>
+      </div>
+      <div class="stats mt-16">
+        <div class="stat"><span class="ic"><i class="fa-solid fa-bag-shopping"></i></span><div><small>الطلبات</small><b><%= stats.n %></b></div></div>
+        <div class="stat success"><span class="ic"><i class="fa-solid fa-coins"></i></span><div><small>المشتريات المؤكدة</small><b><%- moneyBase(stats.spent) %></b></div></div>
+        <div class="stat info"><span class="ic"><i class="fa-solid fa-boxes-stacked"></i></span><div><small>منتجاته كبائع</small><b><%= productCount %></b></div></div>
+        <div class="stat"><span class="ic"><i class="fa-brands fa-google"></i></span><div><small>طريقة الدخول</small><b style="font-size:15px"><%= u.google_sub && u.password_hash ? 'Google + كلمة مرور' : u.google_sub ? 'Google' : 'بريد وكلمة مرور' %></b></div></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-receipt"></i> طلبات المستخدم</h2></div>
+      <div class="card-body">
+        <% if (orders.length) { %>
+          <div class="olist"><% orders.forEach((o) => { %><%- include('../partials/order-card', { o, href: '/seller/orders/' + o.code }) %><% }) %></div>
+        <% } else { %><p class="muted">لا توجد طلبات.</p><% } %>
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card card-body stack">
+      <h3 class="form-section-title"><i class="fa-solid fa-user-shield"></i> الصلاحيات</h3>
+      <form class="stack-sm" method="post" action="/seller/users/<%= u.id %>/role" data-ajax>
+        <select class="select" name="role">
+          <% Object.entries(ROLES).forEach(([k, r]) => { %><option value="<%= k %>"<%= u.role === k ? ' selected' : '' %>><%= r.label %></option><% }) %>
+        </select>
+        <input class="input" name="store_name" value="<%= u.store_name || '' %>" maxlength="60" placeholder="اسم المتجر (للبائعين)">
+        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ الصلاحية</button>
+      </form>
+      <p class="help">البائع: يدير منتجاته وطلباتها فقط. المدير: صلاحيات كاملة على المتجر.</p>
+    </section>
+
+    <section class="card card-body stack-sm">
+      <h3 class="form-section-title"><i class="fa-brands fa-whatsapp"></i> رقم الواتساب</h3>
+      <form class="stack-sm" method="post" action="/seller/users/<%= u.id %>/whatsapp" data-ajax novalidate>
+        <div class="field"><input class="input" name="whatsapp" value="<%= u.wa_e164 || '' %>" dir="ltr" placeholder="+970599123456"><span class="field-error"></span></div>
+        <button class="btn btn-soft" type="submit">تحديث الرقم</button>
+      </form>
+    </section>
+
+    <section class="card card-body stack-sm">
+      <h3 class="form-section-title"><i class="fa-solid fa-key"></i> إعادة تعيين كلمة المرور</h3>
+      <form class="stack-sm" method="post" action="/seller/users/<%= u.id %>/password" data-ajax novalidate data-confirm="تعيين كلمة مرور جديدة لهذا المستخدم وتسجيل خروجه من أجهزته؟">
+        <div class="field"><input class="input" name="password" type="text" minlength="8" autocomplete="off" placeholder="كلمة مرور مؤقتة (8 أحرف على الأقل)"><span class="field-error"></span></div>
+        <button class="btn btn-soft" type="submit">تعيين كلمة المرور</button>
+      </form>
+      <p class="help">استخدمها عند طلب العميل استعادة كلمة المرور عبر واتساب بعد التحقق من هويته.</p>
+    </section>
+
+    <% if (u.id !== user.id) { %>
+    <section class="card card-body">
+      <form method="post" action="/seller/users/<%= u.id %>/block" data-ajax data-confirm="<%= u.is_blocked ? 'إعادة تفعيل هذا الحساب؟' : 'إيقاف هذا الحساب ومنعه من الدخول؟' %>" <%= u.is_blocked ? '' : 'data-confirm-danger' %>>
+        <button class="btn <%= u.is_blocked ? 'btn-success' : 'btn-danger-soft' %> btn-block" type="submit"><i class="fa-solid <%= u.is_blocked ? 'fa-unlock' : 'fa-user-slash' %>"></i> <%= u.is_blocked ? 'إعادة تفعيل الحساب' : 'إيقاف الحساب' %></button>
+      </form>
+    </section>
+    <% } %>
+  </div>
+</div>
+
+<%- include('../partials/bottom') %>

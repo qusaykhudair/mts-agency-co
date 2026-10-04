@@ -1,0 +1,215 @@
+<% const method = DELIVERY_METHODS[p.delivery_method] || DELIVERY_METHODS.account; %>
+<%- include('../partials/top') %>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <a href="/store">الرئيسية</a>
+  <% if (p.category_name) { %><i class="fa-solid fa-chevron-left"></i><a href="/store/category/<%= p.category_slug %>"><%= p.category_name %></a><% } %>
+  <% if (p.platform_name) { %><i class="fa-solid fa-chevron-left"></i><a href="/store/platform/<%= p.platform_slug %>"><%= p.platform_name %></a><% } %>
+  <i class="fa-solid fa-chevron-left"></i><span><%= p.title %></span>
+</nav>
+
+<div class="pd">
+  <div class="pd-main">
+    <section class="card pd-hero">
+      <div class="cover pd-cover" style="--c1:<%= p.color1 || '#3e7bff' %>;--c2:<%= p.color2 || '#1b3fbf' %>">
+        <% if (p.cover_url) { %><img class="cover-img" src="<%= p.cover_url %>" alt="<%= p.title %>"><% } else if (p.platform_logo) { %><span class="cover-tile"><img src="<%= p.platform_logo %>" alt="<%= p.platform_name %>"></span><% } %>
+        <span class="cover-badges">
+          <% if (p.max_discount > 0) { %><span class="badge badge-sale badge-lg">خصم حتى <%= p.max_discount %>%</span><% } %>
+          <% if (p.badge) { %><span class="badge badge-gold badge-lg"><%= p.badge %></span><% } %>
+        </span>
+      </div>
+      <div class="pd-info">
+        <h1><%= p.title %></h1>
+        <div class="pd-meta">
+          <% if (summary.total) { %>
+            <span class="badge badge-warning"><i class="fa-solid fa-star"></i> <%= summary.avg %> (<%= summary.total %> تقييم)</span>
+          <% } else { %>
+            <span class="badge badge-brand"><i class="fa-solid fa-wand-magic-sparkles"></i> جديد في المتجر</span>
+          <% } %>
+          <% if (p.category_name) { %><a class="badge" href="/store/category/<%= p.category_slug %>"><i class="<%= p.category_icon %>"></i> <%= p.category_name %></a><% } %>
+          <span class="badge badge-success"><i class="fa-solid fa-bolt"></i> التسليم: <%= p.delivery_time || 'سريع' %></span>
+          <% if (p.sales_count > 0) { %><span class="badge badge-info"><i class="fa-solid fa-bag-shopping"></i> <%= p.sales_count %> عملية شراء</span><% } %>
+          <span class="badge badge-muted">#<%= 100000 + p.id %></span>
+        </div>
+        <% if (p.short_description) { %><p class="pd-short"><%= p.short_description %></p><% } %>
+        <% if (p.region_note) { %><div class="pd-avail"><i class="fa-solid fa-earth-asia"></i> <%= p.region_note %></div><% } %>
+        <div class="pd-facts">
+          <div class="pd-fact"><i class="<%= method.icon %>"></i><div><small>طريقة التسليم</small><b><%= method.short %></b></div></div>
+          <div class="pd-fact"><i class="fa-solid fa-clock"></i><div><small>وقت التسليم</small><b><%= p.delivery_time || 'بعد تأكيد الدفع' %></b></div></div>
+          <div class="pd-fact"><i class="fa-solid fa-medal"></i><div><small>الضمان</small><b><%= p.warranty || 'دعم فني متواصل' %></b></div></div>
+          <div class="pd-fact"><i class="fa-solid fa-building-columns"></i><div><small>الدفع</small><b>تحويل بنكي ومحافظ</b></div></div>
+        </div>
+      </div>
+    </section>
+
+    <% if (p.description) { %>
+    <section class="card card-body">
+      <h2 class="form-section-title" style="margin-bottom:12px"><i class="fa-solid fa-align-right"></i> وصف المنتج</h2>
+      <div class="prose"><%= p.description %></div>
+    </section>
+    <% } %>
+
+    <% if (p.features.length || p.activation_steps.length) { %>
+    <div class="grid-2">
+      <% if (p.features.length) { %>
+      <section class="card card-body">
+        <h2 class="form-section-title" style="margin-bottom:14px"><i class="fa-solid fa-list-check"></i> ماذا ستحصل عليه؟</h2>
+        <ul class="feature-list">
+          <% p.features.forEach((f) => { %><li><i class="fa-solid fa-check"></i><span><%= f %></span></li><% }) %>
+        </ul>
+      </section>
+      <% } %>
+      <% if (p.activation_steps.length) { %>
+      <section class="card card-body">
+        <h2 class="form-section-title" style="margin-bottom:14px"><i class="fa-solid fa-route"></i> خطوات الشراء والتفعيل</h2>
+        <ol class="num-steps">
+          <% p.activation_steps.forEach((s) => { %><li><%= s %></li><% }) %>
+        </ol>
+      </section>
+      <% } %>
+    </div>
+    <% } %>
+
+    <section class="card card-body" id="reviews">
+      <h2 class="form-section-title" style="margin-bottom:14px"><i class="fa-solid fa-star"></i> التقييمات والمراجعات</h2>
+      <% if (summary.total) { %>
+        <div class="rating-sum">
+          <div class="rating-big">
+            <b><%= summary.avg %></b>
+            <%- include('../partials/stars', { rating: summary.avg }) %>
+            <small style="display:block">بناءً على <%= summary.total %> تقييم</small>
+          </div>
+          <div class="rbars">
+            <% [5, 4, 3, 2, 1].forEach((n) => { const pct = summary.total ? Math.round((summary.dist[n] / summary.total) * 100) : 0; %>
+            <div class="rbar"><span><%= n %> <i class="fa-solid fa-star" style="color:var(--gold);font-size:10px"></i></span><span class="track"><span class="fill" style="width:<%= pct %>%"></span></span><span><%= summary.dist[n] %></span></div>
+            <% }) %>
+          </div>
+        </div>
+        <div class="stack mt-16">
+          <% reviews.forEach((r) => { %>
+          <div class="review">
+            <div class="review-head">
+              <span class="avatar avatar-sm"><%= initials(r.author_name) %></span>
+              <div class="grow"><b><%= r.author_name %> <span class="badge badge-success" style="height:20px;font-size:10.5px"><i class="fa-solid fa-circle-check"></i> مشترٍ موثّق</span></b><small><%= fmtDate(r.created_at) %></small></div>
+              <%- include('../partials/stars', { rating: r.rating }) %>
+            </div>
+            <% if (r.comment) { %><p><%= r.comment %></p><% } %>
+          </div>
+          <% }) %>
+        </div>
+      <% } else { %>
+        <div class="empty" style="padding:24px 10px">
+          <span class="ic"><i class="fa-regular fa-star"></i></span>
+          <h3>لا توجد تقييمات بعد</h3>
+          <p>كن أول من يجرب هذا الاشتراك ويشارك رأيه بعد الاستلام.</p>
+        </div>
+      <% } %>
+    </section>
+
+    <section>
+      <h2 class="sec-title" style="margin-bottom:12px"><span class="ic"><i class="fa-solid fa-circle-question"></i></span> أسئلة شائعة</h2>
+      <div class="faq">
+        <% faq.forEach((f, i) => { %><details<%= i === 0 ? ' open' : '' %>><summary><%= f.q %></summary><div class="ans"><%= f.a %></div></details><% }) %>
+      </div>
+    </section>
+  </div>
+
+  <aside class="pd-side stack">
+    <form class="card buybox" id="buybox" method="get" action="/store/checkout" data-buybox
+      data-rate="<%= displayCurrency.is_base ? 1 : displayCurrency.rate %>" data-decimals="<%= displayCurrency.decimals %>" data-symbol="<%= displayCurrency.symbol %>">
+      <input type="hidden" name="product" value="<%= p.slug %>">
+      <% if (p.offer_end && p.max_discount > 0) { %>
+      <div class="offer-box"><span><i class="fa-solid fa-fire"></i> العرض ينتهي خلال</span><span class="countdown" data-countdown="<%= p.offer_end.toISOString() %>"></span></div>
+      <% } %>
+      <h3><i class="fa-solid fa-layer-group" style="color:var(--brand)"></i> اختر الباقة</h3>
+      <div class="plans" role="radiogroup" aria-label="الباقات">
+        <% p.plans.forEach((pl) => { %>
+        <label class="plan-opt<%= pl.in_stock ? '' : ' is-out' %>">
+          <input type="radio" name="plan" value="<%= pl.id %>" data-price="<%= pl.price %>" data-old="<%= pl.old_price || '' %>" data-stock="<%= pl.stock === null ? '' : pl.stock %>"<%= selectedPlan && pl.id === selectedPlan.id ? ' checked' : '' %><%= pl.in_stock ? '' : ' disabled' %>>
+          <span class="radio"></span>
+          <span class="pname"><%= pl.name %><small><%= pl.in_stock ? (pl.duration_days ? 'مدة الاشتراك: ' + durationLabel(pl.duration_days) : 'اشتراك دائم') : 'نفدت الكمية' %></small></span>
+          <span class="pprice"><% if (pl.old_price) { %><s><%- money(pl.old_price) %></s><% } %><b><%- money(pl.price) %></b></span>
+          <% if (pl.discount > 0) { %><span class="save">وفّر <%= pl.discount %>%</span><% } %>
+        </label>
+        <% }) %>
+      </div>
+
+      <div class="flex between mt-16">
+        <span class="label">الكمية</span>
+        <div class="qty">
+          <button type="button" data-qty-step="1" aria-label="زيادة"><i class="fa-solid fa-plus"></i></button>
+          <input type="number" lang="en" name="qty" value="1" min="1" max="<%= maxQty %>" inputmode="numeric" aria-label="الكمية" data-qty>
+          <button type="button" data-qty-step="-1" aria-label="إنقاص"><i class="fa-solid fa-minus"></i></button>
+        </div>
+      </div>
+
+      <div class="total-row">
+        <span>الإجمالي</span>
+        <div class="total"><span data-total><%- money(selectedPlan ? selectedPlan.price : 0) %></span><small data-saving></small></div>
+      </div>
+
+      <button class="btn btn-primary btn-lg btn-block" type="submit"<%= selectedPlan && selectedPlan.in_stock ? '' : ' disabled' %>>
+        <% if (user) { %><i class="fa-solid fa-bolt"></i> اشترِ الآن<% } else { %><i class="fa-solid fa-arrow-right-to-bracket"></i> سجّل دخولك للشراء<% } %>
+      </button>
+      <p class="buy-note"><i class="fa-solid fa-lock"></i> الدفع بالتحويل البنكي أو المحافظ ويتم تأكيده يدوياً</p>
+      <p class="buy-note" data-stock-note hidden></p>
+    </form>
+
+    <div class="card side-card">
+      <h4><i class="fa-solid fa-store"></i> معلومات البائع</h4>
+      <div class="seller-row">
+        <% if (seller.role === 'admin') { %><img src="/static/img/logo-96.png" alt=""><% } else { %><span class="avatar avatar-lg"><%= initials(seller.store_name || seller.name) %></span><% } %>
+        <div>
+          <b><%= seller.store_name || seller.name || settings.store_name %> <i class="fa-solid fa-circle-check" title="بائع موثّق"></i></b>
+          <small>بائع موثّق · عضو منذ <%= fmtDate(seller.created_at) %></small>
+        </div>
+      </div>
+      <div class="seller-stats">
+        <% if (sellerStats.done) { %>
+        <div><b><%= sellerRating && sellerRating.n ? sellerRating.avg : '—' %></b><small>تقييم البائع</small></div>
+        <div><b><%= sellerStats.done %></b><small>طلب مكتمل</small></div>
+        <div><b dir="ltr"><%= Math.round((sellerStats.done / sellerStats.total) * 100) %>%</b><small>نسبة الإنجاز</small></div>
+        <% } else { %>
+        <div><b><i class="fa-solid fa-circle-check text-brand"></i></b><small>بائع موثّق</small></div>
+        <div><b><i class="fa-solid fa-bolt" style="color:var(--warning)"></i></b><small>تسليم سريع</small></div>
+        <div><b><i class="fa-brands fa-whatsapp" style="color:var(--whatsapp)"></i></b><small>دعم مباشر</small></div>
+        <% } %>
+      </div>
+      <a class="btn btn-whatsapp btn-block" href="<%= waLink(storeWa, 'مرحباً، لدي استفسار عن: ' + p.title) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> استفسر عبر واتساب</a>
+    </div>
+
+    <div class="card side-card">
+      <h4><i class="fa-solid fa-shield-halved" style="color:var(--success)"></i> شراء آمن 100%</h4>
+      <ul class="secure-list">
+        <li><i class="fa-solid fa-check"></i> كل إيصال تحويل يُراجع يدوياً من فريقنا قبل تأكيد الطلب.</li>
+        <li><i class="fa-solid fa-check"></i> تتابع حالة طلبك خطوة بخطوة من لوحة المشتري مع إشعارات فورية.</li>
+        <li><i class="fa-solid fa-check"></i> بيانات الاشتراك تظهر لك وحدك داخل صفحة الطلب في حسابك.</li>
+      </ul>
+    </div>
+  </aside>
+</div>
+
+<% if (similar.length) { %>
+<section class="panel section" data-hscroll>
+  <div class="sec-head">
+    <div>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-layer-group"></i></span> منتجات مشابهة</h2>
+      <p class="sec-sub">من قسم <%= p.category_name %></p>
+    </div>
+    <div class="hs-nav"><button type="button" data-hs-prev aria-label="السابق"><i class="fa-solid fa-chevron-right"></i></button><button type="button" data-hs-next aria-label="التالي"><i class="fa-solid fa-chevron-left"></i></button></div>
+  </div>
+  <div class="hscroll" data-hs-track>
+    <% similar.forEach((sp) => { %><%- include('../partials/product-card', { p: sp }) %><% }) %>
+  </div>
+</section>
+<% } %>
+
+<div class="mobile-buybar" data-mobile-buybar>
+  <div class="grow">
+    <small class="muted" style="display:block;font-size:11.5px;line-height:1.2"><%= p.title %></small>
+    <b class="price-now" data-total-mirror><%- money(selectedPlan ? selectedPlan.price : 0) %></b>
+  </div>
+  <a class="btn btn-primary" href="#buybox" data-scroll-buybox><i class="fa-solid fa-bolt"></i> اشترِ الآن</a>
+</div>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/product.js'] }) %>

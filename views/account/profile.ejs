@@ -1,0 +1,81 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>الملف الشخصي</h1><p>حدّث بياناتك ورقم الواتساب وكلمة المرور.</p></div>
+</div>
+
+<div class="dash-grid" style="margin-top:0">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-user"></i> البيانات الشخصية</h2></div>
+      <form class="card-body stack" method="post" action="/account/profile" data-ajax novalidate>
+        <div class="form-grid cols-2">
+          <div class="field">
+            <label class="label" for="name">الاسم الكامل</label>
+            <input class="input" id="name" name="name" value="<%= user.name %>" maxlength="80" required>
+            <span class="field-error"></span>
+          </div>
+          <div class="field">
+            <label class="label" for="email">البريد الإلكتروني</label>
+            <input class="input" id="email" value="<%= user.email %>" readonly dir="ltr" style="text-align:right">
+            <span class="help">لتغيير البريد تواصل مع الدعم.</span>
+          </div>
+        </div>
+        <%- include('../partials/phone-input', { waCountry: user.wa_country || 'PS', waNumber: user.wa_number || '' }) %>
+        <div class="form-actions"><button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ التغييرات</button></div>
+      </form>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-lock"></i> <%= user.password_hash ? 'تغيير كلمة المرور' : 'تعيين كلمة مرور' %></h2></div>
+      <form class="card-body stack" method="post" action="/account/password" data-ajax novalidate>
+        <% if (!user.password_hash) { %>
+          <div class="alert alert-brand"><i class="fa-brands fa-google"></i><div>حسابك مسجّل عبر Google. يمكنك تعيين كلمة مرور لتتمكن من الدخول بالبريد وكلمة المرور أيضاً.</div></div>
+        <% } else { %>
+        <div class="field">
+          <label class="label" for="current_password">كلمة المرور الحالية</label>
+          <input class="input" id="current_password" name="current_password" type="password" autocomplete="current-password" required>
+          <span class="field-error"></span>
+        </div>
+        <% } %>
+        <div class="form-grid cols-2">
+          <div class="field">
+            <label class="label" for="new_password">كلمة المرور الجديدة</label>
+            <input class="input" id="new_password" name="password" type="password" autocomplete="new-password" minlength="8" required>
+            <span class="field-error"></span>
+          </div>
+          <div class="field">
+            <label class="label" for="password_confirm">تأكيد كلمة المرور</label>
+            <input class="input" id="password_confirm" name="password_confirm" type="password" autocomplete="new-password" minlength="8" required>
+            <span class="field-error"></span>
+          </div>
+        </div>
+        <div class="form-actions"><button class="btn btn-primary" type="submit"><i class="fa-solid fa-key"></i> <%= user.password_hash ? 'تغيير كلمة المرور' : 'تعيين كلمة المرور' %></button></div>
+      </form>
+    </section>
+  </div>
+
+  <div class="stack">
+    <section class="card card-body">
+      <div class="flex gap-12 mb-16">
+        <% if (user.avatar_url) { %><img class="avatar avatar-lg" src="<%= user.avatar_url %>" alt="" referrerpolicy="no-referrer"><% } else { %><span class="avatar avatar-lg"><%= initials(user.name) %></span><% } %>
+        <div class="grow" style="min-width:0"><b style="display:block;font-size:16px"><%= user.name %></b><small class="muted"><%= ROLES[user.role].label %> · عضو منذ <%= fmtDate(user.created_at) %></small></div>
+      </div>
+      <div class="kv">
+        <div class="kv-row"><span>واتساب</span><span dir="ltr"><%= displayWhatsapp(user.wa_e164) %></span></div>
+        <div class="kv-row"><span>الدخول بـ Google</span><span><%= user.google_sub ? 'مرتبط ✓' : 'غير مرتبط' %></span></div>
+        <div class="kv-row"><span>كلمة المرور</span><span><%= user.password_hash ? 'معيّنة ✓' : 'غير معيّنة' %></span></div>
+        <div class="kv-row"><span>الأجهزة المسجّلة</span><span><%= sessions %></span></div>
+      </div>
+    </section>
+    <section class="card card-body stack-sm">
+      <h3 class="form-section-title"><i class="fa-solid fa-shield-halved"></i> الأمان</h3>
+      <p class="help">إذا سجّلت الدخول من جهاز لا تستخدمه، يمكنك إنهاء جميع الجلسات الأخرى.</p>
+      <form method="post" action="/account/sessions/revoke" data-ajax data-confirm="سيتم تسجيل خروجك من جميع الأجهزة الأخرى. متابعة؟">
+        <button class="btn btn-danger-soft btn-block" type="submit"><i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج من الأجهزة الأخرى</button>
+      </form>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/countries.js', '/static/js/phone-input.js'] }) %>

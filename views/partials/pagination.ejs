@@ -1,0 +1,16 @@
+<% if (pg && pg.pages > 1) { %>
+<nav class="pagination" aria-label="الصفحات">
+  <% if (pg.page > 1) { %><a href="<%= pageUrl(pg.page - 1) %>" aria-label="السابق"><i class="fa-solid fa-chevron-right"></i></a><% } %>
+  <%
+    const pagesToShow = [];
+    for (let i = 1; i <= pg.pages; i++) {
+      if (i === 1 || i === pg.pages || Math.abs(i - pg.page) <= 1) pagesToShow.push(i);
+      else if (pagesToShow[pagesToShow.length - 1] !== '…') pagesToShow.push('…');
+    }
+  %>
+  <% pagesToShow.forEach((n) => { %>
+    <% if (n === '…') { %><span class="gap">…</span><% } else if (n === pg.page) { %><span class="is-active" aria-current="page"><%= n %></span><% } else { %><a href="<%= pageUrl(n) %>"><%= n %></a><% } %>
+  <% }) %>
+  <% if (pg.page < pg.pages) { %><a href="<%= pageUrl(pg.page + 1) %>" aria-label="التالي"><i class="fa-solid fa-chevron-left"></i></a><% } %>
+</nav>
+<% } %>

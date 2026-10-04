@@ -1,0 +1,63 @@
+<footer class="footer">
+  <div class="footer-in">
+    <div class="footer-grid">
+      <div class="footer-about">
+        <a class="footer-brand" href="/">
+          <img src="/static/img/logo-96.png" alt="MTS">
+          <span><b>MTS Agency</b><small>اشتراكات رقمية وخدمات تقنية</small></span>
+        </a>
+        <p>وكالة رقمية تقدّم اشتراكات المنصات العالمية بدفع محلي، وخدمات البرمجة والتصميم والتسويق والإنتاج المرئي.</p>
+        <ul class="footer-contact">
+          <li><i class="fa-solid fa-location-dot"></i> مصر — القاهرة — جسر السويس</li>
+          <li><i class="fa-brands fa-whatsapp"></i> <a href="<%= waLink(storeWa) %>" target="_blank" rel="noopener"><bdi dir="ltr"><%= displayWhatsapp(storeWa) %></bdi></a></li>
+          <% if (settings.support_email) { %><li><i class="fa-solid fa-envelope"></i> <a href="mailto:<%= settings.support_email %>"><%= settings.support_email %></a></li><% } %>
+        </ul>
+        <div class="footer-socials">
+          <a href="<%= waLink(storeWa) %>" target="_blank" rel="noopener" aria-label="واتساب"><i class="fa-brands fa-whatsapp"></i></a>
+          <% if (settings.facebook_url) { %><a href="<%= settings.facebook_url %>" target="_blank" rel="noopener" aria-label="فيسبوك"><i class="fa-brands fa-facebook-f"></i></a><% } %>
+          <% if (settings.instagram_url) { %><a href="<%= settings.instagram_url %>" target="_blank" rel="noopener" aria-label="انستغرام"><i class="fa-brands fa-instagram"></i></a><% } %>
+        </div>
+      </div>
+      <div>
+        <h4>المتجر</h4>
+        <ul>
+          <li><a href="/store">الصفحة الرئيسية للمتجر</a></li>
+          <li><a href="/store/products">جميع الاشتراكات</a></li>
+          <li><a href="/store/platforms">المنصات</a></li>
+          <li><a href="/store/products?sale=1&sort=deals">العروض</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>الشركة</h4>
+        <ul>
+          <li><a href="/">MTS Agency</a></li>
+          <li><a href="/#services">خدماتنا</a></li>
+          <li><a href="/account/become-seller">أصبح بائعاً</a></li>
+          <li><a href="<%= waLink(storeWa, 'مرحباً MTS Agency') %>" target="_blank" rel="noopener">تواصل معنا</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>المساعدة</h4>
+        <ul>
+          <li><a href="/store/help">كيف أشتري؟</a></li>
+          <% if (user) { %><li><a href="/account/orders">طلباتي</a></li><% } else { %><li><a href="/login">تسجيل الدخول</a></li><% } %>
+          <li><a href="/store/terms">الشروط وسياسة الضمان</a></li>
+          <li><a href="/store/privacy">سياسة الخصوصية</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-pay-row">
+      <span>طرق الدفع:</span>
+      <div class="footer-pay">
+        <span><i class="fa-solid fa-building-columns"></i> بنك فلسطين</span>
+        <span><i class="fa-solid fa-mobile-screen-button"></i> جوال باي</span>
+        <span><i class="fa-solid fa-wallet"></i> بال باي</span>
+        <span><i class="fa-solid fa-money-bill-transfer"></i> فودافون كاش</span>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <%= new Date().getFullYear() %> MTS Agency — جميع الحقوق محفوظة</span>
+      <span class="flex gap-16"><a href="/store/terms">الشروط والأحكام</a><a href="/store/privacy">الخصوصية</a></span>
+    </div>
+  </div>
+</footer>

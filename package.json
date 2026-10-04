@@ -1,0 +1,27 @@
+{
+  "name": "mts-agency-store",
+  "version": "1.0.0",
+  "private": true,
+  "description": "MTS Agency — موقع الوكالة ومتجر الاشتراكات الرقمية (MTS Store)",
+  "main": "server.js",
+  "scripts": {
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "dev": "node --disable-warning=ExperimentalWarning --watch-path=src --watch-path=server.js server.js",
+    "reset-db": "node --disable-warning=ExperimentalWarning scripts/reset-db.js",
+    "test": "node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\""
+  },
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "dependencies": {
+    "compression": "^1.8.2",
+    "cookie-parser": "^1.4.7",
+    "ejs": "^6.0.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "google-auth-library": "^11.1.0",
+    "helmet": "^8.3.0",
+    "libphonenumber-js": "^1.13.14",
+    "multer": "^2.4.0"
+  }
+}

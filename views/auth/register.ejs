@@ -1,0 +1,69 @@
+<%- include('../partials/top') %>
+
+<div class="auth-page">
+  <div class="auth-card wide">
+    <div class="auth-icon"><i class="fa-solid fa-user-plus"></i></div>
+    <h1>إنشاء حساب جديد</h1>
+    <p class="sub">أنشئ حسابك خلال دقيقة لتتمكن من الشراء ومتابعة اشتراكاتك.</p>
+
+    <%- include('../partials/google-button', { mode: 'signup', next }) %>
+    <% if (googleClientId) { %><p class="help center mt-8">عند التسجيل عبر Google سنطلب منك رقم الواتساب في الخطوة التالية.</p><% } %>
+
+    <div class="auth-divider">أو أنشئ حساباً بالبريد الإلكتروني</div>
+
+    <form class="stack" method="post" action="/register" data-ajax novalidate>
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="form-grid cols-2">
+        <div class="field">
+          <label class="label" for="name">الاسم الكامل <span class="req">*</span></label>
+          <div class="input-wrap"><i class="fa-regular fa-user"></i><input class="input" id="name" name="name" autocomplete="name" required maxlength="80" placeholder="مثال: محمد أحمد"></div>
+          <span class="field-error"></span>
+        </div>
+        <div class="field">
+          <label class="label" for="email">البريد الإلكتروني <span class="req">*</span></label>
+          <div class="input-wrap"><i class="fa-regular fa-envelope"></i><input class="input" id="email" type="email" name="email" autocomplete="email" required dir="ltr" style="text-align:right" placeholder="name@example.com"></div>
+          <span class="field-error"></span>
+        </div>
+      </div>
+
+      <%- include('../partials/phone-input') %>
+
+      <div class="form-grid cols-2">
+        <div class="field">
+          <label class="label" for="password">كلمة المرور <span class="req">*</span></label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input class="input has-toggle" id="password" type="password" name="password" autocomplete="new-password" required minlength="8" placeholder="8 أحرف على الأقل">
+            <button class="pw-toggle" type="button" data-pw-toggle aria-label="إظهار كلمة المرور"><i class="fa-regular fa-eye"></i></button>
+          </div>
+          <span class="field-error"></span>
+        </div>
+        <div class="field">
+          <label class="label" for="password_confirm">تأكيد كلمة المرور <span class="req">*</span></label>
+          <div class="input-wrap">
+            <i class="fa-solid fa-lock"></i>
+            <input class="input" id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" required minlength="8" placeholder="أعد كتابة كلمة المرور">
+          </div>
+          <span class="field-error"></span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="check"><input type="checkbox" name="agree" value="1" required><span>أوافق على <a class="link" href="/store/terms" target="_blank">الشروط والأحكام</a> و<a class="link" href="/store/privacy" target="_blank">سياسة الخصوصية</a>.</span></label>
+        <span class="field-error"></span>
+      </div>
+
+      <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-user-plus"></i> إنشاء الحساب</button>
+    </form>
+
+    <div class="auth-perks">
+      <div><i class="fa-solid fa-circle-check"></i> تابع حالة طلباتك واشتراكاتك لحظة بلحظة</div>
+      <div><i class="fa-solid fa-circle-check"></i> استلم بيانات الاشتراك داخل حسابك بأمان</div>
+      <div><i class="fa-solid fa-circle-check"></i> تواصل سريع عبر واتساب عند الحاجة</div>
+    </div>
+
+    <p class="auth-foot">لديك حساب بالفعل؟ <a class="link" href="/login<%= next ? '?next=' + encodeURIComponent(next) : '' %>">سجّل الدخول</a></p>
+  </div>
+</div>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/countries.js', '/static/js/phone-input.js'].concat(googleClientId ? ['https://accounts.google.com/gsi/client', '/static/js/google-auth.js'] : []) }) %>
