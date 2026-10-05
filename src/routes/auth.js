@@ -109,9 +109,12 @@ router.post('/register', registerLimiter, async (req, res) => {
 });
 
 /* ---------- Google ----------
- * Our own button sends the visitor to Google (OpenID Connect, response_type=id_token). Google returns to
- * /auth/google/callback with the ID token in the URL fragment; that page posts it here. A short-lived
- * cookie set at the start carries the state (anti-CSRF), the nonce (anti-replay) and where to go next. */
+ * Our own button opens Google's sign-in popup (Google Identity Services token client), which needs only the
+ * site's JavaScript origin in Google Console; the server checks the access token with Google (POST
+ * /auth/google/token). Without Google's script or when the popup is blocked, the button falls back to the
+ * redirect flow (OpenID Connect, response_type=id_token): Google returns to /auth/google/callback with the ID
+ * token in the URL fragment and that page posts it to /auth/google. That flow needs the callback URL in
+ * Google Console; a short-lived cookie carries its state (anti-CSRF), nonce (anti-replay) and next page. */
 let oauthClient = null;
 const GOOGLE_COOKIE = 'mts_google';
 const googleCookieOptions = (req) => ({ httpOnly: true, sameSite: 'lax', secure: req.secure, path: '/', maxAge: 10 * 60 * 1000 });
@@ -130,6 +133,58 @@ const sameSecret = (a, b) => {
   const y = Buffer.from(String(b));
   return x.length === y.length && x.length > 0 && crypto.timingSafeEqual(x, y);
 };
+
+async function googleJson(url, options = {}) {
+  const res = await fetch(url, { ...options, signal: AbortSignal.timeout(10000) });
+  if (!res.ok) throw new Error(`Google answered ${res.status}`);
+  return res.json();
+}
+
+// Profile behind an access token from the popup. The token must have been issued to this site's client ID,
+// so a token obtained by another app cannot be replayed here.
+async function googleProfile(accessToken, clientId) {
+  const info = await googleJson(`https://oauth2.googleapis.com/tokeninfo?access_token=${encodeURIComponent(accessToken)}`);
+  if (info.aud !== clientId || !(Number(info.expires_in) > 0)) throw new Error('Token was not issued for this client');
+  const me = await googleJson('https://openidconnect.googleapis.com/v1/userinfo', { headers: { Authorization: `Bearer ${accessToken}` } });
+  if (!me.sub || me.sub !== info.sub) throw new Error('Profile does not match the token');
+  return { sub: me.sub, email: me.email, email_verified: me.email_verified === true || me.email_verified === 'true', name: me.name, picture: me.picture };
+}
+
+// Shared by both flows once Google has vouched for the profile.
+function finishGoogleSignIn(req, res, payload, next) {
+  if (!payload.sub || !payload.email || !payload.email_verified) {
+    return res.reply({ ok: false, message: 'يجب أن يكون البريد الإلكتروني في حساب Google موثّقاً' });
+  }
+  const existing = get('SELECT is_blocked FROM users WHERE google_sub = ? OR email = ? ORDER BY google_sub = ? DESC LIMIT 1', payload.sub, payload.email.toLowerCase(), payload.sub);
+  if (existing && existing.is_blocked) return res.reply({ ok: false, message: 'تم إيقاف هذا الحساب. تواصل مع الدعم لمزيد من التفاصيل.' });
+  const result = resolveGoogleUser(payload);
+  if (result.error) return res.reply({ ok: false, message: result.error });
+  const user = result.user;
+
+  startSession(req, res, user.id);
+  if (!user.wa_e164) {
+    return res.reply({
+      ok: true,
+      message: result.reset ? 'تم ربط حسابك بـ Google. لحماية حسابك أعد إدخال رقم الواتساب، ويمكنك تعيين كلمة مرور جديدة من الملف الشخصي.' : null,
+      redirect: '/auth/complete-profile' + (next ? '?next=' + encodeURIComponent(next) : ''),
+    });
+  }
+  res.reply({ ok: true, message: `مرحباً يا ${firstName(user.name)} 👋`, redirect: next || homeFor(user) });
+}
+
+router.post('/auth/google/token', googleLimiter, async (req, res) => {
+  const clientId = settings.googleClientId();
+  if (!clientId) return res.reply({ ok: false, message: 'تسجيل الدخول عبر Google غير مفعّل حالياً' });
+  const accessToken = str(req.body.access_token);
+  if (!accessToken || accessToken.length > 4096) return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
+  let profile;
+  try {
+    profile = await googleProfile(accessToken, clientId);
+  } catch {
+    return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
+  }
+  finishGoogleSignIn(req, res, profile, safeNext(req.body.next, ''));
+});
 
 router.get('/auth/google/start', googleLimiter, (req, res) => {
   const clientId = settings.googleClientId();
@@ -175,26 +230,7 @@ router.post('/auth/google', googleLimiter, async (req, res) => {
     return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
   }
   if (!payload || !sameSecret(payload.nonce, flow.nonce)) return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
-  if (!payload.sub || !payload.email || !payload.email_verified) {
-    return res.reply({ ok: false, message: 'يجب أن يكون البريد الإلكتروني في حساب Google موثّقاً' });
-  }
-
-  const existing = get('SELECT is_blocked FROM users WHERE google_sub = ? OR email = ? ORDER BY google_sub = ? DESC LIMIT 1', payload.sub, payload.email.toLowerCase(), payload.sub);
-  if (existing && existing.is_blocked) return res.reply({ ok: false, message: 'تم إيقاف هذا الحساب. تواصل مع الدعم لمزيد من التفاصيل.' });
-  const result = resolveGoogleUser(payload);
-  if (result.error) return res.reply({ ok: false, message: result.error });
-  const user = result.user;
-
-  startSession(req, res, user.id);
-  const next = safeNext(flow.next, '');
-  if (!user.wa_e164) {
-    return res.reply({
-      ok: true,
-      message: result.reset ? 'تم ربط حسابك بـ Google. لحماية حسابك أعد إدخال رقم الواتساب، ويمكنك تعيين كلمة مرور جديدة من الملف الشخصي.' : null,
-      redirect: '/auth/complete-profile' + (next ? '?next=' + encodeURIComponent(next) : ''),
-    });
-  }
-  res.reply({ ok: true, message: `مرحباً يا ${firstName(user.name)} 👋`, redirect: next || homeFor(user) });
+  finishGoogleSignIn(req, res, payload, safeNext(flow.next, ''));
 });
 
 /* ---------- Mandatory WhatsApp number ---------- */

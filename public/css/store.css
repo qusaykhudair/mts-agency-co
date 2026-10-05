@@ -4390,6 +4390,10 @@ bdi,
   height: 20px;
   flex-shrink: 0;
 }
+.g-btn.is-busy {
+  opacity: 0.6;
+  pointer-events: none;
+}
 :root[data-theme='dark'] .g-btn {
   border-color: #8e918f;
   background: #131314;

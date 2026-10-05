@@ -33,4 +33,4 @@
   </div>
 </div>
 
-<%- include('../partials/bottom') %>
+<%- include('../partials/bottom', { scripts: googleClientId ? ['https://accounts.google.com/gsi/client', '/static/js/google-signin.js'] : [] }) %>

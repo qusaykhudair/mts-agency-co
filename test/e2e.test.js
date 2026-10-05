@@ -1055,7 +1055,9 @@ test('Google sign-in checks a one-time state and nonce', async () => {
   settings.set({ google_client_id: 'test-client.apps.googleusercontent.com' });
   try {
     const login = await (await stranger.get('/login')).text();
-    assert.ok(login.includes('/auth/google/start') && !login.includes('accounts.google.com/gsi'));
+    // Our own button: it opens Google's popup when Google's script loads and falls back to the redirect flow.
+    assert.ok(login.includes('/auth/google/start') && login.includes('data-client-id="test-client.apps.googleusercontent.com"'));
+    assert.ok(login.includes('https://accounts.google.com/gsi/client') && !login.includes('data-google-btn'));
 
     const c = new Client();
     const begin = async () => {
@@ -1087,6 +1089,57 @@ test('Google sign-in checks a one-time state and nonce', async () => {
     assert.equal((await stranger.get('/auth/google/callback')).status, 200);
   } finally {
     OAuth2Client.prototype.verifyIdToken = original;
+    settings.set({ google_client_id: '' });
+  }
+});
+
+test('Google popup sign-in accepts only access tokens issued to this site', async () => {
+  const CLIENT = 'test-client.apps.googleusercontent.com';
+  const tokens = {
+    'tok-ok': { info: { aud: CLIENT, sub: 'g-pop-1', expires_in: '3599' }, me: { sub: 'g-pop-1', email: 'Popup@test.local', email_verified: true, name: 'Popup Person' } },
+    'tok-other-app': { info: { aud: 'other-app.apps.googleusercontent.com', sub: 'g-pop-2', expires_in: '3599' }, me: { sub: 'g-pop-2', email: 'other@test.local', email_verified: true } },
+    'tok-unverified': { info: { aud: CLIENT, sub: 'g-pop-3', expires_in: '3599' }, me: { sub: 'g-pop-3', email: 'unverified@test.local', email_verified: false } },
+    'tok-mismatch': { info: { aud: CLIENT, sub: 'g-pop-4', expires_in: '3599' }, me: { sub: 'someone-else', email: 'mismatch@test.local', email_verified: true } },
+  };
+  // Stand in for Google's tokeninfo and userinfo endpoints; everything else goes to the real fetch.
+  const realFetch = global.fetch;
+  const reply = (data, status = 200) => new Response(JSON.stringify(data), { status, headers: { 'content-type': 'application/json' } });
+  global.fetch = async (url, options = {}) => {
+    const href = String(url);
+    if (href.startsWith('https://oauth2.googleapis.com/tokeninfo')) {
+      const t = tokens[new URL(href).searchParams.get('access_token')];
+      return t ? reply(t.info) : reply({ error: 'invalid_token' }, 400);
+    }
+    if (href.startsWith('https://openidconnect.googleapis.com/v1/userinfo')) {
+      const t = tokens[String((options.headers || {}).Authorization || '').replace(/^Bearer /, '')];
+      return t ? reply(t.me) : reply({ error: 'invalid_token' }, 401);
+    }
+    return realFetch(url, options);
+  };
+  settings.set({ google_client_id: CLIENT });
+  try {
+    const c = new Client();
+    const signIn = (token) => c.post('/auth/google/token', { access_token: token, next: '/account/services' });
+    assert.equal((await signIn('tok-unknown')).body.ok, false);
+    assert.equal((await signIn('tok-other-app')).body.ok, false, 'a token issued to another app is refused');
+    assert.equal((await signIn('tok-mismatch')).body.ok, false);
+    const unverified = await signIn('tok-unverified');
+    assert.equal(unverified.body.ok, false);
+    assert.match(unverified.body.message, /موثّق/);
+    assert.equal(get("SELECT COUNT(*) AS n FROM users WHERE google_sub IN ('g-pop-2', 'g-pop-3', 'g-pop-4', 'someone-else')").n, 0);
+
+    // Another site cannot post a token to sign the visitor in to someone else's account.
+    const forged = await new Client().post('/auth/google/token', { access_token: 'tok-ok' }, { origin: 'https://evil.example' });
+    assert.equal(forged.status, 403);
+    assert.equal(get("SELECT id FROM users WHERE google_sub = 'g-pop-1'"), undefined);
+
+    const ok = await signIn('tok-ok');
+    assert.equal(ok.body.ok, true, JSON.stringify(ok.body));
+    assert.equal(ok.body.redirect, '/auth/complete-profile?next=%2Faccount%2Fservices');
+    assert.equal(get("SELECT email FROM users WHERE google_sub = 'g-pop-1'").email, 'popup@test.local');
+    assert.equal((await c.get('/auth/complete-profile')).status, 200, 'the new session is active');
+  } finally {
+    global.fetch = realFetch;
     settings.set({ google_client_id: '' });
   }
 });

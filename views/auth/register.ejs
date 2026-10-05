@@ -66,4 +66,4 @@
   </div>
 </div>
 
-<%- include('../partials/bottom', { scripts: ['/static/js/countries.js', '/static/js/phone-input.js'] }) %>
+<%- include('../partials/bottom', { scripts: ['/static/js/countries.js', '/static/js/phone-input.js'].concat(googleClientId ? ['https://accounts.google.com/gsi/client', '/static/js/google-signin.js'] : []) }) %>
