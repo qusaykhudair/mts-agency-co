@@ -225,6 +225,7 @@ bdi,
 }
 .pre-line {
   white-space: pre-line;
+  overflow-wrap: anywhere;
 }
 .ellipsis {
   overflow: hidden;
@@ -6985,4 +6986,26 @@ a.kv-row:hover > span:first-child {
   .svc-opt b {
     font-size: 13px;
   }
+}
+
+/* Long words with no spaces (pasted links, a key held down) wrap inside their box instead of stretching
+   the card past the page edge. */
+.od-main,
+.od-side {
+  grid-template-columns: minmax(0, 1fr);
+}
+.status-banner > div,
+.table .t-main > div {
+  min-width: 0;
+}
+.od-head .grow b,
+.status-banner b,
+.status-banner p,
+.ocard .o-info b,
+.table .t-main b,
+.notif b,
+.notif p,
+.th-sys span,
+.th-msg header b {
+  overflow-wrap: anywhere;
 }
