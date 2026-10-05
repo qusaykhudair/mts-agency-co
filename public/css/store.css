@@ -1747,6 +1747,8 @@ bdi,
 }
 .field {
   display: grid;
+  /* The column never grows past the field, so wide controls (the phone input) shrink instead of spilling out. */
+  grid-template-columns: minmax(0, 1fr);
   gap: 7px;
   align-content: start;
   min-width: 0;
