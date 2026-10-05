@@ -6,7 +6,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { get, run, tx, toSql } = require('./db');
 const config = require('./config');
-const { hashPassword, endAllSessions } = require('./lib/auth');
+const { hashPassword, verifyPassword, endAllSessions } = require('./lib/auth');
 const { fromInternational } = require('./lib/phone');
 const settings = require('./lib/settings');
 
@@ -304,19 +304,29 @@ async function ensureAdmin() {
   const email = config.admin.email || (firstAdmin ? '' : 'admin@mts.store');
   if (!email) return firstAdmin.id;
 
-  const existing = get('SELECT id, role FROM users WHERE email = ?', email);
+  const existing = get('SELECT id, role, password_hash, last_login_at FROM users WHERE email = ?', email);
   if (existing) {
     if (existing.role !== 'admin') {
-      console.warn(`[seed] ADMIN_EMAIL (${email}) belongs to an existing non-admin account; it was NOT promoted. Grant the role from /seller/users if intended.`);
+      if (!config.admin.resetPassword) {
+        console.warn(`[seed] ADMIN_EMAIL (${email}) belongs to an existing non-admin account; it was NOT promoted. Grant the role from /seller/users or set ADMIN_RESET_PASSWORD.`);
+      }
+    } else if (
+      config.admin.password &&
+      !existing.last_login_at &&
+      !(existing.password_hash && (await verifyPassword(config.admin.password, existing.password_hash)))
+    ) {
+      // Created before ADMIN_PASSWORD was set (random password) and never used: adopt the configured password.
+      run('UPDATE users SET password_hash = ? WHERE id = ?', await hashPassword(config.admin.password), existing.id);
+      console.log(`[seed] ADMIN_PASSWORD applied to the admin account ${email} (it had never signed in).`);
     }
     return firstAdmin ? firstAdmin.id : null;
   }
   // An admin already exists: only add another one when the operator supplied its password.
-  if (firstAdmin && !config.admin.password) {
+  if (firstAdmin && !config.admin.password && !config.admin.resetPassword) {
     console.warn(`[seed] ADMIN_EMAIL (${email}) has no account and ADMIN_PASSWORD is empty; no new admin was created.`);
     return firstAdmin.id;
   }
-  let password = config.admin.password;
+  let password = config.admin.password || config.admin.resetPassword;
   let generated = false;
   if (!password) {
     password = crypto.randomBytes(9).toString('base64url');
@@ -446,13 +456,19 @@ async function applyAdminPasswordReset() {
     console.warn('[seed] ADMIN_RESET_PASSWORD must be 8–128 characters; the password was NOT changed.');
     return;
   }
+  // The ADMIN_EMAIL account wins (promoted to admin if it was a regular account); otherwise the first admin.
   const admin =
-    (config.admin.email && get("SELECT id, email FROM users WHERE email = ? AND role = 'admin'", config.admin.email)) ||
-    get("SELECT id, email FROM users WHERE role = 'admin' ORDER BY id LIMIT 1");
+    (config.admin.email && get('SELECT id, email, role FROM users WHERE email = ?', config.admin.email)) ||
+    get("SELECT id, email, role FROM users WHERE role = 'admin' ORDER BY id LIMIT 1");
   if (!admin) return;
-  run('UPDATE users SET password_hash = ?, is_blocked = 0 WHERE id = ?', await hashPassword(password), admin.id);
+  run(
+    "UPDATE users SET password_hash = ?, role = 'admin', store_name = COALESCE(store_name, 'MTS Store'), is_blocked = 0 WHERE id = ?",
+    await hashPassword(password),
+    admin.id,
+  );
   endAllSessions(admin.id);
-  console.warn(`[seed] Admin password for ${admin.email} was reset from ADMIN_RESET_PASSWORD. Remove this variable now.`);
+  const promoted = admin.role !== 'admin' ? ' and the account is now an admin' : '';
+  console.warn(`[seed] Admin password for ${admin.email} was reset from ADMIN_RESET_PASSWORD${promoted}. Remove this variable now.`);
 }
 
 async function seed() {

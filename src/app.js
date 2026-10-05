@@ -34,7 +34,7 @@ function createApp() {
   // Uptime/health check; also tells whether data survives redeploys (Railway volume attached).
   app.get('/healthz', (req, res) => {
     get('SELECT 1');
-    res.set('Cache-Control', 'no-store').json({ ok: true, storage: config.ephemeralStorage ? 'ephemeral' : 'persistent' });
+    res.set('Cache-Control', 'no-store').json({ ok: true, storage: config.ephemeralStorage ? 'ephemeral' : 'persistent', version: config.commit || 'dev' });
   });
   app.get('/robots.txt', (req, res) => res.type('text').send('User-agent: *\nDisallow: /account\nDisallow: /seller\nDisallow: /api\nDisallow: /files\n'));
 

@@ -26,6 +26,8 @@ module.exports = {
   onRailway,
   // Running on Railway without a volume: data disappears on the next deploy.
   ephemeralStorage: onRailway && !volume,
+  // Commit being served (Railway sets it for GitHub deployments).
+  commit: (env.RAILWAY_GIT_COMMIT_SHA || '').slice(0, 7),
   port: Number(env.PORT) || 3000,
   appUrl: (env.APP_URL || publicDomain).replace(/\/+$/, ''),
   dataDir,

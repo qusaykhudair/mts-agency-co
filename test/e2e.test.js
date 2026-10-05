@@ -145,7 +145,7 @@ test('brand homepage shows live catalogue data and agency services', async () =>
 
   const health = await stranger.get('/healthz');
   assert.equal(health.status, 200);
-  assert.deepEqual(await health.json(), { ok: true, storage: 'persistent' });
+  assert.deepEqual(await health.json(), { ok: true, storage: 'persistent', version: 'dev' });
 
   const legacy = await stranger.get('/index.html');
   assert.equal(legacy.status, 301);
@@ -746,4 +746,40 @@ test('ADMIN_RESET_PASSWORD replaces the admin password at startup', () => {
   const env = { DATA_DIR: dir, SEED_DEMO: 'false', ADMIN_EMAIL: 'owner@test.local', ADMIN_PASSWORD: 'first-owner-pass-123' };
   assert.deepEqual(runOnRailway(boot, env), { reset: false, old: true });
   assert.deepEqual(runOnRailway(boot, { ...env, ADMIN_RESET_PASSWORD: 'new-owner-pass-456' }), { reset: true, old: false });
+});
+
+test('ADMIN_PASSWORD is adopted by an admin account that has never signed in', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mts-adopt-'));
+  const env = { DATA_DIR: dir, SEED_DEMO: 'false', ADMIN_EMAIL: 'owner@test.local' };
+  const boot = (extraSql = '') => `(async () => {
+    const db = require('./src/db'); db.migrate(); require('./src/lib/settings').load(); await require('./src/seed').seed();
+    ${extraSql}
+    const { verifyPassword } = require('./src/lib/auth');
+    const u = db.get("SELECT password_hash FROM users WHERE email = 'owner@test.local'");
+    console.log(JSON.stringify({ later: await verifyPassword('later-pass-789', u.password_hash), other: await verifyPassword('other-pass-000', u.password_hash) }));
+  })()`;
+  // First start without a password: a random one is generated.
+  assert.deepEqual(runOnRailway(boot(), { ...env, ADMIN_PASSWORD: '' }), { later: false, other: false });
+  // The variable is added afterwards: the unused account takes it.
+  assert.deepEqual(runOnRailway(boot("db.run(\"UPDATE users SET last_login_at = datetime('now') WHERE email = 'owner@test.local'\");"), { ...env, ADMIN_PASSWORD: 'later-pass-789' }), { later: true, other: false });
+  // Once the admin has signed in, changing the variable no longer overrides the password.
+  assert.deepEqual(runOnRailway(boot(), { ...env, ADMIN_PASSWORD: 'other-pass-000' }), { later: true, other: false });
+});
+
+test('ADMIN_RESET_PASSWORD turns the ADMIN_EMAIL account into an admin', () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mts-promote-'));
+  const boot = (extraSql = '') => `(async () => {
+    const db = require('./src/db'); db.migrate(); require('./src/lib/settings').load(); await require('./src/seed').seed();
+    ${extraSql}
+    const { verifyPassword } = require('./src/lib/auth');
+    const u = db.get("SELECT role, password_hash FROM users WHERE email = 'me@test.local'");
+    console.log(JSON.stringify(u ? { role: u.role, ok: !!u.password_hash && (await verifyPassword('me-new-pass-456', u.password_hash)) } : null));
+  })()`;
+  // The owner first signed up through Google as a regular customer.
+  const signup = "db.run(\"INSERT INTO users (name, email, google_sub, last_login_at) VALUES ('Owner', 'me@test.local', 'g-1', datetime('now'))\");";
+  assert.deepEqual(runOnRailway(boot(signup), { DATA_DIR: dir, SEED_DEMO: 'false', ADMIN_EMAIL: 'boss@test.local', ADMIN_PASSWORD: 'boss-pass-123' }), { role: 'buyer', ok: false });
+  // Plain ADMIN_EMAIL never promotes an existing account…
+  assert.deepEqual(runOnRailway(boot(), { DATA_DIR: dir, SEED_DEMO: 'false', ADMIN_EMAIL: 'me@test.local', ADMIN_PASSWORD: 'me-new-pass-456' }), { role: 'buyer', ok: false });
+  // …but the explicit reset does.
+  assert.deepEqual(runOnRailway(boot(), { DATA_DIR: dir, SEED_DEMO: 'false', ADMIN_EMAIL: 'me@test.local', ADMIN_RESET_PASSWORD: 'me-new-pass-456' }), { role: 'admin', ok: true });
 });
