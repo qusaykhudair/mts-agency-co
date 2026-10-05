@@ -243,19 +243,120 @@ const MIGRATIONS = [
   `
   ALTER TABLE orders ADD COLUMN stock_reserved INTEGER NOT NULL DEFAULT 0;
   `,
+  // v3: MTS Agency service requests, and the "provider" role that fulfils them. SQLite cannot widen a CHECK
+  // constraint in place, so "users" is rebuilt (foreign keys off, so nothing referencing it cascades).
+  {
+    foreignKeysOff: true,
+    sql: `
+  CREATE TABLE users_v3 (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    name          TEXT NOT NULL,
+    email         TEXT NOT NULL COLLATE NOCASE UNIQUE,
+    password_hash TEXT,
+    google_sub    TEXT UNIQUE,
+    avatar_url    TEXT,
+    wa_country    TEXT,
+    wa_dial       TEXT,
+    wa_number     TEXT,
+    wa_e164       TEXT,
+    role          TEXT NOT NULL DEFAULT 'buyer' CHECK (role IN ('buyer', 'seller', 'admin', 'provider')),
+    store_name    TEXT,
+    is_blocked    INTEGER NOT NULL DEFAULT 0,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    last_login_at TEXT
+  );
+  INSERT INTO users_v3 (id, name, email, password_hash, google_sub, avatar_url, wa_country, wa_dial, wa_number, wa_e164,
+                        role, store_name, is_blocked, created_at, last_login_at)
+    SELECT id, name, email, password_hash, google_sub, avatar_url, wa_country, wa_dial, wa_number, wa_e164,
+           role, store_name, is_blocked, created_at, last_login_at FROM users;
+  DROP TABLE users;
+  ALTER TABLE users_v3 RENAME TO users;
+
+  CREATE TABLE services (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    name       TEXT NOT NULL,
+    slug       TEXT NOT NULL UNIQUE,
+    icon       TEXT NOT NULL DEFAULT 'fa-solid fa-briefcase',
+    summary    TEXT,
+    brief_hint TEXT,
+    is_active  INTEGER NOT NULL DEFAULT 1,
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE service_requests (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    code          TEXT UNIQUE,
+    user_id       INTEGER NOT NULL REFERENCES users(id),
+    service_id    INTEGER REFERENCES services(id) ON DELETE SET NULL,
+    service_name  TEXT NOT NULL,
+    title         TEXT NOT NULL,
+    details       TEXT NOT NULL,
+    budget        TEXT,
+    deadline      TEXT,
+    links         TEXT NOT NULL DEFAULT '[]',
+    status        TEXT NOT NULL DEFAULT 'pending'
+                  CHECK (status IN ('pending', 'in_progress', 'delivered', 'revision', 'completed', 'cancelled')),
+    assigned_to   INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    assigned_at   TEXT,
+    delivered_at  TEXT,
+    completed_at  TEXT,
+    cancelled_at  TEXT,
+    cancel_reason TEXT,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX idx_service_requests_user ON service_requests(user_id, id);
+  CREATE INDEX idx_service_requests_assignee ON service_requests(assigned_to, status);
+  CREATE INDEX idx_service_requests_status ON service_requests(status, id);
+
+  CREATE TABLE service_events (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id  INTEGER NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+    user_id     INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    type        TEXT NOT NULL,
+    body        TEXT,
+    links       TEXT NOT NULL DEFAULT '[]',
+    is_internal INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX idx_service_events_request ON service_events(request_id, id);
+
+  CREATE TABLE service_files (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    request_id    INTEGER NOT NULL REFERENCES service_requests(id) ON DELETE CASCADE,
+    event_id      INTEGER REFERENCES service_events(id) ON DELETE CASCADE,
+    user_id       INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    file_name     TEXT NOT NULL UNIQUE,
+    original_name TEXT NOT NULL,
+    mime          TEXT NOT NULL,
+    size          INTEGER NOT NULL,
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX idx_service_files_request ON service_files(request_id, event_id);
+  `,
+  },
 ];
 
 function migrate() {
   const { user_version: current } = db.prepare('PRAGMA user_version').get();
+  const fkProblems = () => db.prepare('PRAGMA foreign_key_check').all().length;
   for (let v = current; v < MIGRATIONS.length; v++) {
+    const step = typeof MIGRATIONS[v] === 'string' ? { sql: MIGRATIONS[v] } : MIGRATIONS[v];
+    // PRAGMA foreign_keys is ignored inside a transaction, so it is switched around BEGIN/COMMIT.
+    if (step.foreignKeysOff) db.exec('PRAGMA foreign_keys = OFF');
     db.exec('BEGIN');
     try {
-      db.exec(MIGRATIONS[v]);
+      const before = step.foreignKeysOff ? fkProblems() : 0;
+      db.exec(step.sql);
+      if (step.foreignKeysOff && fkProblems() > before) throw new Error(`Migration ${v + 1} would break foreign keys`);
       db.exec(`PRAGMA user_version = ${v + 1}`);
       db.exec('COMMIT');
     } catch (err) {
       db.exec('ROLLBACK');
       throw err;
+    } finally {
+      if (step.foreignKeysOff) db.exec('PRAGMA foreign_keys = ON');
     }
   }
 }
@@ -316,4 +417,4 @@ function fromSql(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-module.exports = { db, migrate, get, all, run, tx, toSql, fromSql };
+module.exports = { db, MIGRATIONS, migrate, get, all, run, tx, toSql, fromSql };

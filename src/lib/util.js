@@ -68,4 +68,24 @@ const color = (value, fallback) => (HEX_RE.test(str(value)) ? str(value).toLower
 // Accept "fa-solid fa-robot" style class lists only.
 const icon = (value, fallback) => (/^(fa-[a-z0-9-]+\s*){1,4}$/.test(str(value).trim()) ? str(value).trim() : fallback);
 
-module.exports = { str, safeNext, clean, cleanText, lines, isEmail, int, bool, pick, color, icon, toLatinDigits };
+// Up to `max` web links (http/https), one per line or as an array. A bare "example.com" gets https://.
+function urls(value, max = 10) {
+  const raw = Array.isArray(value) ? value.map(str) : str(value).split(/[\r\n]+/);
+  const links = [];
+  for (const item of raw) {
+    const s = clean(item, 500);
+    if (!s) continue;
+    let url;
+    try {
+      url = new URL(/^[a-z][a-z0-9+.-]*:/i.test(s) ? s : 'https://' + s);
+    } catch {
+      url = null;
+    }
+    if (!url || !['http:', 'https:'].includes(url.protocol) || !url.hostname.includes('.')) return { error: 'رابط غير صالح: ' + s.slice(0, 60) };
+    if (links.length >= max) return { error: 'يمكنك إضافة ' + max + ' روابط كحد أقصى' };
+    links.push(url.href);
+  }
+  return { links };
+}
+
+module.exports = { str, safeNext, clean, cleanText, lines, isEmail, int, bool, pick, color, icon, urls, toLatinDigits };

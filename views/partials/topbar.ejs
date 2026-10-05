@@ -2,9 +2,9 @@
   <% if (navMode !== 'bare') { %>
   <button class="icon-btn sb-toggle" type="button" data-sidebar-open aria-label="فتح القائمة"><i class="fa-solid fa-bars"></i></button>
   <% } %>
-  <a class="tb-brand" href="<%= navMode === 'seller' ? '/seller' : '/store' %>">
+  <a class="tb-brand" href="<%= navMode === 'seller' ? '/seller' : navMode === 'provider' ? '/provider' : '/store' %>">
     <img src="/static/img/logo-96.png" alt="MTS">
-    <span>MTS <em><%= navMode === 'seller' ? 'Seller' : 'Store' %></em></span>
+    <span>MTS <em><%= navMode === 'seller' ? 'Dashboard' : navMode === 'provider' ? 'Team' : 'Store' %></em></span>
   </a>
 
   <% if (navMode === 'store' || navMode === 'bare') { %>
@@ -22,7 +22,7 @@
     <button class="icon-btn tb-search-toggle" type="button" data-search-toggle aria-label="بحث"><i class="fa-solid fa-magnifying-glass"></i></button>
     <% } %>
 
-    <% if (currencies.length > 1 && navMode !== 'seller') { %>
+    <% if (currencies.length > 1 && navMode !== 'seller' && navMode !== 'provider') { %>
     <div class="dd" data-dd>
       <button class="cur-btn" type="button" data-dd-toggle aria-label="عملة العرض" title="عملة العرض">
         <span><%= displayCurrency.symbol %></span><span class="hide-sm"><%= displayCurrency.code %></span>
@@ -72,11 +72,15 @@
           <div class="grow"><b class="ellipsis"><%= user.name %></b><small class="ellipsis" style="display:block"><%= user.email %></small></div>
         </div>
         <% if (isStaff) { %>
-        <a class="dd-item" href="/seller"><i class="fa-solid fa-gauge-high"></i> لوحة البائع<% if (counts.pendingOrders) { %> <span class="badge badge-danger" style="margin-inline-start:auto"><%= counts.pendingOrders %></span><% } %></a>
+        <a class="dd-item" href="/seller"><i class="fa-solid fa-gauge-high"></i> <%= isAdmin ? 'لوحة الإدارة' : 'لوحة البائع' %><% if (counts.pendingOrders) { %> <span class="badge badge-danger" style="margin-inline-start:auto"><%= counts.pendingOrders %></span><% } %></a>
+        <% } %>
+        <% if (isProvider) { %>
+        <a class="dd-item" href="/provider"><i class="fa-solid fa-inbox"></i> لوحة الخدمات<% if (counts.services) { %> <span class="badge badge-danger" style="margin-inline-start:auto"><%= counts.services %></span><% } %></a>
         <% } %>
         <a class="dd-item" href="/account"><i class="fa-solid fa-house-user"></i> لوحة حسابي</a>
         <a class="dd-item" href="/account/orders"><i class="fa-solid fa-bag-shopping"></i> طلباتي</a>
         <a class="dd-item" href="/account/subscriptions"><i class="fa-solid fa-id-card"></i> اشتراكاتي</a>
+        <a class="dd-item" href="/account/services"><i class="fa-solid fa-briefcase"></i> طلبات الخدمات</a>
         <a class="dd-item" href="/account/profile"><i class="fa-solid fa-user-gear"></i> الملف الشخصي</a>
         <button class="dd-item" type="button" data-theme-toggle><i class="fa-solid fa-circle-half-stroke"></i> الوضع الليلي/النهاري</button>
         <div class="dd-sep"></div>

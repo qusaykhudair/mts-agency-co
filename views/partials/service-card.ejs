@@ -1,0 +1,8 @@
+<a class="ocard" href="<%= href %>">
+  <span class="svc-ic"><i class="<%= r.service_icon || 'fa-solid fa-briefcase' %>"></i></span>
+  <div class="o-info">
+    <b><%= r.title %></b>
+    <small><span class="code bold text-brand"><%= r.code %></span> · <%= r.service_name %> · <%= timeAgo(r.updated_at) %></small>
+  </div>
+  <div class="o-side"><%- include('service-badge', { status: r.status }) %></div>
+</a>

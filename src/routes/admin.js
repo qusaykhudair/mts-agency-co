@@ -7,9 +7,11 @@ const orders = require('../lib/orders');
 const { notify } = require('../lib/notify');
 const { hashPassword, endAllSessions } = require('../lib/auth');
 const { fromInternational } = require('../lib/phone');
-const { slugify, parseJson } = require('../lib/format');
+const { slugify, parseJson, ROLES } = require('../lib/format');
+const services = require('../lib/services');
+const { mountRequestRoutes } = require('./team');
 const { imageUpload, publicUrl, removePublic, discard } = require('../lib/uploads');
-const { str, clean, cleanText, lines, int, bool, color, icon, isEmail } = require('../lib/util');
+const { str, clean, cleanText, lines, int, bool, color, icon, isEmail, pick } = require('../lib/util');
 const { paginate, requireAdmin } = require('../middleware');
 
 const router = express.Router();
@@ -383,7 +385,7 @@ router.post('/currencies/:code/make-base', (req, res) => {
    ===================================================================== */
 router.get('/users', (req, res) => {
   const q = clean(req.query.q, 80);
-  const role = ['buyer', 'seller', 'admin'].includes(req.query.role) ? req.query.role : '';
+  const role = pick(ROLES, req.query.role) || '';
   const where = ['1 = 1'];
   const params = [];
   if (q) {
@@ -446,17 +448,27 @@ const adminCount = () => get("SELECT COUNT(*) AS n FROM users WHERE role = 'admi
 
 router.post('/users/:id/role', (req, res) => {
   const u = loadUser(req);
-  const role = ['buyer', 'seller', 'admin'].includes(req.body.role) ? req.body.role : null;
+  const role = pick(ROLES, req.body.role);
   if (!role) return res.reply({ ok: false, message: 'صلاحية غير صالحة' });
   if (u.id === req.user.id && role !== 'admin') return res.reply({ ok: false, message: 'لا يمكنك إزالة صلاحية المدير عن حسابك' });
   if (u.role === 'admin' && role !== 'admin' && adminCount() <= 1) return res.reply({ ok: false, message: 'يجب أن يبقى مدير واحد على الأقل' });
+  // Service requests in progress must not be left with someone who can no longer open them.
+  if (['provider', 'admin'].includes(u.role) && !['provider', 'admin'].includes(role)) {
+    const open = get("SELECT COUNT(*) AS n FROM service_requests WHERE assigned_to = ? AND status IN ('in_progress', 'delivered', 'revision')", u.id).n;
+    if (open) return res.reply({ ok: false, message: `لدى هذا العضو ${open} طلب خدمة مفتوح — أسندها إلى منفذ آخر أولاً` });
+  }
   const storeName = clean(req.body.store_name, 60) || u.store_name || null;
   run('UPDATE users SET role = ?, store_name = ? WHERE id = ?', role, storeName, u.id);
   if (role !== u.role) {
+    const granted = {
+      admin: ['مدير المتجر', 'يمكنك الآن إدارة المتجر وطلبات الخدمات بالكامل.', '/seller'],
+      seller: ['البائع', 'يمكنك الآن الوصول إلى لوحة البائع لإدارة المنتجات والطلبات.', '/seller'],
+      provider: ['منفذ الخدمات', 'ستصلك طلبات خدمات MTS Agency في لوحة الخدمات لتعمل عليها وتسلّمها للعملاء.', '/provider'],
+    }[role];
     notify(u.id, {
-      title: role === 'buyer' ? 'تم تحديث صلاحيات حسابك' : 'تم منحك صلاحيات ' + (role === 'admin' ? 'مدير المتجر' : 'البائع') + ' 🎉',
-      body: role === 'buyer' ? null : 'يمكنك الآن الوصول إلى لوحة البائع لإدارة المنتجات والطلبات.',
-      link: role === 'buyer' ? '/account' : '/seller',
+      title: granted ? `تم منحك صلاحيات ${granted[0]} 🎉` : 'تم تحديث صلاحيات حسابك',
+      body: granted ? granted[1] : null,
+      link: granted ? granted[2] : '/account',
       icon: 'fa-solid fa-user-shield',
       tone: 'brand',
     });
@@ -557,6 +569,107 @@ router.post('/reviews/:id/delete', (req, res) => {
 });
 
 /* =====================================================================
+   Service requests (MTS Agency)
+   ===================================================================== */
+const SERVICE_TABS = [
+  { key: '', label: 'الكل', statuses: null },
+  { key: 'pending', label: 'جديدة', statuses: ['pending'] },
+  { key: 'in_progress', label: 'قيد التنفيذ', statuses: ['in_progress', 'revision'] },
+  { key: 'delivered', label: 'تم التسليم', statuses: ['delivered'] },
+  { key: 'completed', label: 'مكتملة', statuses: ['completed'] },
+  { key: 'cancelled', label: 'ملغاة', statuses: ['cancelled'] },
+];
+
+router.get('/service-requests', (req, res) => {
+  const tab = SERVICE_TABS.find((t) => t.key === (req.query.status || '')) || SERVICE_TABS[0];
+  const q = clean(req.query.q, 80);
+  const memberId = int(req.query.member, { fallback: null });
+  const counts = services.countsByStatus();
+  const where = [];
+  const params = [];
+  if (tab.statuses) {
+    where.push(`r.status IN (${tab.statuses.map(() => '?').join(',')})`);
+    params.push(...tab.statuses);
+  }
+  if (memberId) {
+    where.push('r.assigned_to = ?');
+    params.push(memberId);
+  }
+  if (q) {
+    where.push('(r.code LIKE ? OR r.title LIKE ? OR r.service_name LIKE ? OR c.name LIKE ? OR c.email LIKE ? OR c.wa_e164 LIKE ?)');
+    params.push(...Array(5).fill(`%${q}%`), `%${q.replace(/^\+?0*/, '')}%`);
+  }
+  const total = services.list({ where, params, limit: 1 }).total;
+  const pg = paginate(total, req.query.page, 20);
+  res.render('team/requests', {
+    active: 'admin-service-requests',
+    pageTitle: 'طلبات الخدمات',
+    scope: 'admin',
+    tabs: SERVICE_TABS.map((t) => ({
+      key: t.key,
+      label: t.label,
+      count: t.statuses ? t.statuses.reduce((s, st) => s + (counts[st] || 0), 0) : Object.values(counts).reduce((a, b) => a + b, 0),
+    })),
+    tab: tab.key,
+    q,
+    memberId,
+    team: all("SELECT id, name, role FROM users WHERE role IN ('provider', 'admin') ORDER BY role = 'admin', name"),
+    pg,
+    items: services.list({ where, params, limit: 20, offset: pg.offset }).items,
+    base: '/seller/service-requests',
+  });
+});
+
+mountRequestRoutes(router, { base: '/service-requests', active: 'admin-service-requests' });
+
+/* ---------- The services offered ---------- */
+router.get('/services', (req, res) => {
+  const editing = req.query.edit ? get('SELECT * FROM services WHERE id = ?', int(req.query.edit, { fallback: 0 })) : null;
+  res.render('seller/services', {
+    active: 'admin-services',
+    pageTitle: 'الخدمات',
+    editing,
+    items: all(
+      `SELECT s.*, (SELECT COUNT(*) FROM service_requests r WHERE r.service_id = s.id) AS requests_count
+       FROM services s ORDER BY s.sort_order, s.id`,
+    ),
+  });
+});
+
+router.post('/services', (req, res) => {
+  const b = req.body;
+  const id = int(b.id, { fallback: null });
+  const existing = id ? get('SELECT * FROM services WHERE id = ?', id) : null;
+  if (id && !existing) throw notFound('الخدمة');
+  const name = clean(b.name, 80);
+  if (name.length < 3) return res.reply({ ok: false, errors: { name: 'اكتب اسم الخدمة' } });
+  const v = [
+    name,
+    uniqueSlug('services', clean(b.slug, 60) || name, existing && existing.id),
+    icon(b.icon, 'fa-solid fa-briefcase'),
+    cleanText(b.summary, 300) || null,
+    cleanText(b.brief_hint, 400) || null,
+    int(b.sort_order, { min: 0, max: 9999, fallback: 0 }),
+    bool(b.is_active) ? 1 : 0,
+  ];
+  if (existing) run('UPDATE services SET name = ?, slug = ?, icon = ?, summary = ?, brief_hint = ?, sort_order = ?, is_active = ? WHERE id = ?', ...v, existing.id);
+  else run('INSERT INTO services (name, slug, icon, summary, brief_hint, sort_order, is_active) VALUES (?, ?, ?, ?, ?, ?, ?)', ...v);
+  res.reply({ ok: true, message: existing ? 'تم حفظ الخدمة' : 'تمت إضافة الخدمة', redirect: '/seller/services' });
+});
+
+router.post('/services/:id/delete', (req, res) => {
+  const s = get('SELECT * FROM services WHERE id = ?', int(req.params.id, { fallback: 0 }));
+  if (!s) throw notFound('الخدمة');
+  // Past requests keep their own copy of the service name, so a used service is only hidden.
+  if (get('SELECT id FROM service_requests WHERE service_id = ? LIMIT 1', s.id)) {
+    run('UPDATE services SET is_active = 0 WHERE id = ?', s.id);
+    return res.reply({ ok: true, message: 'الخدمة مرتبطة بطلبات سابقة، لذلك تم إخفاؤها بدلاً من حذفها', reload: true });
+  }
+  run('DELETE FROM services WHERE id = ?', s.id);
+  res.reply({ ok: true, message: 'تم حذف الخدمة', redirect: '/seller/services' });
+});
+
+/* =====================================================================
    Settings
    ===================================================================== */
 router.get('/settings', (req, res) => {
@@ -596,6 +709,7 @@ router.post('/settings', (req, res) => {
     checkout_note: cleanText(b.checkout_note, 400),
     google_client_id: googleId,
     auto_complete_days: String(int(b.auto_complete_days, { min: 1, max: 60, fallback: 3 })),
+    service_auto_complete_days: String(int(b.service_auto_complete_days, { min: 1, max: 90, fallback: 7 })),
     max_quantity: String(int(b.max_quantity, { min: 1, max: 100, fallback: 10 })),
     sellers_can_approve: bool(b.sellers_can_approve) ? '1' : '0',
   });

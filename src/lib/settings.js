@@ -15,6 +15,8 @@ const DEFAULTS = {
   checkout_note: 'بعد إرسال الطلب يقوم فريقنا بمراجعة إيصال التحويل، وسيصلك إشعار فور تأكيد الدفع وتسليم بيانات الاشتراك داخل حسابك.',
   google_client_id: '',
   auto_complete_days: '3',
+  // Delivered service requests the client never answered are closed after this many days.
+  service_auto_complete_days: '7',
   max_quantity: '10',
   default_currency: '',
   // Sellers may confirm/reject payments for their products ('0' = only the admin can).

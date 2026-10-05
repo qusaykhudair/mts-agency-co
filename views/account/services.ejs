@@ -1,0 +1,28 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>طلبات الخدمات</h1><p>تابع طلباتك لدى فريق MTS Agency، تواصل معهم واستلم التسليمات من هنا.</p></div>
+  <div class="actions"><a class="btn btn-primary" href="/services/request"><i class="fa-solid fa-plus"></i> طلب خدمة جديدة</a></div>
+</div>
+
+<nav class="tabs" aria-label="حالات الطلبات">
+  <% tabs.forEach((t) => { %>
+  <a class="tab<%= t.key === tab ? ' is-active' : '' %>" href="<%= withQuery({ tab: t.key || null }) %>"><%= t.label %> <span class="n"><%= t.count %></span></a>
+  <% }) %>
+</nav>
+
+<% if (items.length) { %>
+  <div class="olist"><% items.forEach((r) => { %><%- include('../partials/service-card', { r, href: '/account/services/' + r.code }) %><% }) %></div>
+  <%- include('../partials/pagination', { pg }) %>
+<% } else { %>
+  <section class="card">
+    <div class="empty">
+      <span class="ic"><i class="fa-solid fa-briefcase"></i></span>
+      <h3><%= tab ? 'لا توجد طلبات في هذا القسم' : 'لا توجد طلبات خدمات بعد' %></h3>
+      <p>صمّم هويتك، طوّر موقعك أو أطلق حملتك التسويقية مع فريق MTS Agency — أرسل طلبك وتابعه خطوة بخطوة.</p>
+      <a class="btn btn-primary" href="/services"><i class="fa-solid fa-briefcase"></i> تصفّح الخدمات</a>
+    </div>
+  </section>
+<% } %>
+
+<%- include('../partials/bottom') %>

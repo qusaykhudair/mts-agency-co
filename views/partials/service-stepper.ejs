@@ -1,0 +1,22 @@
+<%
+  const states = {
+    pending: ['done', 'current', '', ''],
+    in_progress: ['done', 'done', 'current', ''],
+    revision: ['done', 'done', 'current', ''],
+    delivered: ['done', 'done', 'done', 'current'],
+    completed: ['done', 'done', 'done', 'done'],
+  }[r.status];
+  const labels = [
+    ['fa-solid fa-paper-plane', 'إرسال الطلب'],
+    ['fa-solid fa-user-check', 'مراجعة الفريق'],
+    [r.status === 'revision' ? 'fa-solid fa-rotate' : 'fa-solid fa-person-digging', r.status === 'revision' ? 'تنفيذ التعديلات' : 'التنفيذ والتسليم'],
+    ['fa-solid fa-flag-checkered', 'الاعتماد'],
+  ];
+%>
+<% if (states) { %>
+<div class="stepper" aria-label="مراحل الطلب">
+  <% labels.forEach(([icon, label], i) => { %>
+  <div class="st <%= states[i] %>"><span class="dot"><i class="<%= states[i] === 'done' ? 'fa-solid fa-check' : icon %>"></i></span><span><%= label %></span></div>
+  <% }) %>
+</div>
+<% } %>

@@ -1,0 +1,8 @@
+<div class="files-picker" data-files data-max="<%= max %>" data-max-mb="<%= maxMb %>">
+  <input type="file" name="files" id="<%= id %>" multiple hidden>
+  <label class="files-drop" for="<%= id %>">
+    <i class="fa-solid fa-paperclip"></i>
+    <span><b><%= locals.label || 'إرفاق ملفات' %></b><small>حتى <%= max %> ملفات · <%= maxMb %> ميجابايت للملف — صور، PDF، Office، ZIP، فيديو</small></span>
+  </label>
+  <ul class="files-list" data-files-list></ul>
+</div>

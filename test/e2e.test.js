@@ -22,7 +22,7 @@ Object.assign(process.env, {
   RATE_LIMIT: 'off',
 });
 
-const { migrate, get, run } = require('../src/db');
+const { migrate, get, all, run } = require('../src/db');
 const { seed } = require('../src/seed');
 const settings = require('../src/lib/settings');
 const money = require('../src/lib/money');
@@ -137,8 +137,9 @@ test('brand homepage shows live catalogue data and agency services', async () =>
   const html = await (await stranger.get('/')).text();
   assert.match(html, /<title>MTS Agency/);
   assert.ok(html.includes('action="/store/products"'), 'hero search posts to the catalogue');
-  assert.ok(html.includes('data-tab-panel="popular"'), 'product tabs render');
-  assert.ok(html.includes('id="services"') && html.includes('/static/img/clients/'), 'agency services and clients render');
+  assert.ok(html.includes('id="products"') && html.includes('class="pgrid"'), 'popular subscriptions render');
+  assert.ok(html.includes('id="services"') && html.includes('/services/request?service=web-development'), 'agency services link to the request form');
+  assert.ok(html.includes('/static/img/clients/'), 'clients render');
   assert.ok(html.includes('/store/product/chatgpt-plus'), 'links to real products');
   // Every active payment method is listed with its currency.
   assert.ok(html.includes('فودافون كاش') && html.includes('بنك فلسطين'));
@@ -782,4 +783,342 @@ test('ADMIN_RESET_PASSWORD turns the ADMIN_EMAIL account into an admin', () => {
   assert.deepEqual(runOnRailway(boot(), { DATA_DIR: dir, SEED_DEMO: 'false', ADMIN_EMAIL: 'me@test.local', ADMIN_PASSWORD: 'me-new-pass-456' }), { role: 'buyer', ok: false });
   // …but the explicit reset does.
   assert.deepEqual(runOnRailway(boot(), { DATA_DIR: dir, SEED_DEMO: 'false', ADMIN_EMAIL: 'me@test.local', ADMIN_RESET_PASSWORD: 'me-new-pass-456' }), { role: 'admin', ok: true });
+});
+
+/* ---------------------------------------------------------------------
+   MTS Agency service requests
+   --------------------------------------------------------------------- */
+const PDF = Buffer.from('%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n');
+const ZIP = Buffer.concat([Buffer.from([0x50, 0x4b, 0x03, 0x04]), Buffer.alloc(40)]);
+
+function serviceForm(fields, files = []) {
+  const fd = new FormData();
+  for (const [k, v] of Object.entries(fields)) fd.append(k, String(v));
+  for (const f of files) fd.append('files', new Blob([f.data], { type: f.type || 'application/octet-stream' }), f.name);
+  return fd;
+}
+
+const serviceDirCount = () => fs.readdirSync(require('../src/lib/uploads').SERVICE_DIR).length;
+const serviceId = (slug) => get('SELECT id FROM services WHERE slug = ?', slug).id;
+const requestOf = (code) => get('SELECT * FROM service_requests WHERE code = ?', code);
+const notified = (userId, text) => !!get('SELECT id FROM notifications WHERE user_id = ? AND title LIKE ?', userId, `%${text}%`);
+const userId = (email) => get('SELECT id FROM users WHERE email = ?', email).id;
+
+async function newProvider(email) {
+  const client = await newBuyer(email);
+  const id = userId(email);
+  const res = await admin.post(`/seller/users/${id}/role`, { role: 'provider' });
+  assert.equal(res.body.ok, true, JSON.stringify(res.body));
+  return { client, id };
+}
+
+async function requestService(client, fields = {}, files = []) {
+  const res = await client.post(
+    '/services/request',
+    serviceForm({ service_id: serviceId('branding-design'), title: 'هوية بصرية لمخبز', details: 'نحتاج شعاراً وهوية بصرية كاملة لمخبز في غزة مع ألوان دافئة.', ...fields }, files),
+  );
+  assert.equal(res.body.ok, true, JSON.stringify(res.body));
+  return codeOf(res);
+}
+
+let svcClient;
+let svcCode;
+let providerA;
+let providerB;
+
+test('services pages render and requesting a service needs an account', async () => {
+  assert.equal(get('SELECT COUNT(*) AS n FROM services WHERE is_active = 1').n, 6);
+  const page = await stranger.get('/services');
+  assert.equal(page.status, 200);
+  const html = await page.text();
+  assert.ok(html.includes('الهوية والتصميم الجرافيكي') && html.includes('/services/request?service=branding-design'));
+  const form = await stranger.get('/services/request?service=branding-design');
+  assert.equal(form.status, 302);
+  assert.match(form.headers.get('location'), /^\/login\?next=/);
+});
+
+test('a client requests a service with attachments and the team is told', async () => {
+  svcClient = await newBuyer('svc-client@test.local');
+  const form = await svcClient.get('/services/request?service=branding-design');
+  assert.equal(form.status, 200);
+  assert.match(await form.text(), /value="\d+" data-hint="[^"]+" checked/);
+
+  const before = serviceDirCount();
+  const invalid = await svcClient.post('/services/request', serviceForm({ service_id: 0, title: 'x', details: 'short' }, [{ name: 'logo.png', data: PNG }]));
+  assert.equal(invalid.status, 422);
+  assert.ok(invalid.body.errors.service_id && invalid.body.errors.title && invalid.body.errors.details);
+  const badFile = await svcClient.post(
+    '/services/request',
+    serviceForm({ service_id: serviceId('branding-design'), title: 'طلب تجريبي', details: 'تفاصيل كافية لهذا الطلب التجريبي.' }, [{ name: 'notes.txt', data: Buffer.from('just text') }]),
+  );
+  assert.equal(badFile.status, 400);
+  assert.match(badFile.body.message, /غير مدعوم/);
+  const badLink = await svcClient.post('/services/request', serviceForm({ service_id: serviceId('branding-design'), title: 'طلب تجريبي', details: 'تفاصيل كافية لهذا الطلب التجريبي.', links: 'javascript:alert(1)' }));
+  assert.equal(badLink.status, 422);
+  assert.equal(serviceDirCount(), before, 'rejected submissions leave no files behind');
+
+  svcCode = await requestService(
+    svcClient,
+    { budget: '100_300', deadline: '2099-01-31', links: 'example.com/brand\nhttps://instagram.com/bakery' },
+    [
+      { name: 'شعار قديم.png', data: PNG, type: 'image/png' },
+      { name: 'brief.pdf', data: PDF, type: 'application/pdf' },
+    ],
+  );
+  assert.match(svcCode, /^SRV-\d+$/);
+  const r = requestOf(svcCode);
+  assert.equal(r.status, 'pending');
+  assert.equal(r.budget, '100_300');
+  assert.deepEqual(JSON.parse(r.links), ['https://example.com/brand', 'https://instagram.com/bakery']);
+  const files = all('SELECT f.*, e.type FROM service_files f JOIN service_events e ON e.id = f.event_id WHERE f.request_id = ? ORDER BY f.id', r.id);
+  assert.deepEqual(files.map((f) => [f.original_name, f.mime, f.type]), [['شعار قديم.png', 'image/png', 'created'], ['brief.pdf', 'application/pdf', 'created']]);
+  assert.equal(serviceDirCount(), before + 2);
+  assert.ok(notified(userId('admin@test.local'), svcCode), 'admins hear about new requests');
+
+  const detail = await svcClient.get(`/account/services/${svcCode}?new=1`);
+  assert.equal(detail.status, 200);
+  const html = await detail.text();
+  assert.ok(html.includes('هوية بصرية لمخبز') && html.includes('شعار قديم.png') && html.includes('تم إرسال طلبك بنجاح'));
+  assert.ok((await (await svcClient.get('/account/services')).text()).includes(svcCode));
+
+  // Attachments are private to the people working on the request.
+  const file = `/files/services/${files[0].file_name}`;
+  const own = await svcClient.get(file);
+  assert.equal(own.status, 200);
+  assert.equal(own.headers.get('content-type'), 'image/png');
+  assert.match(own.headers.get('content-disposition'), /^inline/);
+  assert.equal((await stranger.get(file)).status, 302);
+  const other = await newBuyer('svc-other@test.local');
+  assert.equal((await other.get(file)).status, 404);
+  assert.equal((await other.get(`/account/services/${svcCode}`)).status, 404);
+});
+
+test('providers pick up open requests and admins can reassign them', async () => {
+  providerA = await newProvider('prov-a@test.local');
+  providerB = await newProvider('prov-b@test.local');
+  assert.ok(notified(providerA.id, 'منفذ الخدمات'), 'the new provider is told about the role');
+
+  const pool = await providerA.client.get('/provider');
+  assert.equal(pool.status, 200);
+  assert.ok((await pool.text()).includes(svcCode), 'new requests wait in the open pool');
+  assert.equal((await providerB.client.get(`/provider/requests/${svcCode}`)).status, 200);
+  assert.equal((await svcClient.get('/provider')).status, 403, 'clients have no access to the team area');
+
+  const notYet = await providerA.client.post(`/provider/requests/${svcCode}/message`, serviceForm({ body: 'مرحباً' }));
+  assert.equal(notYet.status, 403, 'only the assignee works on a request');
+
+  const take = await providerA.client.post(`/provider/requests/${svcCode}/take`, {});
+  assert.equal(take.body.ok, true, JSON.stringify(take.body));
+  let r = requestOf(svcCode);
+  assert.equal(r.status, 'in_progress');
+  assert.equal(r.assigned_to, providerA.id);
+  assert.ok(notified(r.user_id, 'بدأ فريقنا العمل'));
+  assert.equal((await providerB.client.get(`/provider/requests/${svcCode}`)).status, 404, 'taken requests leave the pool');
+  assert.equal((await providerB.client.post(`/provider/requests/${svcCode}/take`, {})).status, 404);
+  assert.equal((await providerA.client.post(`/provider/requests/${svcCode}/assign`, { member_id: providerB.id })).status, 403);
+
+  const toClient = await admin.post(`/seller/service-requests/${svcCode}/assign`, { member_id: r.user_id });
+  assert.equal(toClient.body.ok, false);
+  const reassign = await admin.post(`/seller/service-requests/${svcCode}/assign`, { member_id: providerB.id });
+  assert.equal(reassign.body.ok, true, JSON.stringify(reassign.body));
+  r = requestOf(svcCode);
+  assert.equal(r.assigned_to, providerB.id);
+  assert.ok(notified(providerB.id, `تم إسناد طلب الخدمة ${svcCode}`));
+  assert.equal((await providerA.client.get(`/provider/requests/${svcCode}`)).status, 404);
+  const adminView = await admin.get(`/seller/service-requests/${svcCode}`);
+  assert.equal(adminView.status, 200);
+  assert.ok((await adminView.text()).includes('تغيير المنفذ'));
+  assert.ok((await (await admin.get('/seller/service-requests?status=in_progress')).text()).includes(svcCode));
+});
+
+test('messages, internal notes, deliveries and revisions flow both ways', async () => {
+  const team = providerB.client;
+  const base = `/provider/requests/${svcCode}`;
+  const msg = await team.post(`${base}/message`, serviceForm({ body: 'مرحباً، أرسل لنا الألوان المفضلة لديك' }, [{ name: 'moodboard.zip', data: ZIP }]));
+  assert.equal(msg.body.ok, true, JSON.stringify(msg.body));
+  const r = requestOf(svcCode);
+  assert.ok(notified(r.user_id, 'رسالة جديدة من فريق MTS'));
+  const note = await team.post(`${base}/note`, { body: 'العميل يفضّل اللون البني — ملاحظة داخلية' });
+  assert.equal(note.body.ok, true);
+
+  const clientView = await (await svcClient.get(`/account/services/${svcCode}`)).text();
+  assert.ok(clientView.includes('moodboard.zip') && clientView.includes('أرسل لنا الألوان'));
+  assert.ok(!clientView.includes('ملاحظة داخلية'), 'internal notes stay with the team');
+  assert.ok((await (await team.get(base)).text()).includes('ملاحظة داخلية'));
+
+  const reply = await svcClient.post(`/account/services/${svcCode}/message`, serviceForm({ body: 'نفضّل البني والذهبي' }));
+  assert.equal(reply.body.ok, true);
+  assert.ok(notified(providerB.id, 'رسالة جديدة من العميل'));
+  const empty = await svcClient.post(`/account/services/${svcCode}/message`, serviceForm({ body: '' }));
+  assert.equal(empty.status, 422);
+
+  const nothing = await team.post(`${base}/deliver`, serviceForm({ body: 'تفضل' }));
+  assert.equal(nothing.status, 422);
+  const delivered = await team.post(
+    `${base}/deliver`,
+    serviceForm({ body: 'النسخة الأولى من الهوية', links: 'https://drive.google.com/file/d/brand-v1' }, [{ name: 'logo-v1.png', data: PNG, type: 'image/png' }]),
+  );
+  assert.equal(delivered.body.ok, true, JSON.stringify(delivered.body));
+  assert.equal(requestOf(svcCode).status, 'delivered');
+  assert.ok(notified(r.user_id, `تم تسليم طلبك ${svcCode}`));
+  const zipFile = get("SELECT file_name FROM service_files WHERE original_name = 'moodboard.zip'").file_name;
+  const zip = await svcClient.get(`/files/services/${zipFile}`);
+  assert.equal(zip.status, 200);
+  assert.match(zip.headers.get('content-disposition'), /^attachment/);
+  assert.equal((await providerA.client.get(`/files/services/${zipFile}`)).status, 404, 'former assignees lose access');
+
+  const vague = await svcClient.post(`/account/services/${svcCode}/revision`, serviceForm({ body: 'غيّر' }));
+  assert.equal(vague.status, 422);
+  const revision = await svcClient.post(`/account/services/${svcCode}/revision`, serviceForm({ body: 'نرجو تكبير الخط وتغميق اللون البني قليلاً' }));
+  assert.equal(revision.body.ok, true);
+  assert.equal(requestOf(svcCode).status, 'revision');
+  assert.ok(notified(providerB.id, 'طلب العميل تعديلات'));
+  assert.equal((await svcClient.post(`/account/services/${svcCode}/accept`, {})).status, 400, 'nothing to approve during a revision');
+
+  const second = await team.post(`${base}/deliver`, serviceForm({ links: 'https://drive.google.com/file/d/brand-v2' }));
+  assert.equal(second.body.ok, true);
+  const accept = await svcClient.post(`/account/services/${svcCode}/accept`, {});
+  assert.equal(accept.body.ok, true);
+  const done = requestOf(svcCode);
+  assert.equal(done.status, 'completed');
+  assert.ok(done.completed_at);
+  assert.ok(notified(providerB.id, 'اعتمد العميل'));
+  const types = all('SELECT type FROM service_events WHERE request_id = ? ORDER BY id', done.id).map((e) => e.type);
+  assert.deepEqual(types, ['created', 'assigned', 'reassigned', 'message', 'note', 'message', 'delivery', 'revision', 'delivery', 'completed']);
+});
+
+test('clients cancel only new requests, admins cancel with a reason', async () => {
+  const fresh = await requestService(svcClient, { title: 'موقع تعريفي' });
+  const cancel = await svcClient.post(`/account/services/${fresh}/cancel`, {});
+  assert.equal(cancel.body.ok, true);
+  assert.equal(requestOf(fresh).status, 'cancelled');
+  const late = await svcClient.post(`/account/services/${fresh}/message`, serviceForm({ body: 'مرحباً' }));
+  assert.equal(late.status, 400, 'cancelled requests are closed');
+
+  const started = await requestService(svcClient, { title: 'حملة إعلانية' });
+  assert.equal((await admin.post(`/seller/service-requests/${started}/assign`, { member_id: providerA.id })).body.ok, true);
+  assert.equal((await svcClient.post(`/account/services/${started}/cancel`, {})).status, 400);
+  const noReason = await admin.post(`/seller/service-requests/${started}/cancel`, { reason: '' });
+  assert.equal(noReason.status, 422);
+  assert.equal((await admin.post(`/seller/service-requests/${started}/cancel`, { reason: 'تم الاتفاق على تأجيل الحملة' })).body.ok, true);
+  assert.equal(requestOf(started).cancel_reason, 'تم الاتفاق على تأجيل الحملة');
+  assert.ok(notified(providerA.id, `تم إلغاء طلب الخدمة ${started}`));
+});
+
+test('service role guards, open-request limit and admin pages', async () => {
+  const busy = await newBuyer('svc-busy@test.local');
+  for (let i = 0; i < 5; i++) await requestService(busy, { title: `طلب ${i + 1}` });
+  const sixth = await busy.post('/services/request', serviceForm({ service_id: serviceId('web-development'), title: 'طلب سادس', details: 'تفاصيل كافية لطلب الخدمة السادس هنا.' }));
+  assert.equal(sixth.status, 400);
+
+  const working = await requestService(svcClient, { title: 'إدارة صفحات' });
+  assert.equal((await admin.post(`/seller/service-requests/${working}/assign`, { member_id: providerA.id })).body.ok, true);
+  const demote = await admin.post(`/seller/users/${providerA.id}/role`, { role: 'buyer' });
+  assert.equal(demote.body.ok, false, 'a provider with open work keeps the role until it is reassigned');
+
+  for (const url of ['/seller/service-requests', '/seller/services', '/seller/services?edit=1', '/seller/users?role=provider', '/seller']) {
+    assert.equal((await admin.get(url)).status, 200, url);
+  }
+  const added = await admin.post('/seller/services', { name: 'كتابة المحتوى', icon: 'fa-solid fa-pen', summary: 'محتوى تسويقي', is_active: '1' });
+  assert.equal(added.body.ok, true);
+  assert.ok((await (await stranger.get('/services')).text()).includes('كتابة المحتوى'));
+  const used = get("SELECT id FROM services WHERE slug = 'branding-design'").id;
+  assert.equal((await admin.post(`/seller/services/${used}/delete`, {})).body.ok, true);
+  assert.equal(get('SELECT is_active FROM services WHERE id = ?', used).is_active, 0, 'services with requests are hidden, not deleted');
+  run('UPDATE services SET is_active = 1 WHERE id = ?', used);
+
+  assert.equal((await svcClient.get('/seller/service-requests')).status, 403);
+  assert.equal((await providerA.client.get('/seller/service-requests')).status, 403);
+  const providerHome = await providerA.client.get('/provider?tab=active');
+  assert.ok((await providerHome.text()).includes(working));
+});
+
+test('delivered service requests close themselves after the grace period', async () => {
+  const code = await requestService(svcClient, { title: 'مونتاج فيديو' });
+  await admin.post(`/seller/service-requests/${code}/assign`, { member_id: providerB.id });
+  assert.equal((await providerB.client.post(`/provider/requests/${code}/deliver`, serviceForm({ links: 'https://youtu.be/abc' }))).body.ok, true);
+  run("UPDATE service_requests SET delivered_at = datetime('now', '-30 days') WHERE code = ?", code);
+  assert.ok(require('../src/lib/services').autoComplete() >= 1);
+  const r = requestOf(code);
+  assert.equal(r.status, 'completed');
+  assert.match(get("SELECT body FROM service_events WHERE request_id = ? AND type = 'completed'", r.id).body, /تلقائياً/);
+});
+
+test('Google sign-in checks a one-time state and nonce', async () => {
+  const { OAuth2Client } = require('google-auth-library');
+  const original = OAuth2Client.prototype.verifyIdToken;
+  // The test token is the payload itself; the real client verifies Google's signature.
+  OAuth2Client.prototype.verifyIdToken = async function ({ idToken }) {
+    const payload = JSON.parse(idToken);
+    return { getPayload: () => payload };
+  };
+  settings.set({ google_client_id: 'test-client.apps.googleusercontent.com' });
+  try {
+    const login = await (await stranger.get('/login')).text();
+    assert.ok(login.includes('/auth/google/start') && !login.includes('accounts.google.com/gsi'));
+
+    const c = new Client();
+    const begin = async () => {
+      const res = await c.get('/auth/google/start?next=%2Faccount%2Fservices');
+      assert.equal(res.status, 302);
+      const url = new URL(res.headers.get('location'));
+      assert.equal(url.origin + url.pathname, 'https://accounts.google.com/o/oauth2/v2/auth');
+      assert.equal(url.searchParams.get('response_type'), 'id_token');
+      assert.equal(url.searchParams.get('redirect_uri'), `${base}/auth/google/callback`);
+      return { state: url.searchParams.get('state'), nonce: url.searchParams.get('nonce') };
+    };
+    const token = (nonce) => JSON.stringify({ sub: 'google-new-1', email: 'new.google@test.local', email_verified: true, name: 'Google Person', nonce });
+
+    let flow = await begin();
+    const wrongState = await c.post('/auth/google', { credential: token(flow.nonce), state: 'forged' });
+    assert.equal(wrongState.body.ok, false);
+    const replay = await c.post('/auth/google', { credential: token(flow.nonce), state: flow.state });
+    assert.equal(replay.body.ok, false, 'a flow can be used only once');
+
+    flow = await begin();
+    const wrongNonce = await c.post('/auth/google', { credential: token('other-nonce'), state: flow.state });
+    assert.equal(wrongNonce.body.ok, false);
+
+    flow = await begin();
+    const ok = await c.post('/auth/google', { credential: token(flow.nonce), state: flow.state });
+    assert.equal(ok.body.ok, true, JSON.stringify(ok.body));
+    assert.equal(ok.body.redirect, '/auth/complete-profile?next=%2Faccount%2Fservices');
+    assert.ok(get("SELECT id FROM users WHERE google_sub = 'google-new-1'"));
+    assert.equal((await stranger.get('/auth/google/callback')).status, 200);
+  } finally {
+    OAuth2Client.prototype.verifyIdToken = original;
+    settings.set({ google_client_id: '' });
+  }
+});
+
+test('migrating a v2 database keeps users, sessions and orders and adds the provider role', () => {
+  const { execFileSync } = require('child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mts-v2-'));
+  const code = `
+    const { DatabaseSync } = require('node:sqlite');
+    const { MIGRATIONS } = require('./src/db');
+    const old = new DatabaseSync(process.env.OLD_DB);
+    old.exec('PRAGMA foreign_keys = ON');
+    old.exec(MIGRATIONS[0]); old.exec(MIGRATIONS[1]); old.exec('PRAGMA user_version = 2');
+    old.exec("INSERT INTO users (id, name, email, role) VALUES (7, 'Old Admin', 'old@test.local', 'admin')");
+    old.exec("INSERT INTO sessions (id, user_id, expires_at) VALUES ('s1', 7, datetime('now', '+1 day'))");
+    old.exec("INSERT INTO currencies (code, name, symbol, rate, decimals, is_base) VALUES ('USD', 'Dollar', '$', 1, 2, 1)");
+    old.exec("INSERT INTO orders (code, user_id, product_title, plan_name, unit_price, total, base_currency, pay_currency, pay_rate, pay_amount, payment_method_name, sender_name, sender_account) VALUES ('MTS-1', 7, 'P', 'Plan', 100, 100, 'USD', 'USD', 1, 100, 'Bank', 'S', '1')");
+    old.exec("INSERT INTO notifications (user_id, title) VALUES (7, 'hello')");
+    old.close();
+    const db = require('./src/db');
+    db.migrate();
+    db.run("INSERT INTO users (name, email, role) VALUES ('P', 'p@test.local', 'provider')");
+    console.log(JSON.stringify({
+      version: db.get('PRAGMA user_version').user_version,
+      users: db.get('SELECT COUNT(*) AS n FROM users').n,
+      sessions: db.get('SELECT COUNT(*) AS n FROM sessions').n,
+      orders: db.get("SELECT user_id FROM orders WHERE code = 'MTS-1'").user_id,
+      notifications: db.get('SELECT COUNT(*) AS n FROM notifications').n,
+      fk: db.all('PRAGMA foreign_key_check').length,
+      fkEnforced: (() => { try { db.run("INSERT INTO notifications (user_id, title) VALUES (999, 'x')"); return false; } catch { return true; } })(),
+    }));`;
+  const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db') };
+  const out = execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' });
+  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()), { version: 3, users: 2, sessions: 1, orders: 7, notifications: 1, fk: 0, fkEnforced: true });
 });

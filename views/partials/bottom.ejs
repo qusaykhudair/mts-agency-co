@@ -28,6 +28,11 @@
     <a href="/seller/orders" class="<%= act === 'seller-orders' ? 'is-active' : '' %>"><i class="fa-solid fa-receipt"></i>الطلبات<% if (counts.pendingOrders) { %><span class="bn-dot"><%= counts.pendingOrders %></span><% } %></a>
     <a href="/seller/products" class="<%= act === 'seller-products' ? 'is-active' : '' %>"><i class="fa-solid fa-boxes-stacked"></i>المنتجات</a>
     <button type="button" data-sidebar-open><i class="fa-solid fa-bars"></i>القائمة</button>
+  <% } else if (navMode === 'provider') { %>
+    <a href="/provider" class="<%= act === 'prov-requests' ? 'is-active' : '' %>"><i class="fa-solid fa-inbox"></i>الطلبات<% if (counts.services) { %><span class="bn-dot"><%= counts.services %></span><% } %></a>
+    <a href="/account/notifications" class="<%= act === 'acc-notifs' ? 'is-active' : '' %>"><i class="fa-solid fa-bell"></i>الإشعارات<% if (counts.unread) { %><span class="bn-dot"><%= counts.unread %></span><% } %></a>
+    <a href="/account/profile" class="<%= act === 'acc-profile' ? 'is-active' : '' %>"><i class="fa-solid fa-user"></i>حسابي</a>
+    <button type="button" data-sidebar-open><i class="fa-solid fa-bars"></i>القائمة</button>
   <% } else { %>
     <a href="<%= navMode === 'site' ? '/' : '/store' %>" class="<%= act === 'home' ? 'is-active' : '' %>"><i class="fa-solid fa-house"></i>الرئيسية</a>
     <% if (navMode === 'bare' || navMode === 'site') { %>

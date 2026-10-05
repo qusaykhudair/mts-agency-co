@@ -1,8 +1,9 @@
 'use strict';
+const crypto = require('crypto');
 const express = require('express');
 const { OAuth2Client } = require('google-auth-library');
 const { get, run } = require('../db');
-const { hashPassword, verifyPassword, startSession, endSession, isStaff, resolveGoogleUser } = require('../lib/auth');
+const { hashPassword, verifyPassword, startSession, endSession, isStaff, isProvider, resolveGoogleUser } = require('../lib/auth');
 const { normalizeWhatsapp } = require('../lib/phone');
 const settings = require('../lib/settings');
 const { str, safeNext, clean, isEmail, bool } = require('../lib/util');
@@ -15,7 +16,7 @@ const loginLimiter = limiter(20, 15, 'محاولات دخول كثيرة، ان�
 const registerLimiter = limiter(10, 60, 'محاولات تسجيل كثيرة من هذا الجهاز، حاول لاحقاً');
 const googleLimiter = limiter(30, 15, 'محاولات كثيرة، حاول بعد قليل');
 
-const homeFor = (user) => (isStaff(user) ? '/seller' : '/account');
+const homeFor = (user) => (isStaff(user) ? '/seller' : isProvider(user) ? '/provider' : '/account');
 const firstName = (name) => String(name || '').trim().split(/\s+/)[0];
 
 // Equalise timing between unknown e-mails and wrong passwords.
@@ -107,14 +108,63 @@ router.post('/register', registerLimiter, async (req, res) => {
   res.reply({ ok: true, message: `أهلاً بك يا ${firstName(name)}! تم إنشاء حسابك بنجاح 🎉`, redirect: next || '/store' });
 });
 
-/* ---------- Google ---------- */
+/* ---------- Google ----------
+ * Our own button sends the visitor to Google (OpenID Connect, response_type=id_token). Google returns to
+ * /auth/google/callback with the ID token in the URL fragment; that page posts it here. A short-lived
+ * cookie set at the start carries the state (anti-CSRF), the nonce (anti-replay) and where to go next. */
 let oauthClient = null;
+const GOOGLE_COOKIE = 'mts_google';
+const googleCookieOptions = (req) => ({ httpOnly: true, sameSite: 'lax', secure: req.secure, path: '/', maxAge: 10 * 60 * 1000 });
+
+function readGoogleFlow(req) {
+  try {
+    const flow = JSON.parse(Buffer.from(str(req.cookies[GOOGLE_COOKIE]), 'base64url').toString('utf8'));
+    return flow && typeof flow.state === 'string' && typeof flow.nonce === 'string' ? flow : null;
+  } catch {
+    return null;
+  }
+}
+
+const sameSecret = (a, b) => {
+  const x = Buffer.from(String(a));
+  const y = Buffer.from(String(b));
+  return x.length === y.length && x.length > 0 && crypto.timingSafeEqual(x, y);
+};
+
+router.get('/auth/google/start', googleLimiter, (req, res) => {
+  const clientId = settings.googleClientId();
+  if (!clientId) {
+    req.flash('error', 'تسجيل الدخول عبر Google غير مفعّل حالياً');
+    return res.redirect('/login');
+  }
+  const flow = { state: crypto.randomBytes(16).toString('base64url'), nonce: crypto.randomBytes(16).toString('base64url'), next: safeNext(req.query.next, '') };
+  res.cookie(GOOGLE_COOKIE, Buffer.from(JSON.stringify(flow)).toString('base64url'), googleCookieOptions(req));
+  const params = new URLSearchParams({
+    client_id: clientId,
+    redirect_uri: `${req.protocol}://${req.get('host')}/auth/google/callback`,
+    response_type: 'id_token',
+    scope: 'openid email profile',
+    nonce: flow.nonce,
+    state: flow.state,
+    prompt: 'select_account',
+    hl: 'ar',
+  });
+  res.redirect(`https://accounts.google.com/o/oauth2/v2/auth?${params}`);
+});
+
+router.get('/auth/google/callback', (req, res) => {
+  authPage(res, 'auth/google-callback', { pageTitle: 'تسجيل الدخول عبر Google' });
+});
 
 router.post('/auth/google', googleLimiter, async (req, res) => {
   const clientId = settings.googleClientId();
   if (!clientId) return res.reply({ ok: false, message: 'تسجيل الدخول عبر Google غير مفعّل حالياً' });
+  const flow = readGoogleFlow(req);
+  res.clearCookie(GOOGLE_COOKIE, { path: '/' });
   const credential = str(req.body.credential);
-  if (!credential) return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google' });
+  if (!credential || !flow || !sameSecret(str(req.body.state), flow.state)) {
+    return res.reply({ ok: false, message: 'انتهت صلاحية محاولة الدخول عبر Google، ابدأ من جديد' });
+  }
 
   let payload;
   try {
@@ -124,7 +174,8 @@ router.post('/auth/google', googleLimiter, async (req, res) => {
   } catch {
     return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
   }
-  if (!payload || !payload.sub || !payload.email || !payload.email_verified) {
+  if (!payload || !sameSecret(payload.nonce, flow.nonce)) return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
+  if (!payload.sub || !payload.email || !payload.email_verified) {
     return res.reply({ ok: false, message: 'يجب أن يكون البريد الإلكتروني في حساب Google موثّقاً' });
   }
 
@@ -135,7 +186,7 @@ router.post('/auth/google', googleLimiter, async (req, res) => {
   const user = result.user;
 
   startSession(req, res, user.id);
-  const next = safeNext(req.body.next, '');
+  const next = safeNext(flow.next, '');
   if (!user.wa_e164) {
     return res.reply({
       ok: true,

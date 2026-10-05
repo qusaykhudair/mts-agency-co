@@ -7,6 +7,7 @@ const settings = require('./src/lib/settings');
 const money = require('./src/lib/money');
 const { purgeExpiredSessions } = require('./src/lib/auth');
 const orders = require('./src/lib/orders');
+const services = require('./src/lib/services');
 const { createApp } = require('./src/app');
 
 async function main() {
@@ -21,6 +22,8 @@ async function main() {
       purgeExpiredSessions();
       const n = orders.autoComplete();
       if (n) console.log(`[jobs] auto-completed ${n} delivered order(s)`);
+      const s = services.autoComplete();
+      if (s) console.log(`[jobs] auto-completed ${s} delivered service request(s)`);
     } catch (err) {
       console.error('[jobs] housekeeping failed', err);
     }

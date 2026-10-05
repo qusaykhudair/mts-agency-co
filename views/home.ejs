@@ -3,21 +3,14 @@
   const hp = heroProduct;
   const hpPlans = hp ? hp.plans.slice(0, 3) : [];
   const hpPlan = hp ? hp.cheapest : null;
-  const bank = methods.find((m) => m.type === 'bank') || methods[0];
-  const waQuote = waLink(storeWa, 'مرحباً MTS Agency، أرغب بطلب عرض سعر لخدمة: ');
 %>
 
 <!-- ============ Hero ============ -->
 <section class="h-hero">
   <div class="h-wrap h-hero-grid">
     <div class="h-hero-copy">
-      <a class="h-kicker" href="/store">
-        <span class="h-kicker-tag">جديد</span>
-        <span>متجر MTS للاشتراكات الرقمية</span>
-        <i class="fa-solid fa-arrow-left"></i>
-      </a>
       <h1>اشترك في أدواتك الرقمية المفضّلة <span class="h-mark">بدون بطاقة دولية</span></h1>
-      <p class="h-lead">ChatGPT وClaude وCanva وCapCut وغيرها من <%= stats.platforms %> منصة عالمية بأسعار محلية. ادفع بالتحويل البنكي أو من محفظتك، واستلم اشتراكك داخل حسابك خلال دقائق مع ضمان طوال مدة الاشتراك.</p>
+      <p class="h-lead">ChatGPT وClaude وCanva وCapCut وغيرها من <%= stats.platforms %> منصة عالمية بأسعار محلية. ادفع بالتحويل البنكي أو من محفظتك، واستلم اشتراكك داخل حسابك خلال دقائق.</p>
 
       <form class="h-search" action="/store/products" method="get" role="search" data-search>
         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
@@ -25,25 +18,17 @@
         <button class="btn btn-primary" type="submit">ابحث</button>
         <div class="search-pop" data-search-pop hidden></div>
       </form>
-      <% if (popularSearches.length) { %>
-      <div class="h-popular">
-        <span>الأكثر طلباً:</span>
-        <% popularSearches.forEach((p) => { %><a href="/store/product/<%= p.slug %>"><%= p.platform_name || p.title %></a><% }) %>
-      </div>
-      <% } %>
 
       <ul class="h-checks">
         <li><i class="fa-solid fa-check"></i> دفع محلي آمن</li>
         <li><i class="fa-solid fa-check"></i> تسليم خلال دقائق</li>
         <li><i class="fa-solid fa-check"></i> ضمان طوال المدة</li>
-        <li><i class="fa-solid fa-check"></i> دعم بشري عبر واتساب</li>
       </ul>
     </div>
 
     <% if (hp && hpPlan) { %>
-    <div class="h-showcase" aria-hidden="true">
-      <div class="h-sc-bg"></div>
-
+    <a class="h-showcase" href="/store/product/<%= hp.slug %>" aria-label="<%= hp.title %>">
+      <div class="h-sc-bg" aria-hidden="true"></div>
       <div class="h-sc-card h-sc-product">
         <div class="h-sc-head">
           <span class="h-sc-tile" style="--c1:<%= hp.color1 %>;--c2:<%= hp.color2 %>"><img src="<%= hp.platform_logo %>" alt=""></span>
@@ -56,26 +41,11 @@
           <% }) %>
         </div>
         <div class="h-sc-buy">
-          <div><small>الإجمالي</small><b><%- money(hpPlan.price) %></b></div>
+          <div><small>يبدأ من</small><b><%- money(hpPlan.price) %></b></div>
           <span class="btn btn-primary btn-sm">اشترِ الآن</span>
         </div>
       </div>
-
-      <div class="h-sc-card h-sc-status">
-        <div class="h-sc-row">
-          <span class="h-sc-ok"><i class="fa-solid fa-check"></i></span>
-          <div><b>تم تأكيد الدفع</b><small><%= bank ? bank.name : 'تحويل بنكي' %> · <%- moneyTo(hpPlan.price, bank ? bank.currency_code : null) %></small></div>
-        </div>
-        <div class="h-sc-steps"><i class="done"></i><i class="done"></i><i class="done"></i><i></i></div>
-        <div class="h-sc-labels"><span>الطلب</span><span>الدفع</span><span>التجهيز</span><span>التسليم</span></div>
-      </div>
-
-      <div class="h-sc-card h-sc-cred">
-        <div class="h-sc-cred-top"><span><i class="fa-solid fa-key"></i> بيانات اشتراكك</span><em>تم التسليم</em></div>
-        <div class="h-sc-line"><span>الحساب</span><b dir="ltr">you@gmail.com</b><i class="fa-regular fa-copy"></i></div>
-        <div class="h-sc-line"><span>الحالة</span><b class="ok">مفعّل حتى نهاية المدة</b></div>
-      </div>
-    </div>
+    </a>
     <% } %>
   </div>
 </section>
@@ -98,87 +68,44 @@
 </section>
 <% } %>
 
-<!-- ============ Categories ============ -->
-<% if (categories.length) { %>
-<section class="h-section" id="categories">
+<!-- ============ Popular subscriptions ============ -->
+<% if (popular.length) { %>
+<section class="h-section" id="products">
   <div class="h-wrap">
     <div class="h-head">
       <div>
-        <span class="h-label">الأقسام</span>
-        <h2>اختر حسب احتياجك</h2>
-        <p>من أدوات الذكاء الاصطناعي إلى الترفيه والتعليم — اشتراكات أصلية تعمل على حسابك.</p>
+        <span class="h-label">متجر الاشتراكات</span>
+        <h2>الأكثر طلباً</h2>
       </div>
       <a class="h-link" href="/store/products">كل الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
     </div>
-    <div class="h-cats">
-      <% categories.slice(0, 8).forEach((c) => { %>
-      <a class="h-cat" href="/store/category/<%= c.slug %>">
-        <div class="h-cat-logos">
-          <% c.logos.forEach((l) => { %><img src="<%= l.logo_url %>" alt="<%= l.name %>" title="<%= l.name %>" loading="lazy"><% }) %>
-        </div>
-        <h3><%= c.name %></h3>
-        <p><%= c.product_count %> <%= c.product_count > 10 ? 'اشتراكاً' : c.product_count > 2 ? 'اشتراكات' : 'اشتراك' %><% if (c.from !== null) { %> · يبدأ من <%- money(c.from) %><% } %></p>
-        <span class="h-cat-go"><i class="fa-solid fa-arrow-left"></i></span>
-      </a>
-      <% }) %>
-    </div>
+    <div class="pgrid"><% popular.forEach((p) => { %><%- include('partials/product-card', { p }) %><% }) %></div>
   </div>
 </section>
 <% } %>
 
-<!-- ============ Products ============ -->
-<% if (tabs.length) { %>
-<section class="h-section h-alt" id="products">
+<!-- ============ Agency services ============ -->
+<% if (services.length) { %>
+<section class="h-section h-alt" id="services">
   <div class="h-wrap">
     <div class="h-head">
       <div>
-        <span class="h-label">المتجر</span>
-        <h2>اشتراكات يطلبها عملاؤنا باستمرار</h2>
+        <span class="h-label">خدمات MTS Agency</span>
+        <h2>نبني حضورك الرقمي بالكامل</h2>
+        <p>اطلب الخدمة أونلاين، تابع التنفيذ مع فريقنا، واستلم التسليم داخل حسابك.</p>
       </div>
-      <div class="h-tabs" role="tablist" aria-label="تصفية المنتجات">
-        <% tabs.forEach((t, i) => { %>
-        <button type="button" role="tab" class="<%= i === 0 ? 'is-on' : '' %>" aria-selected="<%= i === 0 %>" data-tab="<%= t.key %>"><%= t.label %></button>
-        <% }) %>
-      </div>
+      <a class="btn btn-primary btn-lg" href="/services/request">اطلب خدمة <i class="fa-solid fa-arrow-left"></i></a>
     </div>
-    <% tabs.forEach((t, i) => { %>
-    <div class="pgrid" role="tabpanel" data-tab-panel="<%= t.key %>"<%= i ? ' hidden' : '' %>>
-      <% t.items.forEach((p) => { %><%- include('partials/product-card', { p }) %><% }) %>
+    <div class="svc-grid">
+      <% services.forEach((s) => { %>
+      <a class="svc-tile" href="/services/request?service=<%= s.slug %>">
+        <span class="svc-ic lg"><i class="<%= s.icon %>"></i></span>
+        <h3><%= s.name %></h3>
+        <% if (s.summary) { %><p><%= s.summary %></p><% } %>
+        <span class="svc-go">اطلب الخدمة <i class="fa-solid fa-arrow-left"></i></span>
+      </a>
+      <% }) %>
     </div>
-    <% }) %>
-    <div class="h-center"><a class="btn btn-lg h-btn-outline" href="/store/products">تصفّح كل الاشتراكات <i class="fa-solid fa-arrow-left"></i></a></div>
-  </div>
-</section>
-<% } %>
-
-<!-- ============ Deal spotlight ============ -->
-<% if (spotlight && spotlightPlan && spotlightPlan.old_price) { %>
-<section class="h-deal" aria-label="عرض لفترة محدودة">
-  <div class="h-wrap">
-  <div class="h-deal-card" style="--c1:<%= spotlight.color1 %>">
-    <div class="h-deal-copy">
-      <span class="h-deal-label"><i class="fa-solid fa-bolt"></i> عرض لفترة محدودة</span>
-      <h2><%= spotlight.title %></h2>
-      <% if (spotlight.short_description) { %><p><%= spotlight.short_description %></p><% } %>
-      <div class="h-deal-price">
-        <b><%- money(spotlightPlan.price) %></b>
-        <s><%- money(spotlightPlan.old_price) %></s>
-        <span class="h-save">وفّر <%= spotlightPlan.discount %>%</span>
-      </div>
-      <div class="h-deal-actions">
-        <a class="btn btn-lg h-btn-light" href="/store/product/<%= spotlight.slug %>?plan=<%= spotlightPlan.id %>">احصل على العرض <i class="fa-solid fa-arrow-left"></i></a>
-        <% if (spotlight.offer_end) { %>
-        <div class="h-deal-timer"><span>ينتهي خلال</span><span class="countdown" data-countdown="<%= spotlight.offer_end.toISOString() %>"></span></div>
-        <% } %>
-      </div>
-    </div>
-    <a class="h-deal-visual" href="/store/product/<%= spotlight.slug %>" aria-hidden="true" tabindex="-1">
-      <span class="cover" style="--c1:<%= spotlight.color1 %>;--c2:<%= spotlight.color2 %>">
-        <span class="cover-tile"><img src="<%= spotlight.platform_logo %>" alt=""></span>
-      </span>
-      <span class="h-deal-plan"><%= spotlightPlan.name %> · <%= spotlight.delivery_time || 'تسليم سريع' %></span>
-    </a>
-  </div>
   </div>
 </section>
 <% } %>
@@ -190,142 +117,13 @@
       <div>
         <span class="h-label">طريقة الشراء</span>
         <h2>ثلاث خطوات… وتستلم اشتراكك</h2>
-        <p>بدون بطاقات ائتمان وبدون تعقيد — كل خطوة واضحة وتتابعها من حسابك.</p>
       </div>
     </div>
-    <div class="h-steps">
-      <article class="h-step">
-        <div class="h-step-visual">
-          <div class="h-mock">
-            <div class="h-mock-head">
-              <% if (hp) { %><span class="h-sc-tile sm" style="--c1:<%= hp.color1 %>;--c2:<%= hp.color2 %>"><img src="<%= hp.platform_logo %>" alt=""></span><b><%= hp.platform_name %></b><% } else { %><b>اختر الباقة</b><% } %>
-            </div>
-            <% (hpPlans.length ? hpPlans : [{ id: 1, name: 'شهر' }, { id: 2, name: '3 أشهر' }]).slice(0, 3).forEach((pl, i) => { %>
-            <div class="h-mock-opt<%= i === 0 ? ' is-on' : '' %>"><i></i><span><%= pl.name %></span><% if (pl.price !== undefined) { %><b><%- money(pl.price) %></b><% } %></div>
-            <% }) %>
-          </div>
-        </div>
-        <span class="h-step-n">01</span>
-        <h3>اختر الاشتراك والباقة</h3>
-        <p>تصفّح المنصات، قارن الباقات والأسعار بعملتك، ثم اضغط «اشترِ الآن».</p>
-      </article>
-      <article class="h-step">
-        <div class="h-step-visual">
-          <div class="h-mock">
-            <div class="h-mock-pay">
-              <% methods.slice(0, 4).forEach((m, i) => { %>
-              <span class="<%= i === 0 ? 'is-on' : '' %>" style="--pm:<%= m.color %>"><i class="<%= m.icon %>"></i></span>
-              <% }) %>
-            </div>
-            <div class="h-mock-file"><i class="fa-solid fa-file-image"></i><span>إيصال-التحويل.jpg</span><em><i class="fa-solid fa-check"></i></em></div>
-          </div>
-        </div>
-        <span class="h-step-n">02</span>
-        <h3>حوّل المبلغ وارفع الإيصال</h3>
-        <p>اختر بنك فلسطين أو جوال باي أو بال باي أو فودافون كاش، وستظهر لك تفاصيل الحساب والمبلغ بدقة.</p>
-      </article>
-      <article class="h-step">
-        <div class="h-step-visual">
-          <div class="h-mock">
-            <div class="h-mock-cred"><span>البريد</span><b dir="ltr">you@gmail.com</b><i class="fa-regular fa-copy"></i></div>
-            <div class="h-mock-cred"><span>كلمة المرور</span><b class="dots">••••••••</b><i class="fa-regular fa-eye"></i></div>
-            <div class="h-mock-done"><i class="fa-solid fa-circle-check"></i> تم تسليم اشتراكك</div>
-          </div>
-        </div>
-        <span class="h-step-n">03</span>
-        <h3>استلم اشتراكك خلال دقائق</h3>
-        <p>بعد تأكيد الدفع تظهر بيانات الاشتراك في صفحة طلبك الخاصة، مع إشعار فوري.</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-<!-- ============ Why MTS ============ -->
-<section class="h-section h-alt" id="trust">
-  <div class="h-wrap h-trust-grid">
-    <div>
-      <span class="h-label">لماذا MTS؟</span>
-      <h2>اشترِ بثقة من جهة تعرفها</h2>
-      <p class="h-sub">نحن لسنا متجراً مجهولاً على الإنترنت: MTS Agency وكالة رقمية يتعامل معها أصحاب مشاريع ومؤسسات منذ سنوات.</p>
-      <div class="h-why">
-        <% whyUs.forEach((w) => { %>
-        <div class="h-why-item">
-          <span class="h-why-ic"><i class="<%= w.icon %>"></i></span>
-          <div><h3><%= w.title %></h3><p><%= w.text %></p></div>
-        </div>
-        <% }) %>
-      </div>
-    </div>
-    <aside class="h-guarantee">
-      <div class="h-guarantee-top">
-        <span class="h-guarantee-ic"><i class="fa-solid fa-shield-halved"></i></span>
-        <div><h3>ضمان MTS</h3><p>مع كل اشتراك تشتريه</p></div>
-      </div>
-      <ul>
-        <li><i class="fa-solid fa-check"></i> استبدال الاشتراك إذا توقف خلال مدته</li>
-        <li><i class="fa-solid fa-check"></i> استرجاع المبلغ إذا تعذّر علينا التسليم</li>
-        <li><i class="fa-solid fa-check"></i> متابعة شخصية لكل طلب حتى يعمل اشتراكك</li>
-        <li><i class="fa-solid fa-check"></i> بياناتك وإيصالاتك لا يراها غيرك وفريقنا</li>
-      </ul>
-      <a class="h-link" href="/store/terms">اقرأ الشروط وسياسة الضمان <i class="fa-solid fa-arrow-left"></i></a>
-      <div class="h-support">
-        <span class="h-support-ic"><i class="fa-brands fa-whatsapp"></i></span>
-        <div class="grow"><b>تحدّث معنا قبل الشراء</b><span dir="ltr"><%= displayWhatsapp(storeWa) %></span></div>
-        <a class="btn btn-whatsapp btn-sm" href="<%= waLink(storeWa, 'مرحباً MTS، لدي استفسار قبل الشراء') %>" target="_blank" rel="noopener">راسلنا</a>
-      </div>
-    </aside>
-  </div>
-</section>
-
-<!-- ============ Payment ============ -->
-<% if (methods.length) { %>
-<section class="h-section" id="payment">
-  <div class="h-wrap">
-    <div class="h-head">
-      <div>
-        <span class="h-label">الدفع</span>
-        <h2>ادفع بالطريقة التي تستخدمها يومياً</h2>
-        <p>تحويل محلي مباشر بدون بطاقة ائتمان. عند الطلب يظهر لك المبلغ بالضبط بعملة الطريقة التي تختارها مع تفاصيل الحساب.</p>
-      </div>
-    </div>
-    <div class="h-pay">
-      <% methods.forEach((m) => { %>
-      <div class="h-pay-card">
-        <span class="pm-icon" style="--pm:<%= m.color %>"><% if (m.logo_url) { %><img src="<%= m.logo_url %>" alt=""><% } else { %><i class="<%= m.icon %>"></i><% } %></span>
-        <b><%= m.name %></b>
-        <small><%= m.subtitle %></small>
-        <span class="h-pay-cur">العملة: <%= m.currency.name %> <bdi>(<%= m.currency.symbol %>)</bdi></span>
-      </div>
-      <% }) %>
-    </div>
-  </div>
-</section>
-<% } %>
-
-<!-- ============ Agency services ============ -->
-<section class="h-section h-dark" id="services">
-  <div class="h-wrap">
-    <div class="h-head">
-      <div>
-        <span class="h-label">MTS Agency</span>
-        <h2>أكثر من متجر: نبني حضورك الرقمي بالكامل</h2>
-        <p>فريق متخصص في البرمجة والتصميم والتسويق والإنتاج المرئي، يرافقك من الفكرة حتى النتائج.</p>
-      </div>
-      <a class="btn btn-lg h-btn-light" href="<%= waQuote %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اطلب عرض سعر مجاني</a>
-    </div>
-    <div class="h-stats">
-      <% agencyStats.forEach((s) => { %><div><b dir="ltr"><%= s.value %></b><span><%= s.label %></span></div><% }) %>
-    </div>
-    <div class="h-services">
-      <% services.forEach((s) => { %>
-      <a class="h-service" href="<%= waLink(storeWa, 'مرحباً MTS Agency، أرغب بالاستفسار عن خدمة: ' + s.title) %>" target="_blank" rel="noopener">
-        <i class="<%= s.icon %>"></i>
-        <h3><%= s.title %></h3>
-        <p><%= s.text %></p>
-        <span>اطلب الخدمة <i class="fa-solid fa-arrow-left"></i></span>
-      </a>
-      <% }) %>
-    </div>
+    <ol class="h-steps">
+      <li><span class="svc-ic lg"><i class="fa-solid fa-hand-pointer"></i></span><b>01</b><h3>اختر الاشتراك والباقة</h3><p>قارن الباقات والأسعار بعملتك، ثم اضغط «اشترِ الآن».</p></li>
+      <li><span class="svc-ic lg"><i class="fa-solid fa-building-columns"></i></span><b>02</b><h3>حوّل وارفع الإيصال</h3><p>بنك فلسطين أو جوال باي أو بال باي أو فودافون كاش — تظهر لك تفاصيل الحساب والمبلغ بدقة.</p></li>
+      <li><span class="svc-ic lg"><i class="fa-solid fa-gift"></i></span><b>03</b><h3>استلم خلال دقائق</h3><p>بعد تأكيد الدفع تظهر بيانات اشتراكك في صفحة طلبك مع إشعار فوري.</p></li>
+    </ol>
   </div>
 </section>
 
@@ -369,17 +167,15 @@
 <% } %>
 
 <!-- ============ FAQ ============ -->
-<section class="h-section<%= rating && reviews.length ? '' : ' h-alt' %>" id="faq">
-  <div class="h-wrap h-faq-grid">
-    <div class="h-faq-intro">
-      <span class="h-label">الأسئلة الشائعة</span>
-      <h2>عندك سؤال؟</h2>
-      <p class="h-sub">إجابات سريعة لأكثر الأسئلة تكراراً. لم تجد إجابتك؟ فريقنا يرد عليك مباشرة.</p>
-      <a class="btn btn-whatsapp" href="<%= waLink(storeWa, 'مرحباً MTS، لدي سؤال') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اسألنا على واتساب</a>
+<section class="h-section" id="faq">
+  <div class="h-wrap h-faq">
+    <div class="h-head h-head-center">
+      <div><span class="h-label">الأسئلة الشائعة</span><h2>عندك سؤال؟</h2></div>
     </div>
     <div class="faq">
       <% faq.forEach((f, i) => { %><details<%= i === 0 ? ' open' : '' %>><summary><%= f.q %></summary><div class="ans"><%= f.a %></div></details><% }) %>
     </div>
+    <p class="h-faq-more">لم تجد إجابتك؟ <a class="link" href="<%= waLink(storeWa, 'مرحباً MTS، لدي سؤال') %>" target="_blank" rel="noopener">اسألنا على واتساب</a></p>
   </div>
 </section>
 
@@ -388,11 +184,11 @@
   <div class="h-wrap h-cta-in">
     <div>
       <h2>جاهز تبدأ؟</h2>
-      <p>اختر اشتراكك الآن واستلمه خلال دقائق، أو احجز استشارة مجانية لمشروعك الرقمي.</p>
+      <p>اختر اشتراكك الآن واستلمه خلال دقائق، أو اطلب خدمة لمشروعك الرقمي.</p>
     </div>
     <div class="h-cta-actions">
       <a class="btn btn-lg h-btn-light" href="/store">تسوّق الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
-      <a class="btn btn-lg h-btn-ghost" href="<%= waQuote %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> تحدّث مع فريقنا</a>
+      <a class="btn btn-lg h-btn-ghost" href="/services/request"><i class="fa-solid fa-briefcase"></i> اطلب خدمة</a>
     </div>
   </div>
 </section>

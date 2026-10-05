@@ -58,6 +58,7 @@
         <div class="card-head"><h2><i class="fa-solid fa-gears"></i> الطلبات</h2></div>
         <div class="card-body form-grid cols-2">
           <div class="field"><label class="label" for="auto_complete_days">إكمال تلقائي بعد (أيام)</label><input class="input" id="auto_complete_days" type="number" lang="en" name="auto_complete_days" value="<%= s.auto_complete_days %>" min="1" max="60"><span class="help">بعد التسليم إن لم يؤكد العميل.</span></div>
+          <div class="field"><label class="label" for="service_auto_complete_days">إغلاق طلبات الخدمات بعد (أيام)</label><input class="input" id="service_auto_complete_days" type="number" lang="en" name="service_auto_complete_days" value="<%= s.service_auto_complete_days %>" min="1" max="90"><span class="help">بعد التسليم إن لم يعتمد العميل أو يطلب تعديلات.</span></div>
           <div class="field"><label class="label" for="max_quantity">أقصى كمية للطلب</label><input class="input" id="max_quantity" type="number" lang="en" name="max_quantity" value="<%= s.max_quantity %>" min="1" max="100"></div>
           <div class="field span-2">
             <label class="switch"><input type="checkbox" name="sellers_can_approve" value="1"<%= s.sellers_can_approve !== '0' ? ' checked' : '' %>><span class="track"></span> السماح للبائعين بتأكيد أو رفض الدفع لطلبات منتجاتهم</label>

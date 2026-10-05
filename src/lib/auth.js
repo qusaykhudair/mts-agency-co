@@ -90,6 +90,9 @@ function purgeExpiredSessions() {
 
 const isStaff = (user) => !!user && (user.role === 'admin' || user.role === 'seller');
 const isAdmin = (user) => !!user && user.role === 'admin';
+// Service providers fulfil MTS Agency service requests; admins can do everything they can.
+const isProvider = (user) => !!user && user.role === 'provider';
+const isServiceTeam = (user) => isProvider(user) || isAdmin(user);
 
 /**
  * Find or create the account for a verified Google identity ({ sub, email, name, picture }).
@@ -138,5 +141,7 @@ module.exports = {
   purgeExpiredSessions,
   isStaff,
   isAdmin,
+  isProvider,
+  isServiceTeam,
   resolveGoogleUser,
 };

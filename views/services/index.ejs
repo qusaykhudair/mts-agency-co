@@ -1,0 +1,56 @@
+<%- include('../partials/top') %>
+
+<section class="h-section svc-hero">
+  <div class="h-wrap">
+    <div class="h-head h-head-center">
+      <div>
+        <span class="h-label">خدمات MTS Agency</span>
+        <h1 class="svc-title">حلول رقمية متكاملة لمشروعك</h1>
+        <p>اطلب الخدمة أونلاين مع تفاصيلها وملفاتها، تابع التنفيذ مع فريقنا خطوة بخطوة، واستلم التسليم داخل حسابك.</p>
+        <div class="svc-hero-actions">
+          <a class="btn btn-primary btn-lg" href="/services/request">اطلب خدمة الآن <i class="fa-solid fa-arrow-left"></i></a>
+          <a class="btn btn-lg h-btn-outline" href="<%= waLink(storeWa, 'مرحباً MTS Agency، أرغب بالاستفسار عن خدماتكم') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> استشارة مجانية</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="svc-grid">
+      <% services.forEach((s) => { %>
+      <a class="svc-tile" href="/services/request?service=<%= s.slug %>">
+        <span class="svc-ic lg"><i class="<%= s.icon %>"></i></span>
+        <h3><%= s.name %></h3>
+        <% if (s.summary) { %><p><%= s.summary %></p><% } %>
+        <span class="svc-go">اطلب الخدمة <i class="fa-solid fa-arrow-left"></i></span>
+      </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+
+<section class="h-section h-alt" id="process">
+  <div class="h-wrap">
+    <div class="h-head h-head-center">
+      <div><span class="h-label">كيف نعمل</span><h2>من الطلب إلى التسليم… في مكان واحد</h2></div>
+    </div>
+    <ol class="svc-steps">
+      <li><b>01</b><h3>أرسل طلبك</h3><p>اختر الخدمة، اكتب ما تحتاجه وأرفق ملفاتك والأمثلة التي تعجبك.</p></li>
+      <li><b>02</b><h3>نراجع ونتواصل</h3><p>يراجع فريقنا الطلب ويتواصل معك لتأكيد التفاصيل والمدة والتكلفة.</p></li>
+      <li><b>03</b><h3>ننفّذ ونسلّم</h3><p>تتابع التقدم وتراسل المنفذ، ثم تستلم الملفات والروابط داخل حسابك.</p></li>
+      <li><b>04</b><h3>تراجع وتعتمد</h3><p>اعتمد التسليم أو اطلب التعديلات حتى تكون راضياً عن النتيجة.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="h-cta">
+  <div class="h-wrap h-cta-in">
+    <div>
+      <h2>لديك فكرة مشروع؟</h2>
+      <p>أرسل لنا التفاصيل الآن وسيتواصل معك فريقنا خلال وقت قصير.</p>
+    </div>
+    <div class="h-cta-actions">
+      <a class="btn btn-lg h-btn-light" href="/services/request">اطلب خدمة <i class="fa-solid fa-arrow-left"></i></a>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/bottom') %>

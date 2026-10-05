@@ -3,7 +3,8 @@ const path = require('path');
 const express = require('express');
 const { get } = require('../db');
 const orders = require('../lib/orders');
-const { RECEIPTS_DIR } = require('../lib/uploads');
+const services = require('../lib/services');
+const { RECEIPTS_DIR, SERVICE_DIR } = require('../lib/uploads');
 const { requireAuth } = require('../middleware');
 
 const router = express.Router();
@@ -22,6 +23,23 @@ router.get('/receipts/:file', requireAuth, (req, res, next) => {
   });
   if (order.receipt_mime) res.type(order.receipt_mime);
   res.sendFile(path.join(RECEIPTS_DIR, file), (err) => {
+    if (err && !res.headersSent) next();
+  });
+});
+
+// Service-request attachments: the client, the admins and the provider working on the request.
+router.get('/services/:file', requireAuth, (req, res, next) => {
+  const file = String(req.params.file || '');
+  if (!/^[0-9a-f-]{36}\.[a-z0-9]{2,4}$/.test(file)) return next();
+  const f = services.fileFor(req.user, file);
+  if (!f) return next();
+  // Images and PDFs open in the browser; anything else is always downloaded.
+  const inline = /^(image\/(jpeg|png|webp|gif)|application\/pdf)$/.test(f.mime) && req.query.download !== '1';
+  res.attachment(f.original_name);
+  if (inline) res.set('Content-Disposition', res.get('Content-Disposition').replace(/^attachment/, 'inline'));
+  res.set({ 'Cache-Control': 'private, max-age=3600', 'X-Content-Type-Options': 'nosniff' });
+  res.type(f.mime);
+  res.sendFile(path.join(SERVICE_DIR, file), (err) => {
     if (err && !res.headersSent) next();
   });
 });

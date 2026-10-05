@@ -46,22 +46,50 @@ const STORE_FAQ = [
   },
 ];
 
-// MTS Agency services (homepage). Quotes are requested over WhatsApp.
+// MTS Agency services: the starting list for the "services" table (editable from the admin dashboard).
 const SERVICES = [
-  { icon: 'fa-solid fa-code', title: 'تصميم وبرمجة المواقع', text: 'مواقع ومتاجر سريعة ومتجاوبة تحوّل الزوار إلى عملاء، من الفكرة حتى الإطلاق.' },
-  { icon: 'fa-solid fa-pen-ruler', title: 'الهوية والتصميم الجرافيكي', text: 'شعارات وهويات بصرية وتصاميم تسويقية تعكس قيمة علامتك وتبقى في الذاكرة.' },
-  { icon: 'fa-solid fa-bullseye', title: 'التسويق الإلكتروني', text: 'حملات إعلانية مدروسة تصل لجمهورك المستهدف وتحقق أفضل عائد على ميزانيتك.' },
-  { icon: 'fa-solid fa-clapperboard', title: 'الإنتاج المرئي', text: 'تصوير ومونتاج وموشن جرافيك لمحتوى احترافي يرفع تفاعل جمهورك.' },
-  { icon: 'fa-solid fa-hashtag', title: 'إدارة صفحات التواصل', text: 'خطة محتوى ونشر وإدارة كاملة لحساباتك مع تقارير أداء واضحة.' },
-  { icon: 'fa-solid fa-chalkboard-user', title: 'التدريب التقني', text: 'برامج تدريب عملية بإشراف مختصين تؤهل المتدربين لسوق العمل.' },
-];
-
-// Agency figures as published on the MTS Agency site.
-const AGENCY_STATS = [
-  { value: '+150', label: 'مشروع منجز' },
-  { value: '+80', label: 'عميل راضٍ' },
-  { value: '+5', label: 'سنوات خبرة' },
-  { value: '24/7', label: 'دعم فني' },
+  {
+    slug: 'web-development',
+    icon: 'fa-solid fa-code',
+    title: 'تصميم وبرمجة المواقع',
+    text: 'مواقع ومتاجر سريعة ومتجاوبة تحوّل الزوار إلى عملاء، من الفكرة حتى الإطلاق.',
+    hint: 'نوع الموقع (تعريفي، متجر، منصة…)، عدد الصفحات والأقسام، أمثلة لمواقع تعجبك، والمحتوى المتوفر لديك.',
+  },
+  {
+    slug: 'branding-design',
+    icon: 'fa-solid fa-pen-ruler',
+    title: 'الهوية والتصميم الجرافيكي',
+    text: 'شعارات وهويات بصرية وتصاميم تسويقية تعكس قيمة علامتك وتبقى في الذاكرة.',
+    hint: 'اسم العلامة ونشاطها، الجمهور المستهدف، الألوان أو الأساليب المفضلة، والتصاميم المطلوبة ومقاساتها.',
+  },
+  {
+    slug: 'digital-marketing',
+    icon: 'fa-solid fa-bullseye',
+    title: 'التسويق الإلكتروني',
+    text: 'حملات إعلانية مدروسة تصل لجمهورك المستهدف وتحقق أفضل عائد على ميزانيتك.',
+    hint: 'المنتج أو الخدمة المراد تسويقها، الهدف من الحملة، الجمهور والمنطقة المستهدفة، والميزانية الإعلانية.',
+  },
+  {
+    slug: 'video-production',
+    icon: 'fa-solid fa-clapperboard',
+    title: 'الإنتاج المرئي',
+    text: 'تصوير ومونتاج وموشن جرافيك لمحتوى احترافي يرفع تفاعل جمهورك.',
+    hint: 'نوع الفيديو (إعلان، موشن، مونتاج…)، المدة المطلوبة، المنصة التي سيُنشر عليها، وأمثلة مرجعية.',
+  },
+  {
+    slug: 'social-media',
+    icon: 'fa-solid fa-hashtag',
+    title: 'إدارة صفحات التواصل',
+    text: 'خطة محتوى ونشر وإدارة كاملة لحساباتك مع تقارير أداء واضحة.',
+    hint: 'روابط حساباتك، عدد المنشورات المطلوبة شهرياً، طبيعة نشاطك، وأهدافك من الإدارة.',
+  },
+  {
+    slug: 'tech-training',
+    icon: 'fa-solid fa-chalkboard-user',
+    title: 'التدريب التقني',
+    text: 'برامج تدريب عملية بإشراف مختصين تؤهل المتدربين لسوق العمل.',
+    hint: 'المجال المطلوب، عدد المتدربين ومستواهم، المدة المناسبة، وهل التدريب حضوري أم عن بُعد.',
+  },
 ];
 
 // Real agency clients (logos in public/img/clients).
@@ -76,13 +104,6 @@ const CLIENTS = [
   { name: 'سنتر العمدة', logo: 'al-omda' },
   { name: 'مكتب أركان', logo: 'arkan-office' },
   { name: 'ديكورست ميدو', logo: 'decorest-medo' },
-];
-
-const WHY_US = [
-  { icon: 'fa-solid fa-building-shield', title: 'شركة حقيقية تعرفها', text: 'MTS Agency تعمل منذ أكثر من 5 سنوات في الحلول الرقمية، بعنوان وفريق وأرقام تواصل واضحة.' },
-  { icon: 'fa-solid fa-user-check', title: 'كل تحويل يراجعه شخص حقيقي', text: 'نراجع إيصالك يدوياً ونؤكد الدفع، وتتابع حالة طلبك لحظة بلحظة من حسابك.' },
-  { icon: 'fa-solid fa-lock', title: 'بيانات اشتراكك لك وحدك', text: 'تظهر البيانات داخل صفحة طلبك الخاصة فقط، ولا تُرسل في رسائل مفتوحة.' },
-  { icon: 'fa-solid fa-rotate', title: 'ضمان طوال مدة الاشتراك', text: 'إذا توقف الاشتراك أو واجهتك مشكلة في التفعيل نستبدله أو نعالج المشكلة فوراً.' },
 ];
 
 function productFaq(p, settings) {
@@ -110,4 +131,4 @@ function productFaq(p, settings) {
   return items;
 }
 
-module.exports = { HOW_TO_BUY, TRUST, STORE_FAQ, SERVICES, AGENCY_STATS, CLIENTS, WHY_US, productFaq };
+module.exports = { HOW_TO_BUY, TRUST, STORE_FAQ, SERVICES, CLIENTS, productFaq };

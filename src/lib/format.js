@@ -35,7 +35,38 @@ const EVENT_META = {
 const ROLES = {
   buyer: { label: 'مشتري', tone: 'muted' },
   seller: { label: 'بائع', tone: 'info' },
+  provider: { label: 'منفذ خدمات', tone: 'success' },
   admin: { label: 'مدير', tone: 'brand' },
+};
+
+// MTS Agency service requests.
+const SERVICE_STATUS = {
+  pending: { label: 'بانتظار مراجعة الفريق', short: 'طلب جديد', tone: 'warning', icon: 'fa-solid fa-inbox' },
+  in_progress: { label: 'قيد التنفيذ', short: 'قيد التنفيذ', tone: 'info', icon: 'fa-solid fa-person-digging' },
+  delivered: { label: 'تم التسليم — بانتظار مراجعة العميل', short: 'تم التسليم', tone: 'success', icon: 'fa-solid fa-box-open' },
+  revision: { label: 'مطلوب تعديلات', short: 'تعديلات مطلوبة', tone: 'warning', icon: 'fa-solid fa-rotate' },
+  completed: { label: 'مكتمل', short: 'مكتمل', tone: 'success', icon: 'fa-solid fa-circle-check' },
+  cancelled: { label: 'ملغي', short: 'ملغي', tone: 'muted', icon: 'fa-solid fa-ban' },
+};
+
+const SERVICE_EVENTS = {
+  created: { label: 'تم إرسال الطلب', icon: 'fa-solid fa-paper-plane', tone: 'brand' },
+  assigned: { label: 'بدأ العمل على الطلب', icon: 'fa-solid fa-user-check', tone: 'info' },
+  reassigned: { label: 'تم تغيير منفذ الطلب', icon: 'fa-solid fa-people-arrows', tone: 'info' },
+  delivery: { label: 'تسليم', icon: 'fa-solid fa-gift', tone: 'success' },
+  revision: { label: 'طلب تعديلات', icon: 'fa-solid fa-rotate', tone: 'warning' },
+  completed: { label: 'اكتمل الطلب', icon: 'fa-solid fa-flag-checkered', tone: 'success' },
+  cancelled: { label: 'تم إلغاء الطلب', icon: 'fa-solid fa-ban', tone: 'muted' },
+  message: { label: 'رسالة', icon: 'fa-regular fa-comment', tone: 'brand' },
+  note: { label: 'ملاحظة داخلية', icon: 'fa-solid fa-note-sticky', tone: 'warning' },
+};
+
+const BUDGETS = {
+  under_100: 'أقل من 100$',
+  '100_300': 'من 100$ إلى 300$',
+  '300_1000': 'من 300$ إلى 1,000$',
+  over_1000: 'أكثر من 1,000$',
+  flexible: 'غير محددة — أنتظر عرض السعر',
 };
 
 function toDate(v) {
@@ -192,6 +223,37 @@ function discountPercent(price, oldPrice) {
   return Math.round(((oldPrice - price) / oldPrice) * 100);
 }
 
+// Attachments and links on service requests.
+function fileIcon(mime) {
+  const m = String(mime || '');
+  if (m.startsWith('image/vnd.adobe') || m === 'application/postscript') return 'fa-solid fa-palette';
+  if (m.startsWith('image/')) return 'fa-solid fa-file-image';
+  if (m === 'application/pdf') return 'fa-solid fa-file-pdf';
+  if (m.includes('wordprocessingml')) return 'fa-solid fa-file-word';
+  if (m.includes('spreadsheetml')) return 'fa-solid fa-file-excel';
+  if (m.includes('presentationml')) return 'fa-solid fa-file-powerpoint';
+  if (m.startsWith('video/')) return 'fa-solid fa-file-video';
+  if (m.startsWith('audio/')) return 'fa-solid fa-file-audio';
+  return 'fa-solid fa-file-zipper';
+}
+
+function fileSize(bytes) {
+  const n = Number(bytes) || 0;
+  if (n < 1024 * 1024) return `${Math.max(1, Math.round(n / 1024))} KB`;
+  return `${(n / 1024 / 1024).toFixed(n < 10 * 1024 * 1024 ? 1 : 0)} MB`;
+}
+
+// "drive.google.com/file/d/…" style label for a stored link.
+function linkLabel(href) {
+  try {
+    const u = new URL(href);
+    const rest = (u.pathname + u.search).replace(/\/$/, '');
+    return u.hostname.replace(/^www\./, '') + (rest.length > 28 ? `${rest.slice(0, 26)}…` : rest);
+  } catch {
+    return String(href || '');
+  }
+}
+
 function maskEmail(email) {
   const [u, d] = String(email || '').split('@');
   if (!d) return email;
@@ -204,6 +266,9 @@ module.exports = {
   DELIVERY_METHODS,
   EVENT_META,
   ROLES,
+  SERVICE_STATUS,
+  SERVICE_EVENTS,
+  BUDGETS,
   toDate,
   fmtDate,
   fmtDateTime,
@@ -219,4 +284,7 @@ module.exports = {
   parseJson,
   discountPercent,
   maskEmail,
+  fileIcon,
+  fileSize,
+  linkLabel,
 };

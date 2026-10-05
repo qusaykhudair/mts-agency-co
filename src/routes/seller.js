@@ -97,7 +97,13 @@ router.get('/', (req, res) => {
        WHERE ${pScope.sql} ORDER BY p.sales_count DESC, p.views DESC LIMIT 5`,
       ...pScope.params,
     ),
-    productCount: get(`SELECT COUNT(*) AS n FROM products p WHERE ${pScope.sql}`, ...pScope.params).n,
+    // Agency service requests are run by the admins (sellers only handle store orders).
+    serviceSummary: isAdminUser(req.user)
+      ? get(
+          `SELECT COALESCE(SUM(status = 'pending'), 0) AS pending, COALESCE(SUM(status IN ('in_progress', 'revision')), 0) AS working,
+                  COALESCE(SUM(status = 'delivered'), 0) AS delivered FROM service_requests`,
+        )
+      : null,
   });
 });
 

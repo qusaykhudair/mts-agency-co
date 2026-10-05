@@ -1,0 +1,31 @@
+<%
+  // events: services.thread(); perspective: 'client' | 'team'; viewerId; clientId
+  const sysTypes = ['created', 'assigned', 'reassigned', 'completed', 'cancelled'];
+  const nameOf = (e) => {
+    if (!e.user_id) return 'النظام';
+    if (e.user_id === clientId) return perspective === 'client' ? 'أنت' : (e.author_name || 'العميل');
+    return perspective === 'client' ? `${e.author_name || 'فريق MTS'} · فريق MTS` : (e.author_name || 'فريق MTS');
+  };
+%>
+<div class="thread">
+  <% events.forEach((e) => { const meta = SERVICE_EVENTS[e.type] || SERVICE_EVENTS.message; %>
+    <% if (sysTypes.includes(e.type)) { %>
+    <div class="th-sys">
+      <i class="<%= meta.icon %>"></i>
+      <span><b><%= meta.label %></b><% if (e.body) { %> — <%= e.body %><% } %></span>
+      <time><%= fmtDateTime(e.created_at) %></time>
+    </div>
+    <% } else { %>
+    <article class="th-msg th-<%= e.type %><%= e.user_id === viewerId ? ' mine' : '' %><%= e.user_id === clientId ? ' from-client' : '' %>">
+      <header>
+        <span class="avatar avatar-sm"><%= initials(e.author_name || 'MTS') %></span>
+        <b><%= nameOf(e) %></b>
+        <% if (e.type !== 'message') { %><span class="th-tag"><i class="<%= meta.icon %>"></i> <%= meta.label %><%= e.type === 'note' ? ' — لا تظهر للعميل' : '' %></span><% } %>
+        <time><%= fmtDateTime(e.created_at) %></time>
+      </header>
+      <% if (e.body) { %><p class="pre-line"><%= e.body %></p><% } %>
+      <%- include('service-attachments', { links: e.links, files: e.files }) %>
+    </article>
+    <% } %>
+  <% }) %>
+</div>

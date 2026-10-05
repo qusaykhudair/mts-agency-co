@@ -1,0 +1,160 @@
+<%- include('../partials/top') %>
+<%
+  const st = SERVICE_STATUS[r.status];
+  const banner = {
+    pending: can.take ? ['طلب جديد متاح', 'راجع التفاصيل ثم استلم الطلب لتبدأ العمل عليه.'] : ['طلب جديد بانتظار التعيين', 'اختر منفذاً للطلب من القائمة الجانبية ليبدأ العمل عليه.'],
+    in_progress: ['قيد التنفيذ', 'تواصل مع العميل عند الحاجة، وعند الانتهاء أرسل التسليم من نموذج التسليم.'],
+    delivered: ['بانتظار مراجعة العميل', `يعتمد العميل التسليم أو يطلب تعديلات، ويُغلق الطلب تلقائياً بعد ${autoDays} أيام.`],
+    revision: ['طلب العميل تعديلات', 'راجع ملاحظات العميل في المحادثة ثم أرسل تسليماً جديداً.'],
+    completed: ['الطلب مكتمل', 'تم اعتماد التسليم وإغلاق الطلب.'],
+    cancelled: ['الطلب ملغي', r.cancel_reason || 'تم إلغاء هذا الطلب.'],
+  }[r.status];
+  const brief = events.find((e) => e.type === 'created');
+  const isAdminView = base.startsWith('/seller');
+  const daysLeft = r.deadline ? Math.ceil((new Date(r.deadline + 'T23:59:59Z') - Date.now()) / 86400000) : null;
+%>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <% if (isAdminView) { %><a href="/seller">لوحة الإدارة</a><i class="fa-solid fa-chevron-left"></i><a href="/seller/service-requests">طلبات الخدمات</a><% } else { %><a href="/provider">طلبات الخدمات</a><% } %>
+  <i class="fa-solid fa-chevron-left"></i><span><%= r.code %></span>
+</nav>
+
+<div class="od">
+  <div class="od-main">
+    <section class="card card-body stack">
+      <div class="od-head">
+        <span class="svc-ic lg"><i class="<%= r.service_icon || 'fa-solid fa-briefcase' %>"></i></span>
+        <div class="grow">
+          <b><%= r.title %></b>
+          <small><%= r.service_name %> · <span class="bold text-brand"><%= r.code %></span> · <%= fmtDateTime(r.created_at) %></small>
+        </div>
+        <%- include('../partials/service-badge', { status: r.status }) %>
+      </div>
+      <div class="status-banner <%= st.tone %>">
+        <span class="ic"><i class="<%= st.icon %>"></i></span>
+        <div><b><%= banner[0] %></b><p><%= banner[1] %></p></div>
+      </div>
+      <% if (can.take) { %>
+      <form method="post" action="<%= base %>/<%= r.code %>/take" data-ajax data-confirm="ستصبح مسؤولاً عن تنفيذ هذا الطلب وتسليمه للعميل. متابعة؟" data-confirm-title="استلام الطلب">
+        <button class="btn btn-primary btn-lg" type="submit"><i class="fa-solid fa-hand"></i> استلام الطلب والبدء بالعمل</button>
+      </form>
+      <% } %>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-file-lines"></i> تفاصيل الطلب من العميل</h2></div>
+      <div class="card-body stack">
+        <p class="pre-line brief-text"><%= r.details %></p>
+        <%- include('../partials/service-attachments', { links: r.links, files: brief ? brief.files : [] }) %>
+      </div>
+    </section>
+
+    <% if (can.deliver) { %>
+    <section class="card" id="deliver">
+      <div class="card-head"><h2><i class="fa-solid fa-gift"></i> <%= r.status === 'delivered' ? 'إرسال تسليم محدّث' : 'تسليم العمل للعميل' %></h2></div>
+      <form class="card-body stack" method="post" action="<%= base %>/<%= r.code %>/deliver" enctype="multipart/form-data" data-ajax novalidate
+        data-confirm="سيصل التسليم للعميل مع إشعار، ويتحول الطلب إلى «تم التسليم». متابعة؟" data-confirm-title="تسليم الطلب">
+        <div class="field">
+          <label class="label" for="dLinks">روابط التسليم</label>
+          <textarea class="textarea" id="dLinks" name="links" rows="3" dir="ltr" placeholder="https://drive.google.com/…&#10;https://www.figma.com/…"></textarea>
+          <span class="help">رابط في كل سطر — مثل Google Drive أو WeTransfer للملفات الكبيرة.</span>
+          <span class="field-error"></span>
+        </div>
+        <%- include('../partials/file-picker', { id: 'dFiles', max: 10, maxMb, label: 'ملفات التسليم' }) %>
+        <div class="field">
+          <label class="label" for="dBody">ملاحظات التسليم <span class="opt">(اختياري)</span></label>
+          <textarea class="textarea" id="dBody" name="body" rows="3" maxlength="4000" placeholder="ما الذي تم تسليمه؟ وأي تعليمات للعميل…"></textarea>
+        </div>
+        <div class="progress" data-upload-progress hidden><span style="width:0%"></span></div>
+        <button class="btn btn-success btn-lg" type="submit" style="justify-self:start"><i class="fa-solid fa-paper-plane"></i> تسليم للعميل</button>
+      </form>
+    </section>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-regular fa-comments"></i> المحادثة وسجل الطلب</h2></div>
+      <div class="card-body stack">
+        <%- include('../partials/service-thread', { events, perspective: 'team', viewerId: user.id, clientId: r.user_id }) %>
+        <% if (can.work && r.status !== 'cancelled') { %>
+        <form class="stack-sm composer" method="post" action="<%= base %>/<%= r.code %>/message" enctype="multipart/form-data" data-ajax novalidate>
+          <div class="field">
+            <label class="label" for="msgBody">رسالة إلى العميل</label>
+            <textarea class="textarea" id="msgBody" name="body" rows="3" maxlength="4000" placeholder="اكتب للعميل: استفسار، تحديث عن التقدم، أو طلب ملفات…"></textarea>
+            <span class="field-error"></span>
+          </div>
+          <div class="composer-foot">
+            <%- include('../partials/file-picker', { id: 'msgFiles', max: 6, maxMb }) %>
+            <button class="btn btn-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال</button>
+          </div>
+          <div class="progress" data-upload-progress hidden><span style="width:0%"></span></div>
+        </form>
+        <details class="note-box">
+          <summary><i class="fa-solid fa-note-sticky"></i> ملاحظة داخلية للفريق</summary>
+          <form class="stack-sm" method="post" action="<%= base %>/<%= r.code %>/note" data-ajax novalidate>
+            <div class="field"><textarea class="textarea" name="body" rows="2" maxlength="2000" placeholder="لا تظهر للعميل…"></textarea><span class="field-error"></span></div>
+            <button class="btn btn-soft btn-sm" type="submit" style="justify-self:start"><i class="fa-solid fa-plus"></i> إضافة ملاحظة</button>
+          </form>
+        </details>
+        <% } %>
+      </div>
+    </section>
+  </div>
+
+  <aside class="od-side">
+    <section class="card card-body">
+      <h3 class="form-section-title" style="margin-bottom:12px"><i class="fa-solid fa-user"></i> العميل</h3>
+      <div class="flex gap-12 mb-16">
+        <% if (r.client_avatar) { %><img class="avatar avatar-lg" src="<%= r.client_avatar %>" alt="" referrerpolicy="no-referrer"><% } else { %><span class="avatar avatar-lg"><%= initials(r.client_name) %></span><% } %>
+        <div class="grow" style="min-width:0"><b style="display:block"><%= r.client_name %></b><small class="muted ellipsis" style="display:block" dir="ltr"><%= r.client_email %></small></div>
+      </div>
+      <% if (r.client_whatsapp && (can.work || isAdmin)) { %>
+      <a class="btn btn-whatsapp btn-block" href="<%= waLink(r.client_whatsapp, waText) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> <bdi dir="ltr"><%= displayWhatsapp(r.client_whatsapp) %></bdi></a>
+      <% } %>
+      <% if (isAdmin) { %><a class="btn btn-ghost btn-block mt-8" href="/seller/users/<%= r.user_id %>"><i class="fa-solid fa-id-badge"></i> ملف العميل</a><% } %>
+    </section>
+
+    <section class="card card-body">
+      <h3 class="form-section-title" style="margin-bottom:12px"><i class="fa-solid fa-circle-info"></i> معلومات الطلب</h3>
+      <div class="kv">
+        <div class="kv-row"><span>الخدمة</span><span><%= r.service_name %></span></div>
+        <div class="kv-row"><span>الميزانية</span><span><%= r.budget ? (budgets[r.budget] || r.budget) : 'غير محددة' %></span></div>
+        <div class="kv-row"><span>الموعد المطلوب</span><span><%= r.deadline ? fmtDate(r.deadline) : 'مرن' %><% if (daysLeft !== null && !['completed', 'cancelled'].includes(r.status)) { %> <small class="<%= daysLeft < 0 ? 'text-danger' : 'muted' %>">(<%= daysLeft < 0 ? 'متأخر' : daysLeft === 0 ? 'اليوم' : 'بعد ' + daysText(daysLeft) %>)</small><% } %></span></div>
+        <div class="kv-row"><span>المنفذ</span><span><%= r.assignee_name || 'غير معيّن' %></span></div>
+        <div class="kv-row"><span>آخر تحديث</span><span><%= timeAgo(r.updated_at) %></span></div>
+      </div>
+    </section>
+
+    <% if (can.assign) { %>
+    <section class="card card-body stack-sm">
+      <h3 class="form-section-title"><i class="fa-solid fa-user-check"></i> <%= r.assigned_to ? 'تغيير المنفذ' : 'تعيين منفذ' %></h3>
+      <% if (team.length) { %>
+      <form class="stack-sm" method="post" action="<%= base %>/<%= r.code %>/assign" data-ajax>
+        <select class="select" name="member_id" required>
+          <% team.forEach((m) => { %><option value="<%= m.id %>"<%= r.assigned_to === m.id ? ' selected' : '' %>><%= m.name %><%= m.role === 'admin' ? ' (مدير)' : '' %></option><% }) %>
+        </select>
+        <button class="btn btn-primary" type="submit"><i class="fa-solid fa-user-check"></i> حفظ المنفذ</button>
+      </form>
+      <% } %>
+      <p class="help">أضف منفذين جدد من <a class="link" href="/seller/users">المستخدمون</a> بتغيير صلاحية الحساب إلى «منفذ خدمات».</p>
+    </section>
+    <% } %>
+
+    <% if (can.complete || can.cancel) { %>
+    <section class="card card-body stack-sm">
+      <h3 class="form-section-title"><i class="fa-solid fa-sliders"></i> إجراءات الإدارة</h3>
+      <% if (can.complete) { %>
+      <form method="post" action="<%= base %>/<%= r.code %>/complete" data-ajax data-confirm="إغلاق الطلب كمكتمل دون انتظار اعتماد العميل؟">
+        <button class="btn btn-soft btn-block" type="submit"><i class="fa-solid fa-flag-checkered"></i> إغلاق كمكتمل</button>
+      </form>
+      <% } %>
+      <% if (can.cancel) { %>
+      <form method="post" action="<%= base %>/<%= r.code %>/cancel" data-ajax data-confirm="سيتم إلغاء الطلب وإبلاغ العميل." data-confirm-title="إلغاء الطلب" data-confirm-danger data-prompt="سبب الإلغاء (سيظهر للعميل)" data-prompt-name="reason">
+        <button class="btn btn-danger-soft btn-block" type="submit"><i class="fa-solid fa-ban"></i> إلغاء الطلب</button>
+      </form>
+      <% } %>
+    </section>
+    <% } %>
+  </aside>
+</div>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/services.js'] }) %>

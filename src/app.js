@@ -56,8 +56,10 @@ function createApp() {
   /* ---------- Routes ---------- */
   app.use(require('./routes/home'));
   app.use(require('./routes/auth'));
+  app.use(require('./routes/services'));
   app.use('/store', require('./routes/store'));
   app.use('/account', require('./routes/account'));
+  app.use('/provider', require('./routes/provider'));
   app.use('/seller', require('./routes/seller'));
   app.use('/seller', require('./routes/admin'));
   app.use('/api', require('./routes/api'));

@@ -1,0 +1,65 @@
+<%- include('../partials/top') %>
+<% const tabParam = scope === 'admin' ? 'status' : 'tab'; %>
+
+<div class="page-head">
+  <div>
+    <h1>طلبات الخدمات</h1>
+    <p><%= scope === 'admin' ? 'وزّع الطلبات الجديدة على فريق التنفيذ وتابع التسليم حتى الاعتماد.' : 'استلم الطلبات الجديدة، تواصل مع العملاء وسلّم أعمالك من هنا.' %></p>
+  </div>
+  <% if (scope === 'admin') { %><div class="actions"><a class="btn btn-soft" href="/seller/services"><i class="fa-solid fa-briefcase"></i> الخدمات المعروضة</a></div><% } %>
+</div>
+
+<nav class="tabs" aria-label="حالات الطلبات">
+  <% tabs.forEach((t) => { %>
+  <a class="tab<%= t.key === tab ? ' is-active' : '' %>" href="<%= withQuery({ [tabParam]: t.key || null, q: null }) %>"><%= t.label %> <span class="n"><%= t.count %></span></a>
+  <% }) %>
+</nav>
+
+<form class="filters" method="get">
+  <% if (tab) { %><input type="hidden" name="<%= tabParam %>" value="<%= tab %>"><% } %>
+  <div class="input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input class="input" type="search" name="q" value="<%= q %>" placeholder="ابحث برقم الطلب أو العنوان أو اسم العميل…"></div>
+  <% if (scope === 'admin') { %>
+  <select class="select" name="member" data-autosubmit-field aria-label="المنفذ">
+    <option value="">كل المنفذين</option>
+    <% team.forEach((m) => { %><option value="<%= m.id %>"<%= memberId === m.id ? ' selected' : '' %>><%= m.name %><%= m.role === 'admin' ? ' (مدير)' : '' %></option><% }) %>
+  </select>
+  <% } %>
+  <button class="btn btn-soft" type="submit"><i class="fa-solid fa-filter"></i> بحث</button>
+  <% if (q || locals.memberId) { %><a class="btn btn-ghost" href="<%= withQuery({ q: null, member: null }) %>">مسح</a><% } %>
+</form>
+
+<section class="card">
+  <% if (items.length) { %>
+  <div class="table-wrap">
+    <table class="table responsive">
+      <thead><tr><th>الطلب</th><th>العميل</th><% if (scope === 'admin') { %><th>المنفذ</th><% } %><th>الحالة</th><th>آخر تحديث</th><th></th></tr></thead>
+      <tbody>
+        <% items.forEach((r) => { %>
+        <tr>
+          <td class="t-first">
+            <div class="t-main">
+              <span class="svc-ic"><i class="<%= r.service_icon || 'fa-solid fa-briefcase' %>"></i></span>
+              <div><b><%= r.title %></b><small><span class="code"><%= r.code %></span> · <%= r.service_name %></small></div>
+            </div>
+          </td>
+          <td data-label="العميل"><%= r.client_name %></td>
+          <% if (scope === 'admin') { %><td data-label="المنفذ"><%= r.assignee_name || '—' %></td><% } %>
+          <td data-label="الحالة"><%- include('../partials/service-badge', { status: r.status }) %></td>
+          <td data-label="آخر تحديث" class="nowrap"><%= timeAgo(r.updated_at) %></td>
+          <td><div class="t-actions"><a class="btn btn-<%= r.status === 'pending' || r.status === 'revision' ? 'primary' : 'soft' %> btn-sm" href="<%= base %>/<%= r.code %>">فتح <i class="fa-solid fa-arrow-left"></i></a></div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else { %>
+  <div class="empty">
+    <span class="ic"><i class="fa-solid fa-<%= tab === 'pool' || tab === 'pending' ? 'inbox' : 'mug-hot' %>"></i></span>
+    <h3><%= q ? 'لا توجد نتائج مطابقة' : tab === 'pool' ? 'لا توجد طلبات جديدة متاحة الآن' : 'لا توجد طلبات هنا' %></h3>
+    <p><%= q ? 'جرّب كلمات بحث أخرى.' : 'ستصلك إشعارات فور وصول طلب خدمة جديد.' %></p>
+  </div>
+  <% } %>
+</section>
+<%- include('../partials/pagination', { pg }) %>
+
+<%- include('../partials/bottom') %>

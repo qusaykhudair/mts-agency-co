@@ -7,7 +7,7 @@ const settings = require('./lib/settings');
 const money = require('./lib/money');
 const fmt = require('./lib/format');
 const phone = require('./lib/phone');
-const { isStaff, isAdmin } = require('./lib/auth');
+const { isStaff, isAdmin, isProvider, isServiceTeam } = require('./lib/auth');
 
 const BUILD = Date.now().toString(36);
 const escapeHtml = (s) =>
@@ -25,17 +25,16 @@ function securityHeaders() {
         objectSrc: ["'none'"],
         frameAncestors: ["'self'"],
         formAction: ["'self'"],
-        scriptSrc: ["'self'", 'https://accounts.google.com/gsi/client'],
-        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com', 'https://accounts.google.com/gsi/style'],
+        scriptSrc: ["'self'"],
+        styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com', 'https://cdnjs.cloudflare.com'],
         fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com', 'https://cdnjs.cloudflare.com'],
         imgSrc: ["'self'", 'data:', 'blob:', 'https://*.googleusercontent.com', 'https://cdnjs.cloudflare.com'],
-        connectSrc: ["'self'", 'https://accounts.google.com/gsi/'],
-        frameSrc: ['https://accounts.google.com/gsi/'],
+        connectSrc: ["'self'"],
+        frameSrc: ["'none'"],
         upgradeInsecureRequests: config.isProd ? [] : null,
       },
     },
-    // Google Identity Services opens a popup that must be able to message back.
-    crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
+    crossOriginOpenerPolicy: { policy: 'same-origin' },
     crossOriginEmbedderPolicy: false,
     referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
     strictTransportSecurity: config.isProd ? { maxAge: 15552000, includeSubDomains: false } : false,
@@ -144,6 +143,7 @@ function locals(req, res, next) {
     waLink: phone.waLink,
     isStaff: isStaff(user),
     isAdmin: isAdmin(user),
+    isProvider: isProvider(user),
     storeWa: s.whatsapp_number,
     pageUrl: (n) => {
       const q = new URLSearchParams(req.query);
@@ -162,7 +162,7 @@ function locals(req, res, next) {
       const qs = q.toString();
       return req.path + (qs ? '?' + qs : '');
     },
-    counts: { unread: 0, pendingOrders: 0, pendingApps: 0 },
+    counts: { unread: 0, pendingOrders: 0, pendingApps: 0, services: 0 },
     // Admins are warned when uploads and the database would not survive a redeploy.
     storageWarning: isAdmin(user) && config.ephemeralStorage,
   });
@@ -171,6 +171,15 @@ function locals(req, res, next) {
     if (isAdmin(user)) {
       res.locals.counts.pendingOrders = get("SELECT COUNT(*) AS n FROM orders WHERE status = 'under_review'").n;
       res.locals.counts.pendingApps = get("SELECT COUNT(*) AS n FROM seller_applications WHERE status = 'pending'").n;
+      // New service requests waiting for someone to pick them up.
+      res.locals.counts.services = get("SELECT COUNT(*) AS n FROM service_requests WHERE status = 'pending'").n;
+    } else if (isProvider(user)) {
+      // Open requests nobody has taken yet, plus the provider's own requests that need work.
+      res.locals.counts.services = get(
+        "SELECT COUNT(*) AS n FROM service_requests WHERE (status = 'pending' AND assigned_to IS NULL AND user_id <> ?) OR (assigned_to = ? AND status IN ('in_progress', 'revision'))",
+        user.id,
+        user.id,
+      ).n;
     } else if (isStaff(user)) {
       res.locals.counts.pendingOrders = get("SELECT COUNT(*) AS n FROM orders WHERE status = 'under_review' AND seller_id = ? AND user_id <> ?", user.id, user.id).n;
     }
@@ -214,6 +223,7 @@ function requireRole(check, message) {
 
 const requireStaff = requireRole(isStaff, 'هذه الصفحة مخصصة للبائعين وإدارة المتجر');
 const requireAdmin = requireRole(isAdmin, 'هذه الصفحة مخصصة لمدير المتجر فقط');
+const requireServiceTeam = requireRole(isServiceTeam, 'هذه الصفحة مخصصة لفريق تنفيذ الخدمات');
 
 function notFound(req, res) {
   res.status(404);
@@ -225,6 +235,7 @@ function notFound(req, res) {
 function errorHandler(err, req, res, next) {
   // A failed request must not leave its upload behind (routes mark files they stored as kept).
   if (req.file && req.file.path && !req.file.kept) fs.rm(req.file.path, { force: true }, () => {});
+  for (const f of Array.isArray(req.files) ? req.files : []) if (f.path && !f.kept) fs.rm(f.path, { force: true }, () => {});
   const status = err.status || err.statusCode || 500;
   const expose = err.expose || status < 500;
   if (status >= 500) console.error(err);
@@ -265,6 +276,7 @@ module.exports = {
   requireAuth,
   requireStaff,
   requireAdmin,
+  requireServiceTeam,
   notFound,
   errorHandler,
 };

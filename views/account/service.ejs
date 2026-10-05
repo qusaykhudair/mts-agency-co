@@ -1,0 +1,122 @@
+<%- include('../partials/top') %>
+<%
+  const st = SERVICE_STATUS[r.status];
+  const banner = {
+    pending: ['تم استلام طلبك', 'يراجع فريقنا التفاصيل وسيبدأ أحد المختصين العمل عليه قريباً. يمكنك إضافة أي تفاصيل أو ملفات في المحادثة أدناه.'],
+    in_progress: ['جاري تنفيذ طلبك', 'يعمل فريقنا على طلبك الآن، وسيصلك إشعار فور التسليم.'],
+    delivered: ['تم تسليم طلبك 🎉', `راجع التسليم ثم اعتمده أو اطلب التعديلات. يُعتمد الطلب تلقائياً بعد ${autoDays} أيام من التسليم.`],
+    revision: ['جاري تنفيذ التعديلات', 'وصلت ملاحظاتك إلى الفريق ويعمل على التعديلات المطلوبة.'],
+    completed: ['الطلب مكتمل', 'شكراً لثقتك بـ MTS Agency. ملفات التسليم متاحة لك هنا في أي وقت.'],
+    cancelled: ['تم إلغاء الطلب', r.cancel_reason || 'تم إلغاء هذا الطلب.'],
+  }[r.status];
+  const latest = [...events].reverse().find((e) => e.type === 'delivery');
+  const brief = events.find((e) => e.type === 'created');
+%>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <a href="/account">حسابي</a><i class="fa-solid fa-chevron-left"></i><a href="/account/services">طلبات الخدمات</a><i class="fa-solid fa-chevron-left"></i><span><%= r.code %></span>
+</nav>
+
+<% if (placed) { %>
+<div class="alert alert-success mb-16">
+  <i class="fa-solid fa-circle-check"></i>
+  <div class="grow"><b>تم إرسال طلبك بنجاح — رقم الطلب <%= r.code %></b>سيراجعه فريقنا ويتواصل معك هنا وعبر واتساب.</div>
+</div>
+<% } %>
+
+<div class="od">
+  <div class="od-main">
+    <section class="card card-body stack">
+      <div class="od-head">
+        <span class="svc-ic lg"><i class="<%= r.service_icon || 'fa-solid fa-briefcase' %>"></i></span>
+        <div class="grow">
+          <b><%= r.title %></b>
+          <small><%= r.service_name %> · طلب رقم <span class="bold text-brand"><%= r.code %></span> · <%= fmtDate(r.created_at) %></small>
+        </div>
+        <%- include('../partials/service-badge', { status: r.status }) %>
+      </div>
+      <div class="status-banner <%= st.tone %>">
+        <span class="ic"><i class="<%= st.icon %>"></i></span>
+        <div><b><%= banner[0] %></b><p><%= banner[1] %></p></div>
+      </div>
+      <%- include('../partials/service-stepper', { r }) %>
+    </section>
+
+    <% if (latest) { %>
+    <section class="card delivery-card" id="delivery">
+      <div class="card-head">
+        <h2><i class="fa-solid fa-gift" style="color:var(--success)"></i> <%= r.status === 'completed' ? 'التسليم النهائي' : 'آخر تسليم' %></h2>
+        <span class="badge badge-success"><%= timeAgo(latest.created_at) %></span>
+      </div>
+      <div class="card-body stack">
+        <% if (latest.body) { %><p class="pre-line"><%= latest.body %></p><% } %>
+        <%- include('../partials/service-attachments', { links: latest.links, files: latest.files }) %>
+        <% if (r.status === 'delivered') { %>
+        <div class="form-actions">
+          <form method="post" action="/account/services/<%= r.code %>/accept" data-ajax data-confirm="هل راجعت التسليم وتريد اعتماده وإغلاق الطلب؟" data-confirm-title="اعتماد التسليم">
+            <button class="btn btn-success btn-lg" type="submit"><i class="fa-solid fa-circle-check"></i> اعتماد التسليم</button>
+          </form>
+          <button class="btn btn-lg" type="button" data-toggle-target="#revisionBox"><i class="fa-solid fa-rotate"></i> طلب تعديلات</button>
+        </div>
+        <form id="revisionBox" class="stack-sm revision-box" method="post" action="/account/services/<%= r.code %>/revision" enctype="multipart/form-data" data-ajax novalidate hidden>
+          <div class="field">
+            <label class="label" for="revBody">ما التعديلات التي تحتاجها؟</label>
+            <textarea class="textarea" id="revBody" name="body" rows="4" maxlength="4000" required placeholder="اكتب ملاحظاتك بوضوح، نقطة بنقطة إن أمكن…"></textarea>
+            <span class="field-error"></span>
+          </div>
+          <%- include('../partials/file-picker', { id: 'revFiles', max: 6, maxMb, label: 'إرفاق ملفات توضيحية (اختياري)' }) %>
+          <div class="progress" data-upload-progress hidden><span style="width:0%"></span></div>
+          <button class="btn btn-primary" type="submit" style="justify-self:start"><i class="fa-solid fa-paper-plane"></i> إرسال طلب التعديلات</button>
+        </form>
+        <% } %>
+      </div>
+    </section>
+    <% } %>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-regular fa-comments"></i> المحادثة مع الفريق</h2></div>
+      <div class="card-body stack">
+        <%- include('../partials/service-thread', { events, perspective: 'client', viewerId: user.id, clientId: r.user_id }) %>
+        <% if (r.status !== 'cancelled') { %>
+        <form class="stack-sm composer" method="post" action="/account/services/<%= r.code %>/message" enctype="multipart/form-data" data-ajax novalidate>
+          <div class="field">
+            <label class="label" for="msgBody">رسالة إلى الفريق</label>
+            <textarea class="textarea" id="msgBody" name="body" rows="3" maxlength="4000" placeholder="أضف تفاصيل، اسأل عن التقدم، أو أرسل ملفات إضافية…"></textarea>
+            <span class="field-error"></span>
+          </div>
+          <div class="composer-foot">
+            <%- include('../partials/file-picker', { id: 'msgFiles', max: 6, maxMb }) %>
+            <button class="btn btn-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> إرسال</button>
+          </div>
+          <div class="progress" data-upload-progress hidden><span style="width:0%"></span></div>
+        </form>
+        <% } %>
+      </div>
+    </section>
+  </div>
+
+  <aside class="od-side">
+    <section class="card card-body">
+      <h3 class="form-section-title" style="margin-bottom:12px"><i class="fa-solid fa-file-lines"></i> تفاصيل طلبك</h3>
+      <p class="pre-line brief-text"><%= r.details %></p>
+      <%- include('../partials/service-attachments', { links: r.links, files: brief ? brief.files : [] }) %>
+      <div class="kv mt-16">
+        <div class="kv-row"><span>الخدمة</span><span><%= r.service_name %></span></div>
+        <% if (r.budget) { %><div class="kv-row"><span>الميزانية</span><span><%= budgets[r.budget] || r.budget %></span></div><% } %>
+        <% if (r.deadline) { %><div class="kv-row"><span>الموعد المطلوب</span><span><%= fmtDate(r.deadline) %></span></div><% } %>
+        <div class="kv-row"><span>المنفذ</span><span><%= r.assignee_name ? r.assignee_name + ' · فريق MTS' : 'بانتظار التعيين' %></span></div>
+      </div>
+    </section>
+
+    <section class="card card-body stack-sm">
+      <a class="btn btn-whatsapp btn-block" href="<%= waLink(storeWa, 'مرحباً MTS Agency، بخصوص طلب الخدمة ' + r.code + ' (' + r.title + ')') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> تواصل معنا عبر واتساب</a>
+      <% if (r.status === 'pending') { %>
+      <form method="post" action="/account/services/<%= r.code %>/cancel" data-ajax data-confirm="سيتم إلغاء طلب الخدمة. متابعة؟" data-confirm-title="إلغاء الطلب" data-confirm-danger>
+        <button class="btn btn-danger-soft btn-block" type="submit"><i class="fa-solid fa-ban"></i> إلغاء الطلب</button>
+      </form>
+      <% } %>
+    </section>
+  </aside>
+</div>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/services.js'] }) %>

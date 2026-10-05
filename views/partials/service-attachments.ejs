@@ -1,0 +1,13 @@
+<% if ((locals.links && links.length) || (locals.files && files.length)) { %>
+<div class="att">
+  <% (locals.links || []).forEach((href) => { %>
+  <a class="att-link" href="<%= href %>" target="_blank" rel="noopener nofollow ugc"><i class="fa-solid fa-link"></i><bdi dir="ltr"><%= linkLabel(href) %></bdi><i class="fa-solid fa-arrow-up-right-from-square ext"></i></a>
+  <% }) %>
+  <% (locals.files || []).forEach((f) => { const isImg = /^image\/(jpeg|png|webp|gif)$/.test(f.mime); %>
+  <a class="att-file<%= isImg ? ' is-img' : '' %>" href="/files/services/<%= f.file_name %>" target="_blank" rel="noopener" title="<%= f.original_name %>">
+    <% if (isImg) { %><img src="/files/services/<%= f.file_name %>" alt="" loading="lazy"><% } else { %><i class="<%= fileIcon(f.mime) %>"></i><% } %>
+    <span><b><%= f.original_name %></b><small><%= fileSize(f.size) %></small></span>
+  </a>
+  <% }) %>
+</div>
+<% } %>

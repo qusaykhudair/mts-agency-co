@@ -1,12 +1,14 @@
 'use strict';
 const express = require('express');
 const { get, all, run } = require('../db');
-const catalog = require('../lib/catalog');
 const orders = require('../lib/orders');
 const { notifyStaff } = require('../lib/notify');
 const { hashPassword, verifyPassword, endAllSessions, SESSION_COOKIE } = require('../lib/auth');
 const { normalizeWhatsapp } = require('../lib/phone');
-const { receiptUpload, discard } = require('../lib/uploads');
+const { receiptUpload, serviceFiles, discard, SERVICE_FILE_MB } = require('../lib/uploads');
+const services = require('../lib/services');
+const settings = require('../lib/settings');
+const { BUDGETS } = require('../lib/format');
 const { str, clean, cleanText, int, toLatinDigits } = require('../lib/util');
 const { fromSql } = require('../db');
 const { paginate, requireAuth } = require('../middleware');
@@ -16,6 +18,7 @@ const router = express.Router();
 const PER_PAGE = 15;
 
 const uploadLimiter = limiter(20, 60, 'عدد كبير من محاولات رفع الإيصال، حاول مرة أخرى بعد قليل');
+const serviceLimiter = limiter(60, 60, 'عدد كبير من الرسائل والمرفقات، حاول مرة أخرى بعد قليل');
 
 router.use(requireAuth, (req, res, next) => {
   res.locals.nav = 'account';
@@ -70,10 +73,7 @@ function ownOrder(req) {
 router.get('/', (req, res) => {
   const uid = req.user.id;
   const stats = get(
-    `SELECT COUNT(*) AS total,
-            COALESCE(SUM(CASE WHEN o.status IN ('under_review', 'processing', 'payment_rejected') THEN 1 ELSE 0 END), 0) AS open,
-            COALESCE(SUM(CASE WHEN o.status IN ('delivered', 'completed') THEN 1 ELSE 0 END), 0) AS done,
-            COALESCE(SUM(CASE WHEN o.status IN ${orders.PAID_STATUSES} THEN ${orders.TOTAL_IN_BASE_SQL} ELSE 0 END), 0) AS spent
+    `SELECT COALESCE(SUM(CASE WHEN o.status IN ('under_review', 'processing', 'payment_rejected') THEN 1 ELSE 0 END), 0) AS open
      FROM orders o WHERE o.user_id = ?`,
     uid,
   );
@@ -86,8 +86,8 @@ router.get('/', (req, res) => {
     subs: subs.slice(0, 4),
     recent: all(`${ORDER_LIST_SQL} WHERE o.user_id = ? ORDER BY o.id DESC LIMIT 5`, uid),
     attention: all(`SELECT code, product_title, reject_reason FROM orders WHERE user_id = ? AND status = 'payment_rejected' ORDER BY id DESC`, uid),
-    recommended: catalog.listProducts({ sort: 'popular', limit: 4 }).items,
-    application: req.user.role === 'buyer' ? get('SELECT * FROM seller_applications WHERE user_id = ? ORDER BY id DESC LIMIT 1', uid) : null,
+    openServices: services.list({ where: ['r.user_id = ?', `r.status IN ('pending', 'in_progress', 'delivered', 'revision')`], params: [uid], limit: 1 }).total,
+    serviceRequests: services.list({ where: ['r.user_id = ?'], params: [uid], limit: 3 }).items,
   });
 });
 
@@ -175,6 +175,98 @@ router.post('/orders/:code/review', (req, res) => {
   const author = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
   run('INSERT INTO reviews (product_id, user_id, order_id, author_name, rating, comment) VALUES (?, ?, ?, ?, ?, ?)', order.product_id, req.user.id, order.id, author, rating, comment);
   res.reply({ ok: true, message: 'شكراً لتقييمك! رأيك يساعد الآخرين 💙', reload: true });
+});
+
+/* ---------- Service requests ---------- */
+const SERVICE_TABS = [
+  { key: '', label: 'الكل', statuses: null },
+  { key: 'open', label: 'قيد المتابعة', statuses: ['pending', 'in_progress', 'revision', 'delivered'] },
+  { key: 'completed', label: 'مكتملة', statuses: ['completed'] },
+  { key: 'cancelled', label: 'ملغاة', statuses: ['cancelled'] },
+];
+
+function ownRequest(req) {
+  const r = services.byCode(req.params.code);
+  if (!r || r.user_id !== req.user.id) {
+    const err = new Error('طلب الخدمة غير موجود');
+    err.status = 404;
+    err.expose = true;
+    throw err;
+  }
+  return r;
+}
+
+router.get('/services', (req, res) => {
+  const uid = req.user.id;
+  const tab = SERVICE_TABS.find((t) => t.key === (req.query.tab || '')) || SERVICE_TABS[0];
+  const counts = services.countsByStatus(['r.user_id = ?'], [uid]);
+  const tabs = SERVICE_TABS.map((t) => ({
+    ...t,
+    count: t.statuses ? t.statuses.reduce((s, st) => s + (counts[st] || 0), 0) : Object.values(counts).reduce((a, b) => a + b, 0),
+  }));
+  const where = ['r.user_id = ?'];
+  const params = [uid];
+  if (tab.statuses) {
+    where.push(`r.status IN (${tab.statuses.map(() => '?').join(',')})`);
+    params.push(...tab.statuses);
+  }
+  const total = services.list({ where, params, limit: 1 }).total;
+  const pg = paginate(total, req.query.page, PER_PAGE);
+  res.render('account/services', {
+    active: 'acc-services',
+    pageTitle: 'طلبات الخدمات',
+    tabs,
+    tab: tab.key,
+    pg,
+    items: services.list({ where, params, limit: PER_PAGE, offset: pg.offset }).items,
+  });
+});
+
+router.get('/services/:code', (req, res) => {
+  const r = ownRequest(req);
+  res.render('account/service', {
+    active: 'acc-services',
+    pageTitle: `طلب الخدمة ${r.code}`,
+    r,
+    events: services.thread(r),
+    budgets: BUDGETS,
+    placed: req.query.new === '1',
+    maxMb: SERVICE_FILE_MB,
+    autoDays: Number(settings.get('service_auto_complete_days')) || 7,
+  });
+});
+
+router.post('/services/:code/message', serviceLimiter, serviceFiles('files', 6), (req, res) => {
+  const r = ownRequest(req);
+  const body = cleanText(req.body.body, 4000);
+  if (!body && !req.files.length) return res.reply({ ok: false, errors: { body: 'اكتب رسالتك أو أرفق ملفاً' } });
+  services.message(r, req.user, { body, files: req.files });
+  req.files.forEach((f) => (f.kept = true));
+  res.reply({ ok: true, message: 'تم إرسال رسالتك إلى الفريق', reload: true });
+});
+
+router.post('/services/:code/accept', (req, res) => {
+  const r = ownRequest(req);
+  services.complete(r, req.user);
+  res.reply({ ok: true, message: 'شكراً لك! تم اعتماد التسليم وإغلاق الطلب 🌟', reload: true });
+});
+
+router.post('/services/:code/revision', serviceLimiter, serviceFiles('files', 6), (req, res) => {
+  const r = ownRequest(req);
+  const body = cleanText(req.body.body, 4000);
+  if (body.length < 10) {
+    (req.files || []).forEach(discard);
+    return res.reply({ ok: false, errors: { body: 'اكتب التعديلات المطلوبة بوضوح (10 أحرف على الأقل)' } });
+  }
+  services.requestRevision(r, req.user, { body, files: req.files });
+  req.files.forEach((f) => (f.kept = true));
+  res.reply({ ok: true, message: 'تم إرسال طلب التعديلات إلى الفريق', reload: true });
+});
+
+router.post('/services/:code/cancel', (req, res) => {
+  const r = ownRequest(req);
+  services.cancel(r, req.user, cleanText(req.body.reason, 400) || 'ألغى العميل الطلب');
+  res.reply({ ok: true, message: 'تم إلغاء طلب الخدمة', reload: true });
 });
 
 /* ---------- Subscriptions ---------- */

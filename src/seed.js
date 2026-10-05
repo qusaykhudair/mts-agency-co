@@ -9,6 +9,7 @@ const config = require('./config');
 const { hashPassword, verifyPassword, endAllSessions } = require('./lib/auth');
 const { fromInternational } = require('./lib/phone');
 const settings = require('./lib/settings');
+const { SERVICES } = require('./lib/content');
 
 const IBAN = 'PS21PALS045230568550993100000';
 
@@ -471,8 +472,17 @@ async function applyAdminPasswordReset() {
   console.warn(`[seed] Admin password for ${admin.email} was reset from ADMIN_RESET_PASSWORD${promoted}. Remove this variable now.`);
 }
 
+// The agency's own services (not demo data), added once; the admin edits them afterwards.
+function seedServices() {
+  if (get('SELECT id FROM services LIMIT 1')) return;
+  SERVICES.forEach((s, i) => {
+    run('INSERT INTO services (name, slug, icon, summary, brief_hint, sort_order) VALUES (?, ?, ?, ?, ?, ?)', s.title, s.slug, s.icon, s.text, s.hint, i + 1);
+  });
+}
+
 async function seed() {
   seedCurrenciesAndPayments();
+  seedServices();
   const adminId = await ensureAdmin();
   await applyAdminPasswordReset();
   if (config.seedDemo) {
