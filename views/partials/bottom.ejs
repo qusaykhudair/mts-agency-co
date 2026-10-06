@@ -9,7 +9,7 @@
   <footer class="footer" style="margin-top:10px;background:transparent;color:var(--text-3)">
     <div class="footer-in" style="padding:14px 20px 22px">
       <div class="footer-bottom" style="margin:0;border:0;padding:0;color:var(--text-3)">
-        <span>© <%= new Date().getFullYear() %> <%= settings.store_name %> — جميع الحقوق محفوظة</span>
+        <span>© <%= new Date().getFullYear() %> <%= settings.store_name %>. جميع الحقوق محفوظة</span>
         <a href="/store" style="color:var(--text-2)">العودة إلى المتجر</a>
       </div>
     </div>
@@ -19,7 +19,7 @@
   <% } %>
 
 <% if (navMode === 'store' || navMode === 'site') { %>
-<a class="wa-float" href="<%= waLink(storeWa, 'مرحباً MTS Store، لدي استفسار') %>" target="_blank" rel="noopener" aria-label="تواصل عبر واتساب"><i class="fa-brands fa-whatsapp"></i></a>
+<a class="wa-float" href="<%= waLink(storeWa, 'مرحبا MTS Store، لدي استفسار') %>" target="_blank" rel="noopener" aria-label="تواصل عبر واتساب"><i class="fa-brands fa-whatsapp"></i></a>
 <% } %>
 
 <nav class="bottom-nav" aria-label="التنقل السفلي">

@@ -2,16 +2,16 @@
 <% const base = items.find((c) => c.is_base) || {}; %>
 
 <div class="page-head">
-  <div><h1>العملات وأسعار الصرف</h1><p>أسعار المنتجات محفوظة بالعملة الأساسية (<%= base.name %> <%= base.symbol %>)، وتُحوَّل لكل عملة حسب السعر أدناه مع التقريب للأعلى.</p></div>
+  <div><h1>العملات وأسعار الصرف</h1><p>أسعار المنتجات محفوظة بالعملة الأساسية (<%= base.name %> <%= base.symbol %>)، وتحول لكل عملة حسب السعر أدناه مع التقريب للأعلى.</p></div>
 </div>
 
-<div class="alert alert-brand mb-16"><i class="fa-solid fa-circle-info"></i><div>سعر الصرف = كم وحدة من العملة تساوي <b style="display:inline">1 <%= base.code %></b>. مثال: إذا كان 1 <%= base.code %> = 3.10 شيكل اكتب 3.10. حدّث الأسعار دورياً حسب سعر السوق.</div></div>
+<div class="alert alert-brand mb-16"><i class="fa-solid fa-circle-info"></i><div>سعر الصرف = كم وحدة من العملة تساوي <b style="display:inline">1 <%= base.code %></b>. مثال: إذا كان 1 <%= base.code %> = 3.10 شيكل اكتب 3.10. حدث الأسعار دوريا حسب سعر السوق.</div></div>
 
 <form method="post" action="/seller/currencies" data-ajax novalidate>
   <section class="card">
     <div class="table-wrap">
       <table class="table responsive">
-        <thead><tr><th>العملة</th><th>الاسم</th><th>الرمز</th><th>سعر الصرف</th><th>الكسور العشرية</th><th>الترتيب</th><th>مفعّلة</th><th></th></tr></thead>
+        <thead><tr><th>العملة</th><th>الاسم</th><th>الرمز</th><th>سعر الصرف</th><th>الكسور العشرية</th><th>الترتيب</th><th>مفعلة</th><th></th></tr></thead>
         <tbody>
           <% items.forEach((c, i) => { %>
           <tr>
@@ -21,7 +21,7 @@
             <td data-label="سعر الصرف"><% if (c.is_base) { %><b>1</b><% } else { %><input class="input input-sm" name="c[<%= i %>][rate]" value="<%= c.rate %>" inputmode="decimal" dir="ltr" style="width:110px"><% } %></td>
             <td data-label="الكسور"><select class="select input-sm" name="c[<%= i %>][decimals]" style="width:80px"><% [0, 1, 2].forEach((d) => { %><option value="<%= d %>"<%= c.decimals === d ? ' selected' : '' %>><%= d %></option><% }) %></select></td>
             <td data-label="الترتيب"><input class="input input-sm" type="number" lang="en" name="c[<%= i %>][sort_order]" value="<%= c.sort_order %>" style="width:70px"></td>
-            <td data-label="مفعّلة"><% if (c.is_base) { %><i class="fa-solid fa-check text-success"></i><% } else { %><label class="switch"><input type="checkbox" name="c[<%= i %>][is_active]" value="1"<%= c.is_active ? ' checked' : '' %>><span class="track"></span></label><% } %></td>
+            <td data-label="مفعلة"><% if (c.is_base) { %><i class="fa-solid fa-check text-success"></i><% } else { %><label class="switch"><input type="checkbox" name="c[<%= i %>][is_active]" value="1"<%= c.is_active ? ' checked' : '' %>><span class="track"></span></label><% } %></td>
             <td>
               <% if (!c.is_base) { %>
               <div class="t-actions">

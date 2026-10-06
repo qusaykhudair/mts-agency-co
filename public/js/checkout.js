@@ -50,7 +50,7 @@
     'submit',
     (e) => {
       const problems = [];
-      if (!radios.some((r) => r.checked)) problems.push(['payment_method_id', 'اختر طريقة الدفع التي حوّلت من خلالها']);
+      if (!radios.some((r) => r.checked)) problems.push(['payment_method_id', 'اختر طريقة الدفع التي حولت من خلالها']);
       const file = form.querySelector('input[name="receipt"]');
       if (file && !file.files.length) problems.push(['receipt', 'أرفق صورة إيصال التحويل']);
       const agree = form.querySelector('input[name="agree"]');

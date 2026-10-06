@@ -40,10 +40,10 @@
     const old = Number(r.dataset.old) || 0;
     totalEl.innerHTML = html(price * q);
     if (mirror) mirror.innerHTML = totalEl.innerHTML;
-    savingEl.textContent = old > price ? `وفّرت ${num((old - price) * q)} ${symbol}` : q > 1 ? `${q} × ${num(price)} ${symbol}` : '';
+    savingEl.textContent = old > price ? `وفرت ${num((old - price) * q)} ${symbol}` : q > 1 ? `${q} × ${num(price)} ${symbol}` : '';
     if (stockNote) {
       stockNote.hidden = !(stock !== Infinity && stock <= 10);
-      stockNote.innerHTML = `<i class="fa-solid fa-fire" style="color:var(--sale)"></i> متبقٍ ${stock} فقط من هذه الباقة`;
+      stockNote.innerHTML = `<i class="fa-solid fa-fire" style="color:var(--sale)"></i> متبق ${stock} فقط من هذه الباقة`;
     }
     if (submit) submit.disabled = stock <= 0;
   }

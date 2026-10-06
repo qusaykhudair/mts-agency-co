@@ -236,7 +236,7 @@ test('buyer places an order with a receipt', async () => {
 
   const page = await buyer.get(`/account/orders/${orderCode}?placed=1`);
   assert.equal(page.status, 200);
-  assert.ok((await page.text()).includes('تم إرسال طلبك بنجاح'));
+  assert.ok((await page.text()).includes('وصلنا طلبك'));
 });
 
 test('receipts are private', async () => {
@@ -878,7 +878,7 @@ test('a client requests a service with attachments and the team is told', async 
   const detail = await svcClient.get(`/account/services/${svcCode}?new=1`);
   assert.equal(detail.status, 200);
   const html = await detail.text();
-  assert.ok(html.includes('هوية بصرية لمخبز') && html.includes('شعار قديم.png') && html.includes('تم إرسال طلبك بنجاح'));
+  assert.ok(html.includes('هوية بصرية لمخبز') && html.includes('شعار قديم.png') && html.includes('وصلنا طلبك'));
   assert.ok((await (await svcClient.get('/account/services')).text()).includes(svcCode));
 
   // Attachments are private to the people working on the request.
@@ -960,7 +960,7 @@ test('messages, internal notes, deliveries and revisions flow both ways', async 
   );
   assert.equal(delivered.body.ok, true, JSON.stringify(delivered.body));
   assert.equal(requestOf(svcCode).status, 'delivered');
-  assert.ok(notified(r.user_id, `تم تسليم طلبك ${svcCode}`));
+  assert.ok(notified(r.user_id, `وصلك تسليم طلبك ${svcCode}`));
   const zipFile = get("SELECT file_name FROM service_files WHERE original_name = 'moodboard.zip'").file_name;
   const zip = await svcClient.get(`/files/services/${zipFile}`);
   assert.equal(zip.status, 200);
@@ -1041,7 +1041,7 @@ test('delivered service requests close themselves after the grace period', async
   assert.ok(require('../src/lib/services').autoComplete() >= 1);
   const r = requestOf(code);
   assert.equal(r.status, 'completed');
-  assert.match(get("SELECT body FROM service_events WHERE request_id = ? AND type = 'completed'", r.id).body, /تلقائياً/);
+  assert.match(get("SELECT body FROM service_events WHERE request_id = ? AND type = 'completed'", r.id).body, /تلقائيا/);
 });
 
 test('Google sign-in checks a one-time state and nonce', async () => {
@@ -1125,7 +1125,7 @@ test('Google popup sign-in accepts only access tokens issued to this site', asyn
     assert.equal((await signIn('tok-mismatch')).body.ok, false);
     const unverified = await signIn('tok-unverified');
     assert.equal(unverified.body.ok, false);
-    assert.match(unverified.body.message, /موثّق/);
+    assert.match(unverified.body.message, /موثق/);
     assert.equal(get("SELECT COUNT(*) AS n FROM users WHERE google_sub IN ('g-pop-2', 'g-pop-3', 'g-pop-4', 'someone-else')").n, 0);
 
     // Another site cannot post a token to sign the visitor in to someone else's account.
@@ -1173,5 +1173,65 @@ test('migrating a v2 database keeps users, sessions and orders and adds the prov
     }));`;
   const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db') };
   const out = execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' });
-  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()), { version: 3, users: 2, sessions: 1, orders: 7, notifications: 1, fk: 0, fkEnforced: true });
+  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()), { version: 4, users: 2, sessions: 1, orders: 7, notifications: 1, fk: 0, fkEnforced: true });
+});
+
+test('migration v4 rewrites the default wording but keeps what the admin wrote and every order', () => {
+  const { execFileSync } = require('child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mts-v3-'));
+  const { SETTINGS, SERVICES } = require('../src/lib/copy-v4');
+  const oldHero = SETTINGS.hero_subtitle.from[0];
+  const oldSummary = SERVICES['web-development'].summary.from[0];
+  const code = `
+    const { DatabaseSync } = require('node:sqlite');
+    const { MIGRATIONS } = require('./src/db');
+    const old = new DatabaseSync(process.env.OLD_DB);
+    old.exec(MIGRATIONS[0]); old.exec(MIGRATIONS[1]); old.exec(MIGRATIONS[2].sql); old.exec('PRAGMA user_version = 3');
+    const ins = (sql, ...p) => old.prepare(sql).run(...p);
+    ins("INSERT INTO settings (key, value) VALUES ('hero_subtitle', ?)", process.env.OLD_HERO);
+    ins("INSERT INTO settings (key, value) VALUES ('announcement', 'عرض خاص — خصم كبير')");
+    ins("INSERT INTO services (name, slug, summary) VALUES ('مواقع', 'web-development', ?)", process.env.OLD_SUMMARY);
+    ins("INSERT INTO services (name, slug, summary) VALUES ('هويّة', 'branding-design', 'نصّ كتبه المدير — بنفسه')");
+    ins("INSERT INTO currencies (code, name, symbol, rate, decimals, is_base) VALUES ('ILS', 'شيكل', '₪', 1, 0, 1)");
+    ins("INSERT INTO payment_methods (name, currency_code, details, instructions) VALUES ('جوال باي — Jawwal Pay', 'ILS', ?, ?)",
+      JSON.stringify([{ label: 'طريقة التحويل', value: 'نظام الدفع الفوري iBURAQ — تحويل إلى حساب بنكي' }]), JSON.stringify(['حوّل المبلغ المطلوب']));
+    ins("INSERT INTO categories (name, slug) VALUES ('الذكاء', 'ai')");
+    ins("INSERT INTO platforms (name, slug) VALUES ('Canva', 'canva')");
+    ins("INSERT INTO users (id, name, email, role) VALUES (1, 'A', 'a@test.local', 'admin')");
+    ins("INSERT INTO products (seller_id, platform_id, title, slug, description, features) VALUES (1, 1, 'Canva Pro — عضوية فريق', 'canva-pro', 'حرّر تصاميمك — بسهولة', ?)", JSON.stringify(['ميزة — مهمّة']));
+    ins("INSERT INTO products (seller_id, platform_id, title, slug, description) VALUES (1, 1, 'CapCut Pro — مونتاج احترافي', 'capcut-pro', 'حرّر فيديوهاتك باحترافية مع جميع مزايا CapCut Pro.')");
+    ins("INSERT INTO currencies (code, name, symbol, rate, decimals, is_base) VALUES ('USD', 'Dollar', '$', 1, 2, 0)");
+    ins("INSERT INTO orders (code, user_id, product_title, plan_name, unit_price, total, base_currency, pay_currency, pay_rate, pay_amount, payment_method_name, sender_name, sender_account) VALUES ('MTS-1', 1, 'Canva Pro — عضوية فريق', 'شهر', 1, 1, 'USD', 'USD', 1, 1, 'جوال باي — Jawwal Pay', 'محمّد', '1')");
+    old.close();
+    const db = require('./src/db');
+    db.migrate();
+    const s = (k) => db.get('SELECT value FROM settings WHERE key = ?', k).value;
+    const pm = db.get('SELECT name, details, instructions FROM payment_methods');
+    const p = db.get("SELECT title, description, features FROM products WHERE slug = 'canva-pro'");
+    const capcut = db.get("SELECT title, description FROM products WHERE slug = 'capcut-pro'");
+    const o = db.get("SELECT product_title, payment_method_name, sender_name FROM orders WHERE code = 'MTS-1'");
+    console.log(JSON.stringify({
+      version: db.get('PRAGMA user_version').user_version,
+      hero: s('hero_subtitle'), announcement: s('announcement'),
+      web: db.get("SELECT summary FROM services WHERE slug = 'web-development'").summary,
+      branding: db.get("SELECT name, summary FROM services WHERE slug = 'branding-design'"),
+      pm, p, o, capcut,
+    }));`;
+  const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db'), OLD_HERO: oldHero, OLD_SUMMARY: oldSummary };
+  const out = JSON.parse(execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' }).trim().split('\n').pop());
+  assert.equal(out.version, 4);
+  // Untouched defaults take the new wording.
+  assert.equal(out.hero, SETTINGS.hero_subtitle.to);
+  assert.equal(out.web, SERVICES['web-development'].summary.to);
+  // What the admin wrote stays, minus diacritics and em dashes.
+  assert.equal(out.announcement, 'عرض خاص، خصم كبير');
+  assert.deepEqual(out.branding, { name: 'هوية', summary: 'نص كتبه المدير، بنفسه' });
+  assert.equal(out.pm.name, 'جوال باي (Jawwal Pay)');
+  assert.equal(JSON.parse(out.pm.details)[0].value, 'نظام الدفع الفوري iBURAQ، تحويل إلى حساب بنكي');
+  assert.deepEqual(JSON.parse(out.pm.instructions), ['حول المبلغ المطلوب']);
+  // Product titles keep the dash the storefront splits on; descriptions are cleaned.
+  assert.deepEqual({ title: out.p.title, description: out.p.description, features: JSON.parse(out.p.features) }, { title: 'Canva Pro — عضوية فريق', description: 'حرر تصاميمك، بسهولة', features: ['ميزة، مهمة'] });
+  assert.deepEqual(out.capcut, { title: 'CapCut Pro — مونتاج الفيديو', description: 'حرر فيديوهاتك بكل مزايا CapCut Pro.' });
+  // Orders are records: never rewritten.
+  assert.deepEqual(out.o, { product_title: 'Canva Pro — عضوية فريق', payment_method_name: 'جوال باي — Jawwal Pay', sender_name: 'محمّد' });
 });

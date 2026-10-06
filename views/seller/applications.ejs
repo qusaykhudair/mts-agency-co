@@ -16,7 +16,7 @@
       <p class="pre-line text-2"><%= a.about %></p>
       <div class="kv">
         <div class="kv-row"><span>البريد</span><span dir="ltr"><%= a.email %></span></div>
-        <div class="kv-row"><span>واتساب</span><span><% if (a.wa_e164) { %><a style="color:var(--whatsapp)" href="<%= waLink(a.wa_e164) %>" target="_blank" rel="noopener" dir="ltr"><%= displayWhatsapp(a.wa_e164) %></a><% } else { %>—<% } %></span></div>
+        <div class="kv-row"><span>واتساب</span><span><% if (a.wa_e164) { %><a style="color:var(--whatsapp)" href="<%= waLink(a.wa_e164) %>" target="_blank" rel="noopener" dir="ltr"><%= displayWhatsapp(a.wa_e164) %></a><% } else { %>-<% } %></span></div>
         <% if (a.admin_note) { %><div class="kv-row"><span>ملاحظة</span><span><%= a.admin_note %></span></div><% } %>
       </div>
     </div>
@@ -25,7 +25,7 @@
       <form method="post" action="/seller/applications/<%= a.id %>/approve" data-ajax data-confirm="الموافقة ومنح «<%= a.name %>» صلاحيات البائع؟">
         <button class="btn btn-success btn-sm" type="submit"><i class="fa-solid fa-check"></i> موافقة</button>
       </form>
-      <form method="post" action="/seller/applications/<%= a.id %>/reject" data-ajax data-confirm="رفض هذا الطلب؟" data-confirm-danger data-prompt="سبب الرفض (اختياري — يظهر للمستخدم)" data-prompt-name="note" data-prompt-optional>
+      <form method="post" action="/seller/applications/<%= a.id %>/reject" data-ajax data-confirm="رفض هذا الطلب؟" data-confirm-danger data-prompt="سبب الرفض (اختياري، يظهر للمستخدم)" data-prompt-name="note" data-prompt-optional>
         <button class="btn btn-danger-soft btn-sm" type="submit"><i class="fa-solid fa-xmark"></i> رفض</button>
       </form>
       <a class="btn btn-ghost btn-sm" href="/seller/users/<%= a.user_id %>">ملف المستخدم</a>

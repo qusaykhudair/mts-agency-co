@@ -21,7 +21,7 @@ router.get('/', (req, res) => {
     nav: 'site',
     active: 'home',
     pageTitle: null,
-    pageDesc: 'اشتراكات ChatGPT وClaude وCanva وCapCut وغيرها من المنصات العالمية بدفع محلي (بنك فلسطين، جوال باي، بال باي، فودافون كاش) وتسليم سريع مع ضمان، وخدمات تصميم وبرمجة وتسويق — من MTS Agency.',
+    pageDesc: 'اشتراكات ChatGPT وClaude وCanva وCapCut وغيرها، تدفع ثمنها من بنك فلسطين أو جوال باي أو بال باي أو فودافون كاش. ومن MTS Agency أيضا تصميم وبرمجة وتسويق لمشروعك.',
     // The hero card shows plan choices, so prefer a best-seller that has several plans.
     heroProduct: popular.find((p) => p.plans.length >= 2) || popular[0] || null,
     popular,

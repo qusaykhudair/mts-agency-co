@@ -6,9 +6,9 @@
           <img src="/static/img/logo-96.png" alt="MTS">
           <span><b>MTS Agency</b><small>اشتراكات رقمية وخدمات تقنية</small></span>
         </a>
-        <p>وكالة رقمية تقدّم اشتراكات المنصات العالمية بدفع محلي، وخدمات البرمجة والتصميم والتسويق والإنتاج المرئي.</p>
+        <p>نوفر اشتراكات المنصات العالمية بالدفع المحلي. ولأصحاب المشاريع نبني المواقع ونصمم الهويات وندير الحملات الإعلانية.</p>
         <ul class="footer-contact">
-          <li><i class="fa-solid fa-location-dot"></i> مصر — القاهرة — جسر السويس</li>
+          <li><i class="fa-solid fa-location-dot"></i> جسر السويس، القاهرة، مصر</li>
           <li><i class="fa-brands fa-whatsapp"></i> <a href="<%= waLink(storeWa) %>" target="_blank" rel="noopener"><bdi dir="ltr"><%= displayWhatsapp(storeWa) %></bdi></a></li>
           <% if (settings.support_email) { %><li><i class="fa-solid fa-envelope"></i> <a href="mailto:<%= settings.support_email %>"><%= settings.support_email %></a></li><% } %>
         </ul>
@@ -33,8 +33,8 @@
           <li><a href="/">MTS Agency</a></li>
           <li><a href="/services">خدماتنا</a></li>
           <li><a href="/services/request">اطلب خدمة</a></li>
-          <li><a href="/account/become-seller">أصبح بائعاً</a></li>
-          <li><a href="<%= waLink(storeWa, 'مرحباً MTS Agency') %>" target="_blank" rel="noopener">تواصل معنا</a></li>
+          <li><a href="/account/become-seller">أصبح بائعا</a></li>
+          <li><a href="<%= waLink(storeWa, 'مرحبا MTS Agency') %>" target="_blank" rel="noopener">تواصل معنا</a></li>
         </ul>
       </div>
       <div>
@@ -48,7 +48,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© <%= new Date().getFullYear() %> MTS Agency — جميع الحقوق محفوظة</span>
+      <span>© <%= new Date().getFullYear() %> MTS Agency. جميع الحقوق محفوظة</span>
       <span class="flex gap-16"><a href="/store/terms">الشروط والأحكام</a><a href="/store/privacy">الخصوصية</a></span>
     </div>
   </div>

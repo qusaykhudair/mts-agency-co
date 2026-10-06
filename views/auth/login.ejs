@@ -4,7 +4,7 @@
   <div class="auth-card">
     <div class="auth-icon"><i class="fa-solid fa-right-to-bracket"></i></div>
     <h1>تسجيل الدخول</h1>
-    <p class="sub">أهلاً بعودتك! سجّل دخولك لمتابعة طلباتك واشتراكاتك.</p>
+    <p class="sub">أهلا بعودتك. طلباتك واشتراكاتك بانتظارك هنا.</p>
 
     <%- include('../partials/google-button', { mode: 'signin', next }) %>
 
@@ -29,7 +29,7 @@
       <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-arrow-right-to-bracket"></i> تسجيل الدخول</button>
     </form>
 
-    <p class="auth-foot">ليس لديك حساب؟ <a class="link" href="/register<%= next ? '?next=' + encodeURIComponent(next) : '' %>">أنشئ حساباً جديداً</a></p>
+    <p class="auth-foot">ليس لديك حساب؟ <a class="link" href="/register<%= next ? '?next=' + encodeURIComponent(next) : '' %>">أنشئ حسابا جديدا</a></p>
   </div>
 </div>
 

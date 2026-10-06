@@ -1,7 +1,7 @@
 <%- include('../partials/top') %>
 
 <div class="page-head">
-  <div><h1>المنتجات</h1><p>أضف الاشتراكات وحدّد الباقات والأسعار والخصومات.</p></div>
+  <div><h1>المنتجات</h1><p>أضف الاشتراكات وحدد الباقات والأسعار والخصومات.</p></div>
   <div class="actions"><a class="btn btn-primary" href="/seller/products/new"><i class="fa-solid fa-plus"></i> منتج جديد</a></div>
 </div>
 
@@ -32,7 +32,7 @@
               <%- include('../partials/mini-cover', { o: { color1: p.color1, color2: p.color2, product_cover: p.cover_url, platform_logo: p.platform_logo } }) %>
               <div>
                 <b><%= p.title %> <% if (p.is_featured) { %><i class="fa-solid fa-star" style="color:var(--gold);font-size:11px" title="مميز"></i><% } %></b>
-                <small><%= p.platform_name || 'بدون منصة' %> · <%= p.category_name || '—' %><% if (isAdmin && p.seller_store) { %> · <%= p.seller_store %><% } %></small>
+                <small><%= p.platform_name || 'بدون منصة' %> · <%= p.category_name || '-' %><% if (isAdmin && p.seller_store) { %> · <%= p.seller_store %><% } %></small>
               </div>
             </div>
           </td>
@@ -51,7 +51,7 @@
             <div class="t-actions">
               <a class="btn btn-ghost btn-icon btn-sm" href="/store/product/<%= p.slug %>" target="_blank" title="عرض في المتجر" aria-label="عرض في المتجر"><i class="fa-solid fa-up-right-from-square"></i></a>
               <a class="btn btn-soft btn-sm" href="/seller/products/<%= p.id %>/edit"><i class="fa-solid fa-pen"></i> تعديل</a>
-              <form method="post" action="/seller/products/<%= p.id %>/delete" data-ajax data-confirm="حذف المنتج «<%= p.title %>»؟ إذا كان مرتبطاً بطلبات سيتم إخفاؤه فقط." data-confirm-danger>
+              <form method="post" action="/seller/products/<%= p.id %>/delete" data-ajax data-confirm="حذف المنتج «<%= p.title %>»؟ إذا كان مرتبطا بطلبات سيتم إخفاؤه فقط." data-confirm-danger>
                 <button class="btn btn-danger-soft btn-icon btn-sm" type="submit" aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button>
               </form>
             </div>

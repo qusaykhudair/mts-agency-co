@@ -24,7 +24,7 @@
       if (!data.status || data.status === status) return;
       clearInterval(timer);
       if (dirty) {
-        window.toast && window.toast('تم تحديث حالة الطلب — حدّث الصفحة لرؤية آخر التغييرات', 'info', 9000);
+        window.toast && window.toast('تغيرت حالة الطلب. حدث الصفحة لترى آخر التغييرات', 'info', 9000);
       } else {
         window.location.reload();
       }

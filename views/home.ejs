@@ -1,4 +1,4 @@
-<%- include('partials/top', { fullTitle: 'MTS Agency — اشتراكات رقمية أصلية وخدمات تقنية متكاملة' }) %>
+<%- include('partials/top', { fullTitle: 'MTS Agency | اشتراكات ChatGPT وCanva بالدفع المحلي، وخدمات التصميم والبرمجة والتسويق' }) %>
 <%
   const hp = heroProduct;
   const hpPlans = hp ? hp.plans.slice(0, 3) : [];
@@ -9,20 +9,20 @@
 <section class="h-hero">
   <div class="h-wrap h-hero-grid">
     <div class="h-hero-copy">
-      <h1>اشترك في أدواتك الرقمية المفضّلة <span class="h-mark">بدون بطاقة دولية</span></h1>
-      <p class="h-lead">ChatGPT وClaude وCanva وCapCut وغيرها من <%= stats.platforms %> منصة عالمية بأسعار محلية. ادفع بالتحويل البنكي أو من محفظتك، واستلم اشتراكك داخل حسابك خلال دقائق.</p>
+      <h1>اشترك في أدواتك الرقمية المفضلة <span class="h-mark">بدون بطاقة دولية</span></h1>
+      <p class="h-lead">ChatGPT وClaude وCanva وCapCut وغيرها من <%= stats.platforms %> منصة عالمية. تدفع بتحويل بنكي أو من محفظتك بالشيكل أو الجنيه، وتصلك بيانات الاشتراك في حسابك بعد أن نتأكد من التحويل.</p>
 
       <form class="h-search" action="/store/products" method="get" role="search" data-search>
         <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
-        <input type="search" name="q" placeholder="ابحث مثلاً: ChatGPT Plus" autocomplete="off" aria-label="ابحث عن اشتراك" data-search-input>
+        <input type="search" name="q" placeholder="ابحث، مثلا: ChatGPT Plus" autocomplete="off" aria-label="ابحث عن اشتراك" data-search-input>
         <button class="btn btn-primary" type="submit">ابحث</button>
         <div class="search-pop" data-search-pop hidden></div>
       </form>
 
       <ul class="h-checks">
-        <li><i class="fa-solid fa-check"></i> دفع محلي آمن</li>
-        <li><i class="fa-solid fa-check"></i> تسليم خلال دقائق</li>
-        <li><i class="fa-solid fa-check"></i> ضمان طوال المدة</li>
+        <li><i class="fa-solid fa-check"></i> دفع محلي بالشيكل أو الجنيه</li>
+        <li><i class="fa-solid fa-check"></i> إيصالك يراجعه شخص من فريقنا</li>
+        <li><i class="fa-solid fa-check"></i> ضمان طوال مدة الاشتراك</li>
       </ul>
     </div>
 
@@ -42,7 +42,7 @@
         </div>
         <div class="h-sc-buy">
           <div><small>يبدأ من</small><b><%- money(hpPlan.price) %></b></div>
-          <span class="btn btn-primary btn-sm">اشترِ الآن</span>
+          <span class="btn btn-primary btn-sm">اشتر الآن</span>
         </div>
       </div>
     </a>
@@ -75,7 +75,7 @@
     <div class="h-head">
       <div>
         <span class="h-label">متجر الاشتراكات</span>
-        <h2>الأكثر طلباً</h2>
+        <h2>الأكثر طلبا</h2>
       </div>
       <a class="h-link" href="/store/products">كل الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
     </div>
@@ -91,8 +91,8 @@
     <div class="h-head">
       <div>
         <span class="h-label">خدمات MTS Agency</span>
-        <h2>نبني حضورك الرقمي بالكامل</h2>
-        <p>اطلب الخدمة أونلاين، تابع التنفيذ مع فريقنا، واستلم التسليم داخل حسابك.</p>
+        <h2>الفريق الذي بنى هذا المتجر يعمل على مشروعك</h2>
+        <p>اكتب ما تحتاجه وأرفق ملفاتك، وتابع العمل مع من ينفذه حتى تستلمه في حسابك.</p>
       </div>
       <a class="btn btn-primary btn-lg" href="/services/request">اطلب خدمة <i class="fa-solid fa-arrow-left"></i></a>
     </div>
@@ -116,13 +116,13 @@
     <div class="h-head h-head-center">
       <div>
         <span class="h-label">طريقة الشراء</span>
-        <h2>ثلاث خطوات… وتستلم اشتراكك</h2>
+        <h2>ثلاث خطوات من الاختيار إلى الاستلام</h2>
       </div>
     </div>
     <ol class="h-steps">
-      <li><span class="svc-ic lg"><i class="fa-solid fa-hand-pointer"></i></span><b>01</b><h3>اختر الاشتراك والباقة</h3><p>قارن الباقات والأسعار بعملتك، ثم اضغط «اشترِ الآن».</p></li>
-      <li><span class="svc-ic lg"><i class="fa-solid fa-building-columns"></i></span><b>02</b><h3>حوّل وارفع الإيصال</h3><p>بنك فلسطين أو جوال باي أو بال باي أو فودافون كاش — تظهر لك تفاصيل الحساب والمبلغ بدقة.</p></li>
-      <li><span class="svc-ic lg"><i class="fa-solid fa-gift"></i></span><b>03</b><h3>استلم خلال دقائق</h3><p>بعد تأكيد الدفع تظهر بيانات اشتراكك في صفحة طلبك مع إشعار فوري.</p></li>
+      <li><span class="svc-ic lg"><i class="fa-solid fa-hand-pointer"></i></span><b>01</b><h3>اختر الاشتراك والباقة</h3><p>قارن الباقات وأسعارها بعملتك، ثم اضغط «اشتر الآن».</p></li>
+      <li><span class="svc-ic lg"><i class="fa-solid fa-building-columns"></i></span><b>02</b><h3>حول وارفع الإيصال</h3><p>من بنك فلسطين أو جوال باي أو بال باي أو فودافون كاش. رقم الحساب والمبلغ يظهران لك جاهزين للنسخ.</p></li>
+      <li><span class="svc-ic lg"><i class="fa-solid fa-gift"></i></span><b>03</b><h3>استلم اشتراكك</h3><p>نتحقق من التحويل، ثم تظهر بيانات اشتراكك في صفحة طلبك ويصلك إشعار.</p></li>
     </ol>
   </div>
 </section>
@@ -130,7 +130,7 @@
 <!-- ============ Clients ============ -->
 <section class="h-clients" aria-label="عملاؤنا">
   <div class="h-wrap">
-    <p class="h-clients-title">علامات تجارية تعاملت مع MTS Agency</p>
+    <p class="h-clients-title">عملنا مع هؤلاء</p>
     <div class="h-clients-row">
       <% clients.forEach((c) => { %>
         <% if (c.url) { %>
@@ -150,7 +150,7 @@
     <div class="h-head">
       <div>
         <span class="h-label">آراء المشترين</span>
-        <h2>تقييم <%= rating.avg %> من 5 من <%= rating.n %> مشترٍ</h2>
+        <h2>تقييم <%= rating.avg %> من 5 من <%= rating.n %> مشتر</h2>
       </div>
     </div>
     <div class="grid-3">
@@ -175,7 +175,7 @@
     <div class="faq">
       <% faq.forEach((f, i) => { %><details<%= i === 0 ? ' open' : '' %>><summary><%= f.q %></summary><div class="ans"><%= f.a %></div></details><% }) %>
     </div>
-    <p class="h-faq-more">لم تجد إجابتك؟ <a class="link" href="<%= waLink(storeWa, 'مرحباً MTS، لدي سؤال') %>" target="_blank" rel="noopener">اسألنا على واتساب</a></p>
+    <p class="h-faq-more">لم تجد إجابتك؟ <a class="link" href="<%= waLink(storeWa, 'مرحبا MTS، عندي سؤال') %>" target="_blank" rel="noopener">اسألنا على واتساب</a></p>
   </div>
 </section>
 
@@ -184,10 +184,10 @@
   <div class="h-wrap h-cta-in">
     <div>
       <h2>جاهز تبدأ؟</h2>
-      <p>اختر اشتراكك الآن واستلمه خلال دقائق، أو اطلب خدمة لمشروعك الرقمي.</p>
+      <p>اختر اشتراكك وادفع من محفظتك، أو أرسل لنا فكرة مشروعك ونرد عليك.</p>
     </div>
     <div class="h-cta-actions">
-      <a class="btn btn-lg h-btn-light" href="/store">تسوّق الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
+      <a class="btn btn-lg h-btn-light" href="/store">تسوق الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
       <a class="btn btn-lg h-btn-ghost" href="/services/request"><i class="fa-solid fa-briefcase"></i> اطلب خدمة</a>
     </div>
   </div>

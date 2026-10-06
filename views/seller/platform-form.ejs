@@ -17,7 +17,7 @@
       <div class="field">
         <label class="label" for="category_id">القسم</label>
         <select class="select" id="category_id" name="category_id">
-          <option value="">— بدون قسم —</option>
+          <option value="">بدون قسم</option>
           <% categories.forEach((c) => { %><option value="<%= c.id %>"<%= pl.category_id === c.id ? ' selected' : '' %>><%= c.name %></option><% }) %>
         </select>
       </div>
@@ -50,13 +50,13 @@
           <span class="thumb" data-img-preview style="background:linear-gradient(135deg, <%= pl.color1 %>, <%= pl.color2 %>)"><% if (pl.logo_url) { %><img src="<%= pl.logo_url %>" alt=""><% } %></span>
           <div class="stack-sm grow">
             <input class="input" type="file" name="logo" accept="image/jpeg,image/png,image/webp,image/gif" data-img-input style="padding-top:10px">
-            <span class="help">صورة مربعة (512×512 مثلاً). بدون شعار يظهر تدرّج الألوان فقط.</span>
+            <span class="help">صورة مربعة (512×512 مثلا). بدون شعار يظهر تدرج الألوان فقط.</span>
             <% if (pl.logo_url) { %><label class="check small"><input type="checkbox" name="remove_logo" value="1"> حذف الشعار الحالي</label><% } %>
           </div>
         </div>
       </section>
       <section class="card card-body stack">
-        <label class="switch"><input type="checkbox" name="is_featured" value="1"<%= pl.is_featured ? ' checked' : '' %>><span class="track"></span> ضمن «المنصات الأكثر طلباً»</label>
+        <label class="switch"><input type="checkbox" name="is_featured" value="1"<%= pl.is_featured ? ' checked' : '' %>><span class="track"></span> ضمن «المنصات الأكثر طلبا»</label>
         <label class="switch"><input type="checkbox" name="is_active" value="1"<%= pl.is_active ? ' checked' : '' %>><span class="track"></span> ظاهرة في المتجر</label>
         <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
       </section>

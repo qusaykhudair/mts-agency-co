@@ -53,10 +53,10 @@
     <div class="empty">
       <span class="ic"><i class="fa-solid fa-box-open"></i></span>
       <h3><%= q ? 'لا توجد نتائج مطابقة' : 'لا توجد منتجات هنا بعد' %></h3>
-      <p><%= q ? 'جرّب كلمات بحث أخرى أو تصفّح الأقسام. ويمكنك طلب أي اشتراك غير موجود عبر واتساب.' : 'سنضيف اشتراكات جديدة قريباً. يمكنك طلب ما تحتاجه مباشرة عبر واتساب.' %></p>
+      <p><%= q ? 'جرب كلمة أخرى أو تصفح الأقسام. وإن لم تجد ما تريد، اطلبه منا على واتساب.' : 'لم نضف شيئا هنا بعد. إن كنت تبحث عن اشتراك معين، اطلبه منا على واتساب.' %></p>
       <div class="flex gap-8 flex-wrap" style="justify-content:center">
         <a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-grip"></i> كل الاشتراكات</a>
-        <a class="btn btn-whatsapp" href="<%= waLink(storeWa, 'مرحباً، أبحث عن اشتراك: ' + (q || head.title)) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اطلب عبر واتساب</a>
+        <a class="btn btn-whatsapp" href="<%= waLink(storeWa, 'مرحبا، أبحث عن اشتراك: ' + (q || head.title)) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اطلب عبر واتساب</a>
       </div>
     </div>
   </div>

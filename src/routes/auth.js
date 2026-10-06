@@ -12,8 +12,8 @@ const { limiter } = require('../lib/limits');
 
 const router = express.Router();
 
-const loginLimiter = limiter(20, 15, 'محاولات دخول كثيرة، انتظر بضع دقائق ثم حاول مجدداً');
-const registerLimiter = limiter(10, 60, 'محاولات تسجيل كثيرة من هذا الجهاز، حاول لاحقاً');
+const loginLimiter = limiter(20, 15, 'محاولات دخول كثيرة، انتظر بضع دقائق ثم حاول مجددا');
+const registerLimiter = limiter(10, 60, 'محاولات تسجيل كثيرة من هذا الجهاز، حاول لاحقا');
 const googleLimiter = limiter(30, 15, 'محاولات كثيرة، حاول بعد قليل');
 
 const homeFor = (user) => (isStaff(user) ? '/seller' : isProvider(user) ? '/provider' : '/account');
@@ -39,7 +39,7 @@ router.post('/login', loginLimiter, async (req, res) => {
   const password = str(req.body.password);
   const next = safeNext(req.body.next, '');
   const errors = {};
-  if (!isEmail(email)) errors.email = 'أدخل بريداً إلكترونياً صحيحاً';
+  if (!isEmail(email)) errors.email = 'أدخل بريدا إلكترونيا صحيحا';
   if (!password) errors.password = 'أدخل كلمة المرور';
   if (Object.keys(errors).length) return res.reply({ ok: false, errors });
 
@@ -50,7 +50,7 @@ router.post('/login', loginLimiter, async (req, res) => {
   if (!valid) {
     const message =
       user && !user.password_hash && user.google_sub
-        ? 'هذا الحساب مسجّل عبر Google — استخدم زر المتابعة باستخدام Google'
+        ? 'هذا الحساب مسجل عبر Google، ادخل بزر «المتابعة باستخدام Google»'
         : 'البريد الإلكتروني أو كلمة المرور غير صحيحة';
     return res.reply({ ok: false, message, errors: { password: message } });
   }
@@ -58,7 +58,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
   startSession(req, res, user.id);
   const redirect = user.wa_e164 ? next || homeFor(user) : '/auth/complete-profile' + (next ? '?next=' + encodeURIComponent(next) : '');
-  res.reply({ ok: true, message: `مرحباً بعودتك يا ${firstName(user.name)} 👋`, redirect });
+  res.reply({ ok: true, message: `أهلا بعودتك يا ${firstName(user.name)}`, redirect });
 });
 
 /* ---------- Register ---------- */
@@ -77,10 +77,10 @@ router.post('/register', registerLimiter, async (req, res) => {
 
   const errors = {};
   if (name.length < 3) errors.name = 'اكتب اسمك الكامل (3 أحرف على الأقل)';
-  if (!isEmail(email)) errors.email = 'أدخل بريداً إلكترونياً صحيحاً';
-  else if (get('SELECT id FROM users WHERE email = ?', email)) errors.email = 'هذا البريد مسجّل مسبقاً، يمكنك تسجيل الدخول مباشرة';
+  if (!isEmail(email)) errors.email = 'أدخل بريدا إلكترونيا صحيحا';
+  else if (get('SELECT id FROM users WHERE email = ?', email)) errors.email = 'هذا البريد مسجل مسبقا، يمكنك تسجيل الدخول مباشرة';
   if (password.length < 8) errors.password = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
-  else if (password.length > 128) errors.password = 'كلمة المرور طويلة جداً';
+  else if (password.length > 128) errors.password = 'كلمة المرور طويلة جدا';
   if (confirm !== password) errors.password_confirm = 'كلمتا المرور غير متطابقتين';
   if (wa.error) errors.wa_number = wa.error;
   if (!bool(req.body.agree)) errors.agree = 'يجب الموافقة على الشروط والأحكام';
@@ -101,11 +101,11 @@ router.post('/register', registerLimiter, async (req, res) => {
       ).lastInsertRowid,
     );
   } catch (err) {
-    if (/UNIQUE/i.test(err.message)) return res.reply({ ok: false, errors: { email: 'هذا البريد مسجّل مسبقاً' } });
+    if (/UNIQUE/i.test(err.message)) return res.reply({ ok: false, errors: { email: 'هذا البريد مسجل مسبقا' } });
     throw err;
   }
   startSession(req, res, userId);
-  res.reply({ ok: true, message: `أهلاً بك يا ${firstName(name)}! تم إنشاء حسابك بنجاح 🎉`, redirect: next || '/store' });
+  res.reply({ ok: true, message: `أهلا بك يا ${firstName(name)}، حسابك جاهز`, redirect: next || '/store' });
 });
 
 /* ---------- Google ----------
@@ -153,7 +153,7 @@ async function googleProfile(accessToken, clientId) {
 // Shared by both flows once Google has vouched for the profile.
 function finishGoogleSignIn(req, res, payload, next) {
   if (!payload.sub || !payload.email || !payload.email_verified) {
-    return res.reply({ ok: false, message: 'يجب أن يكون البريد الإلكتروني في حساب Google موثّقاً' });
+    return res.reply({ ok: false, message: 'يجب أن يكون البريد الإلكتروني في حساب Google موثقا' });
   }
   const existing = get('SELECT is_blocked FROM users WHERE google_sub = ? OR email = ? ORDER BY google_sub = ? DESC LIMIT 1', payload.sub, payload.email.toLowerCase(), payload.sub);
   if (existing && existing.is_blocked) return res.reply({ ok: false, message: 'تم إيقاف هذا الحساب. تواصل مع الدعم لمزيد من التفاصيل.' });
@@ -169,19 +169,19 @@ function finishGoogleSignIn(req, res, payload, next) {
       redirect: '/auth/complete-profile' + (next ? '?next=' + encodeURIComponent(next) : ''),
     });
   }
-  res.reply({ ok: true, message: `مرحباً يا ${firstName(user.name)} 👋`, redirect: next || homeFor(user) });
+  res.reply({ ok: true, message: `أهلا يا ${firstName(user.name)}`, redirect: next || homeFor(user) });
 }
 
 router.post('/auth/google/token', googleLimiter, async (req, res) => {
   const clientId = settings.googleClientId();
-  if (!clientId) return res.reply({ ok: false, message: 'تسجيل الدخول عبر Google غير مفعّل حالياً' });
+  if (!clientId) return res.reply({ ok: false, message: 'تسجيل الدخول عبر Google غير مفعل حاليا' });
   const accessToken = str(req.body.access_token);
-  if (!accessToken || accessToken.length > 4096) return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
+  if (!accessToken || accessToken.length > 4096) return res.reply({ ok: false, message: 'تعذر التحقق من حساب Google، حاول مرة أخرى' });
   let profile;
   try {
     profile = await googleProfile(accessToken, clientId);
   } catch {
-    return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
+    return res.reply({ ok: false, message: 'تعذر التحقق من حساب Google، حاول مرة أخرى' });
   }
   finishGoogleSignIn(req, res, profile, safeNext(req.body.next, ''));
 });
@@ -189,7 +189,7 @@ router.post('/auth/google/token', googleLimiter, async (req, res) => {
 router.get('/auth/google/start', googleLimiter, (req, res) => {
   const clientId = settings.googleClientId();
   if (!clientId) {
-    req.flash('error', 'تسجيل الدخول عبر Google غير مفعّل حالياً');
+    req.flash('error', 'تسجيل الدخول عبر Google غير مفعل حاليا');
     return res.redirect('/login');
   }
   const flow = { state: crypto.randomBytes(16).toString('base64url'), nonce: crypto.randomBytes(16).toString('base64url'), next: safeNext(req.query.next, '') };
@@ -213,7 +213,7 @@ router.get('/auth/google/callback', (req, res) => {
 
 router.post('/auth/google', googleLimiter, async (req, res) => {
   const clientId = settings.googleClientId();
-  if (!clientId) return res.reply({ ok: false, message: 'تسجيل الدخول عبر Google غير مفعّل حالياً' });
+  if (!clientId) return res.reply({ ok: false, message: 'تسجيل الدخول عبر Google غير مفعل حاليا' });
   const flow = readGoogleFlow(req);
   res.clearCookie(GOOGLE_COOKIE, { path: '/' });
   const credential = str(req.body.credential);
@@ -227,9 +227,9 @@ router.post('/auth/google', googleLimiter, async (req, res) => {
     const ticket = await oauthClient.verifyIdToken({ idToken: credential, audience: clientId });
     payload = ticket.getPayload();
   } catch {
-    return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
+    return res.reply({ ok: false, message: 'تعذر التحقق من حساب Google، حاول مرة أخرى' });
   }
-  if (!payload || !sameSecret(payload.nonce, flow.nonce)) return res.reply({ ok: false, message: 'تعذّر التحقق من حساب Google، حاول مرة أخرى' });
+  if (!payload || !sameSecret(payload.nonce, flow.nonce)) return res.reply({ ok: false, message: 'تعذر التحقق من حساب Google، حاول مرة أخرى' });
   finishGoogleSignIn(req, res, payload, safeNext(flow.next, ''));
 });
 
@@ -247,13 +247,13 @@ router.post('/auth/complete-profile', requireAuth, (req, res) => {
   if (wa.error) errors.wa_number = wa.error;
   if (Object.keys(errors).length) return res.reply({ ok: false, errors });
   run('UPDATE users SET name = ?, wa_country = ?, wa_dial = ?, wa_number = ?, wa_e164 = ? WHERE id = ?', name, wa.country, wa.dial, wa.number, wa.e164, req.user.id);
-  res.reply({ ok: true, message: 'تم حفظ بياناتك، أهلاً بك في المتجر 🎉', redirect: safeNext(req.body.next, homeFor(req.user)) });
+  res.reply({ ok: true, message: 'حفظنا بياناتك، أهلا بك في المتجر', redirect: safeNext(req.body.next, homeFor(req.user)) });
 });
 
 /* ---------- Logout / password help ---------- */
 router.post('/logout', (req, res) => {
   endSession(req, res);
-  req.flash('success', 'تم تسجيل الخروج بنجاح');
+  req.flash('success', 'تم تسجيل الخروج');
   res.redirect('/store');
 });
 

@@ -133,11 +133,11 @@ router.post('/orders/:code/receipt', uploadLimiter, receiptUpload('receipt'), (r
   const senderName = clean(req.body.sender_name, 100);
   const senderAccount = toLatinDigits(clean(req.body.sender_account, 60));
   if (senderName.length < 3) errors.sender_name = 'اكتب اسم صاحب الحساب الذي تم التحويل منه';
-  if (senderAccount.replace(/\s/g, '').length < 4) errors.sender_account = 'اكتب رقم الحساب أو المحفظة الذي حوّلت منه';
+  if (senderAccount.replace(/\s/g, '').length < 4) errors.sender_account = 'اكتب رقم الحساب أو المحفظة الذي حولت منه';
   if (!req.file) errors.receipt = 'أرفق صورة الإيصال الجديد';
   if (order.status !== 'payment_rejected') {
     discard(req.file);
-    return res.reply({ ok: false, message: 'لا يمكن تعديل إيصال هذا الطلب حالياً' });
+    return res.reply({ ok: false, message: 'لا يمكن تعديل إيصال هذا الطلب حاليا' });
   }
   if (Object.keys(errors).length) {
     discard(req.file);
@@ -151,7 +151,7 @@ router.post('/orders/:code/receipt', uploadLimiter, receiptUpload('receipt'), (r
 router.post('/orders/:code/confirm', (req, res) => {
   const order = ownOrder(req);
   orders.complete(order, req.user);
-  res.reply({ ok: true, message: 'شكراً لتأكيدك! نتمنى لك تجربة رائعة 🌟', reload: true });
+  res.reply({ ok: true, message: 'شكرا، سجلنا أنك استلمت اشتراكك', reload: true });
 });
 
 router.post('/orders/:code/cancel', (req, res) => {
@@ -166,15 +166,15 @@ router.post('/orders/:code/cancel', (req, res) => {
 router.post('/orders/:code/review', (req, res) => {
   const order = ownOrder(req);
   if (!['delivered', 'completed'].includes(order.status)) return res.reply({ ok: false, message: 'يمكنك التقييم بعد استلام الاشتراك' });
-  if (order.review_id) return res.reply({ ok: false, message: 'لقد قيّمت هذا الطلب مسبقاً' });
-  if (!order.product_id) return res.reply({ ok: false, message: 'المنتج لم يعد متوفراً للتقييم' });
+  if (order.review_id) return res.reply({ ok: false, message: 'لقد قيمت هذا الطلب مسبقا' });
+  if (!order.product_id) return res.reply({ ok: false, message: 'المنتج لم يعد متوفرا للتقييم' });
   const rating = int(req.body.rating, { min: 0, max: 5, fallback: 0 });
   if (rating < 1) return res.reply({ ok: false, errors: { rating: 'اختر عدد النجوم' } });
   const comment = cleanText(req.body.comment, 600) || null;
   const parts = req.user.name.trim().split(/\s+/);
   const author = parts.length > 1 ? `${parts[0]} ${parts[parts.length - 1][0]}.` : parts[0];
   run('INSERT INTO reviews (product_id, user_id, order_id, author_name, rating, comment) VALUES (?, ?, ?, ?, ?, ?)', order.product_id, req.user.id, order.id, author, rating, comment);
-  res.reply({ ok: true, message: 'شكراً لتقييمك! رأيك يساعد الآخرين 💙', reload: true });
+  res.reply({ ok: true, message: 'شكرا على تقييمك، يساعد من يفكر في شراء هذا الاشتراك', reload: true });
 });
 
 /* ---------- Service requests ---------- */
@@ -239,7 +239,7 @@ router.get('/services/:code', (req, res) => {
 router.post('/services/:code/message', serviceLimiter, serviceFiles('files', 6), (req, res) => {
   const r = ownRequest(req);
   const body = cleanText(req.body.body, 4000);
-  if (!body && !req.files.length) return res.reply({ ok: false, errors: { body: 'اكتب رسالتك أو أرفق ملفاً' } });
+  if (!body && !req.files.length) return res.reply({ ok: false, errors: { body: 'اكتب رسالتك أو أرفق ملفا' } });
   services.message(r, req.user, { body, files: req.files });
   req.files.forEach((f) => (f.kept = true));
   res.reply({ ok: true, message: 'تم إرسال رسالتك إلى الفريق', reload: true });
@@ -248,7 +248,7 @@ router.post('/services/:code/message', serviceLimiter, serviceFiles('files', 6),
 router.post('/services/:code/accept', (req, res) => {
   const r = ownRequest(req);
   services.complete(r, req.user);
-  res.reply({ ok: true, message: 'شكراً لك! تم اعتماد التسليم وإغلاق الطلب 🌟', reload: true });
+  res.reply({ ok: true, message: 'شكرا لك. اعتمدنا التسليم وأغلقنا الطلب', reload: true });
 });
 
 router.post('/services/:code/revision', serviceLimiter, serviceFiles('files', 6), (req, res) => {
@@ -309,7 +309,7 @@ router.post('/profile', (req, res) => {
   if (wa.error) errors.wa_number = wa.error;
   if (Object.keys(errors).length) return res.reply({ ok: false, errors });
   run('UPDATE users SET name = ?, wa_country = ?, wa_dial = ?, wa_number = ?, wa_e164 = ? WHERE id = ?', name, wa.country, wa.dial, wa.number, wa.e164, req.user.id);
-  res.reply({ ok: true, message: 'تم حفظ بياناتك بنجاح', reload: true });
+  res.reply({ ok: true, message: 'تم حفظ بياناتك', reload: true });
 });
 
 router.post('/password', async (req, res) => {
@@ -319,12 +319,12 @@ router.post('/password', async (req, res) => {
   const errors = {};
   if (req.user.password_hash && !(await verifyPassword(current, req.user.password_hash))) errors.current_password = 'كلمة المرور الحالية غير صحيحة';
   if (password.length < 8) errors.password = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
-  else if (password.length > 128) errors.password = 'كلمة المرور طويلة جداً';
+  else if (password.length > 128) errors.password = 'كلمة المرور طويلة جدا';
   if (confirm !== password) errors.password_confirm = 'كلمتا المرور غير متطابقتين';
   if (Object.keys(errors).length) return res.reply({ ok: false, errors });
   run('UPDATE users SET password_hash = ? WHERE id = ?', await hashPassword(password), req.user.id);
   endAllSessions(req.user.id, req.cookies[SESSION_COOKIE]);
-  res.reply({ ok: true, message: req.user.password_hash ? 'تم تغيير كلمة المرور بنجاح' : 'تم تعيين كلمة المرور، يمكنك الآن الدخول بالبريد أيضاً', reload: true });
+  res.reply({ ok: true, message: req.user.password_hash ? 'تم تغيير كلمة المرور' : 'تم تعيين كلمة المرور، يمكنك الآن الدخول بالبريد أيضا', reload: true });
 });
 
 router.post('/sessions/revoke', (req, res) => {
@@ -336,7 +336,7 @@ router.post('/sessions/revoke', (req, res) => {
 router.get('/become-seller', (req, res) => {
   res.render('account/become-seller', {
     active: 'acc-seller',
-    pageTitle: 'أصبح بائعاً',
+    pageTitle: 'أصبح بائعا',
     application: get('SELECT * FROM seller_applications WHERE user_id = ? ORDER BY id DESC LIMIT 1', req.user.id),
   });
 });
@@ -350,7 +350,7 @@ router.post('/become-seller', (req, res) => {
   const about = cleanText(req.body.about, 1000);
   const errors = {};
   if (storeName.length < 3) errors.store_name = 'اكتب اسم المتجر (3 أحرف على الأقل)';
-  if (about.length < 20) errors.about = 'عرّفنا بنشاطك والاشتراكات التي تبيعها (20 حرفاً على الأقل)';
+  if (about.length < 20) errors.about = 'عرفنا بنشاطك والاشتراكات التي تبيعها (20 حرفا على الأقل)';
   if (Object.keys(errors).length) return res.reply({ ok: false, errors });
   run('INSERT INTO seller_applications (user_id, store_name, about) VALUES (?, ?, ?)', req.user.id, storeName, about);
   notifyStaff(null, {
@@ -360,7 +360,7 @@ router.post('/become-seller', (req, res) => {
     icon: 'fa-solid fa-store',
     tone: 'brand',
   });
-  res.reply({ ok: true, message: 'تم إرسال طلبك، سنراجعه ونبلغك بالنتيجة قريباً', reload: true });
+  res.reply({ ok: true, message: 'تم إرسال طلبك، سنراجعه ونبلغك بالنتيجة قريبا', reload: true });
 });
 
 module.exports = router;

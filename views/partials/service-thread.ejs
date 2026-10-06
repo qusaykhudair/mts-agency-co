@@ -12,7 +12,7 @@
     <% if (sysTypes.includes(e.type)) { %>
     <div class="th-sys">
       <i class="<%= meta.icon %>"></i>
-      <span><b><%= meta.label %></b><% if (e.body) { %> — <%= e.body %><% } %></span>
+      <span><b><%= meta.label %></b><% if (e.body) { %>: <%= e.body %><% } %></span>
       <time><%= fmtDateTime(e.created_at) %></time>
     </div>
     <% } else { %>
@@ -20,7 +20,7 @@
       <header>
         <span class="avatar avatar-sm"><%= initials(e.author_name || 'MTS') %></span>
         <b><%= nameOf(e) %></b>
-        <% if (e.type !== 'message') { %><span class="th-tag"><i class="<%= meta.icon %>"></i> <%= meta.label %><%= e.type === 'note' ? ' — لا تظهر للعميل' : '' %></span><% } %>
+        <% if (e.type !== 'message') { %><span class="th-tag"><i class="<%= meta.icon %>"></i> <%= meta.label %><%= e.type === 'note' ? ' (لا تظهر للعميل)' : '' %></span><% } %>
         <time><%= fmtDateTime(e.created_at) %></time>
       </header>
       <% if (e.body) { %><p class="pre-line"><%= e.body %></p><% } %>

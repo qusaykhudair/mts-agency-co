@@ -51,7 +51,7 @@
           continue;
         }
         if (file.size > maxMb * 1024 * 1024) {
-          toast(`حجم «${file.name}» أكبر من ${maxMb} ميجابايت — أرسله كرابط`, 'error');
+          toast(`حجم «${file.name}» أكبر من ${maxMb} ميجابايت. أرسله كرابط`, 'error');
           continue;
         }
         if (files.some((f) => f.name === file.name && f.size === file.size)) continue;

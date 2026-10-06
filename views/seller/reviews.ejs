@@ -17,12 +17,12 @@
             <% if (r.comment) { %><p class="small text-2" style="max-width:480px"><%= r.comment %></p><% } %></div>
           </td>
           <td data-label="المنتج"><a class="link small" href="/store/product/<%= r.product_slug %>" target="_blank"><%= r.product_title %></a></td>
-          <td data-label="الطلب"><% if (r.order_code) { %><a class="code small" href="/seller/orders/<%= r.order_code %>"><%= r.order_code %></a><% } else { %>—<% } %></td>
+          <td data-label="الطلب"><% if (r.order_code) { %><a class="code small" href="/seller/orders/<%= r.order_code %>"><%= r.order_code %></a><% } else { %>-<% } %></td>
           <td data-label="الحالة"><span class="badge <%= r.is_visible ? 'badge-success' : 'badge-muted' %>"><%= r.is_visible ? 'ظاهر' : 'مخفي' %></span></td>
           <td>
             <div class="t-actions">
               <form method="post" action="/seller/reviews/<%= r.id %>/toggle" data-ajax><button class="btn btn-soft btn-sm" type="submit"><%= r.is_visible ? 'إخفاء' : 'إظهار' %></button></form>
-              <form method="post" action="/seller/reviews/<%= r.id %>/delete" data-ajax data-confirm="حذف هذا التقييم نهائياً؟" data-confirm-danger><button class="btn btn-danger-soft btn-icon btn-sm" type="submit" aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button></form>
+              <form method="post" action="/seller/reviews/<%= r.id %>/delete" data-ajax data-confirm="حذف هذا التقييم نهائيا؟" data-confirm-danger><button class="btn btn-danger-soft btn-icon btn-sm" type="submit" aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button></form>
             </div>
           </td>
         </tr>

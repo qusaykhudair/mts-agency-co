@@ -10,7 +10,7 @@
       <span class="ic"><i class="fa-solid fa-id-card"></i></span>
       <h3>لا توجد اشتراكات بعد</h3>
       <p>بعد تسليم أي طلب سيظهر اشتراكك هنا مع تاريخ انتهائه ورابط سريع للتجديد.</p>
-      <a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-grip"></i> تصفّح الاشتراكات</a>
+      <a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-grip"></i> تصفح الاشتراكات</a>
     </div>
   </div>
 <% } %>
@@ -25,7 +25,7 @@
       <div class="grow"><b><%= s.product_title %></b><small><%= s.plan_name %> · <%= s.code %></small></div>
     </div>
     <% if (s.progress !== null) { %>
-      <div class="flex between small"><span class="muted">ينتهي في <%= fmtDate(s.expires_at) %></span><b class="<%= s.daysLeft <= 7 ? 'text-warning' : 'text-success' %>"><%= s.daysLeft > 0 ? 'متبقٍ ' + daysText(s.daysLeft) : 'ينتهي اليوم' %></b></div>
+      <div class="flex between small"><span class="muted">ينتهي في <%= fmtDate(s.expires_at) %></span><b class="<%= s.daysLeft <= 7 ? 'text-warning' : 'text-success' %>"><%= s.daysLeft > 0 ? 'متبق ' + daysText(s.daysLeft) : 'ينتهي اليوم' %></b></div>
       <div class="progress <%= s.daysLeft <= 3 ? 'danger' : s.daysLeft <= 7 ? 'warn' : '' %>"><span style="width:<%= s.progress %>%"></span></div>
     <% } else { %>
       <span class="badge badge-success"><i class="fa-solid fa-infinity"></i> بدون تاريخ انتهاء</span>
@@ -50,7 +50,7 @@
     </div>
     <div class="flex gap-8">
       <a class="btn btn-ghost btn-sm grow" href="/account/orders/<%= s.code %>">التفاصيل</a>
-      <% if (s.product_slug) { %><a class="btn btn-primary btn-sm grow" href="/store/product/<%= s.product_slug %>"><i class="fa-solid fa-rotate-right"></i> اشترك مجدداً</a><% } %>
+      <% if (s.product_slug) { %><a class="btn btn-primary btn-sm grow" href="/store/product/<%= s.product_slug %>"><i class="fa-solid fa-rotate-right"></i> اشترك مجددا</a><% } %>
     </div>
   </div>
   <% }) %>

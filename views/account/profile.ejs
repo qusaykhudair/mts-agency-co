@@ -1,7 +1,7 @@
 <%- include('../partials/top') %>
 
 <div class="page-head">
-  <div><h1>الملف الشخصي</h1><p>حدّث بياناتك ورقم الواتساب وكلمة المرور.</p></div>
+  <div><h1>الملف الشخصي</h1><p>حدث بياناتك ورقم الواتساب وكلمة المرور.</p></div>
 </div>
 
 <div class="dash-grid" style="margin-top:0">
@@ -30,7 +30,7 @@
       <div class="card-head"><h2><i class="fa-solid fa-lock"></i> <%= user.password_hash ? 'تغيير كلمة المرور' : 'تعيين كلمة مرور' %></h2></div>
       <form class="card-body stack" method="post" action="/account/password" data-ajax novalidate>
         <% if (!user.password_hash) { %>
-          <div class="alert alert-brand"><i class="fa-brands fa-google"></i><div>حسابك مسجّل عبر Google. يمكنك تعيين كلمة مرور لتتمكن من الدخول بالبريد وكلمة المرور أيضاً.</div></div>
+          <div class="alert alert-brand"><i class="fa-brands fa-google"></i><div>حسابك مسجل عبر Google. يمكنك تعيين كلمة مرور لتتمكن من الدخول بالبريد وكلمة المرور أيضا.</div></div>
         <% } else { %>
         <div class="field">
           <label class="label" for="current_password">كلمة المرور الحالية</label>
@@ -64,13 +64,13 @@
       <div class="kv">
         <div class="kv-row"><span>واتساب</span><span dir="ltr"><%= displayWhatsapp(user.wa_e164) %></span></div>
         <div class="kv-row"><span>الدخول بـ Google</span><span><%= user.google_sub ? 'مرتبط ✓' : 'غير مرتبط' %></span></div>
-        <div class="kv-row"><span>كلمة المرور</span><span><%= user.password_hash ? 'معيّنة ✓' : 'غير معيّنة' %></span></div>
-        <div class="kv-row"><span>الأجهزة المسجّلة</span><span><%= sessions %></span></div>
+        <div class="kv-row"><span>كلمة المرور</span><span><%= user.password_hash ? 'معينة ✓' : 'غير معينة' %></span></div>
+        <div class="kv-row"><span>الأجهزة المسجلة</span><span><%= sessions %></span></div>
       </div>
     </section>
     <section class="card card-body stack-sm">
       <h3 class="form-section-title"><i class="fa-solid fa-shield-halved"></i> الأمان</h3>
-      <p class="help">إذا سجّلت الدخول من جهاز لا تستخدمه، يمكنك إنهاء جميع الجلسات الأخرى.</p>
+      <p class="help">إذا سجلت الدخول من جهاز لا تستخدمه، يمكنك إنهاء جميع الجلسات الأخرى.</p>
       <form method="post" action="/account/sessions/revoke" data-ajax data-confirm="سيتم تسجيل خروجك من جميع الأجهزة الأخرى. متابعة؟">
         <button class="btn btn-danger-soft btn-block" type="submit"><i class="fa-solid fa-right-from-bracket"></i> تسجيل الخروج من الأجهزة الأخرى</button>
       </form>

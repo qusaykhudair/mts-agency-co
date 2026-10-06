@@ -14,7 +14,7 @@
         <span class="pm-icon" style="--pm:<%= m.color %>"><% if (m.logo_url) { %><img src="<%= m.logo_url %>" alt=""><% } else { %><i class="<%= m.icon %>"></i><% } %></span>
         <div><b style="display:block"><%= m.name %></b><small class="muted"><%= m.subtitle || '' %></small></div>
       </div>
-      <span class="badge <%= m.is_active ? 'badge-success' : 'badge-muted' %>"><%= m.is_active ? 'مفعّلة' : 'متوقفة' %></span>
+      <span class="badge <%= m.is_active ? 'badge-success' : 'badge-muted' %>"><%= m.is_active ? 'مفعلة' : 'متوقفة' %></span>
     </div>
     <div class="card-body">
       <div class="kv">

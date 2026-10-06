@@ -117,7 +117,7 @@ function create({ user, product, plan, quantity, method, senderName, senderAccou
       product.seller_id,
       {
         title: `طلب جديد ${code} بانتظار مراجعة الدفع`,
-        body: `${product.title} — ${plan.name} • ${payLabel(order)} عبر ${method.name}`,
+        body: `${product.title} (${plan.name}) • ${payLabel(order)} عبر ${method.name}`,
         link: orderLink(order, true),
         icon: 'fa-solid fa-receipt',
         tone: 'warning',
@@ -133,7 +133,7 @@ function reserveStock(planId, quantity) {
   if (!planId) return 0;
   const plan = get('SELECT stock FROM product_plans WHERE id = ?', planId);
   if (!plan || plan.stock === null) return 0;
-  if (plan.stock < quantity) throw new OrderError('الكمية المطلوبة غير متوفرة حالياً لهذه الباقة');
+  if (plan.stock < quantity) throw new OrderError('الكمية المطلوبة غير متوفرة حاليا لهذه الباقة');
   run('UPDATE product_plans SET stock = stock - ? WHERE id = ?', quantity, planId);
   return quantity;
 }
@@ -146,7 +146,7 @@ function releaseStock(order) {
 }
 
 function resubmitReceipt(order, user, { senderName, senderAccount, receipt }) {
-  if (order.status !== 'payment_rejected') throw new OrderError('لا يمكن تعديل إيصال هذا الطلب حالياً');
+  if (order.status !== 'payment_rejected') throw new OrderError('لا يمكن تعديل إيصال هذا الطلب حاليا');
   const oldFile = order.receipt_file;
   tx(() => {
     // Rejection released the stock; take it again (fails if the plan sold out meanwhile).
@@ -155,7 +155,7 @@ function resubmitReceipt(order, user, { senderName, senderAccount, receipt }) {
       try {
         reserved = reserveStock(order.plan_id, order.quantity);
       } catch (err) {
-        if (err instanceof OrderError) throw new OrderError('نفدت الكمية المتاحة من هذه الباقة حالياً، تواصل معنا عبر واتساب لإكمال طلبك');
+        if (err instanceof OrderError) throw new OrderError('نفدت الكمية المتاحة من هذه الباقة حاليا، تواصل معنا عبر واتساب لإكمال طلبك');
         throw err;
       }
     }
@@ -204,7 +204,7 @@ function approve(order, actor) {
     addEvent(order.id, actor.id, 'approved');
   });
   notify(order.user_id, {
-    title: `تم تأكيد الدفع لطلبك ${order.code} ✅`,
+    title: `أكدنا الدفع لطلبك ${order.code}`,
     body: 'نعمل الآن على تجهيز اشتراكك، وسيصلك إشعار فور تسليم البيانات.',
     link: orderLink(order),
     icon: 'fa-solid fa-circle-check',
@@ -213,8 +213,8 @@ function approve(order, actor) {
   // Let the product's seller know the order is paid and ready to deliver.
   if (order.seller_id && order.seller_id !== actor.id && order.seller_id !== order.user_id) {
     notify(order.seller_id, {
-      title: `تم تأكيد الدفع للطلب ${order.code} — جاهز للتسليم`,
-      body: `${order.product_title} — ${order.plan_name}`,
+      title: `تم تأكيد الدفع للطلب ${order.code}، وهو جاهز للتسليم`,
+      body: `${order.product_title} (${order.plan_name})`,
       link: orderLink(order, true),
       icon: 'fa-solid fa-truck-fast',
       tone: 'success',
@@ -236,8 +236,8 @@ function reject(order, actor, reason) {
     addEvent(order.id, actor.id, 'rejected', reason);
   });
   notify(order.user_id, {
-    title: `تعذّر تأكيد الدفع لطلبك ${order.code}`,
-    body: `${reason} — يمكنك إرسال إيصال صحيح من صفحة الطلب.`,
+    title: `تعذر تأكيد الدفع لطلبك ${order.code}`,
+    body: `${reason}. يمكنك إرسال إيصال صحيح من صفحة الطلب.`,
     link: orderLink(order),
     icon: 'fa-solid fa-triangle-exclamation',
     tone: 'danger',
@@ -266,8 +266,8 @@ function deliver(order, actor, { fields, note, expiresAt }) {
     addEvent(order.id, actor.id, isUpdate ? 'delivery_updated' : 'delivered');
   });
   notify(order.user_id, {
-    title: isUpdate ? `تم تحديث بيانات اشتراكك (${order.code})` : `تم تسليم اشتراكك 🎉 (${order.code})`,
-    body: `بيانات ${order.product_title} — ${order.plan_name} جاهزة في صفحة الطلب.`,
+    title: isUpdate ? `تم تحديث بيانات اشتراكك (${order.code})` : `اشتراكك جاهز (${order.code})`,
+    body: `بيانات ${order.product_title} (${order.plan_name}) جاهزة في صفحة الطلب.`,
     link: orderLink(order),
     icon: 'fa-solid fa-gift',
     tone: 'success',
@@ -278,14 +278,14 @@ function complete(order, actor, { auto = false } = {}) {
   if (order.status !== 'delivered') throw new OrderError('يمكن إكمال الطلبات التي تم تسليمها فقط');
   tx(() => {
     run(`UPDATE orders SET status = 'completed', completed_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`, order.id);
-    addEvent(order.id, actor ? actor.id : null, 'completed', auto ? 'اكتمل تلقائياً بعد انتهاء مهلة التأكيد' : actor && actor.id === order.user_id ? 'أكّد العميل استلام الاشتراك' : null);
+    addEvent(order.id, actor ? actor.id : null, 'completed', auto ? 'اكتمل تلقائيا بعد انتهاء مهلة التأكيد' : actor && actor.id === order.user_id ? 'أكد العميل استلام الاشتراك' : null);
   });
   if (!auto && actor && actor.id === order.user_id) {
     notifyStaff(
       order.seller_id,
       {
-        title: `أكّد العميل استلام الطلب ${order.code}`,
-        body: `${order.buyer_name} — ${order.product_title}`,
+        title: `أكد العميل استلام الطلب ${order.code}`,
+        body: `${order.buyer_name}: ${order.product_title}`,
         link: orderLink(order, true),
         icon: 'fa-solid fa-handshake',
         tone: 'success',
@@ -321,7 +321,7 @@ function cancel(order, actor, reason) {
       order.seller_id,
       {
         title: `ألغى العميل الطلب ${order.code}`,
-        body: `${order.buyer_name} — ${order.product_title}`,
+        body: `${order.buyer_name}: ${order.product_title}`,
         link: orderLink(order, true),
         icon: 'fa-solid fa-ban',
         tone: 'muted',

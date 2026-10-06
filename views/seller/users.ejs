@@ -1,7 +1,7 @@
 <%- include('../partials/top') %>
 
 <div class="page-head">
-  <div><h1>العملاء والمستخدمون</h1><p>كل الحسابات المسجّلة مع أرقام الواتساب للتواصل المباشر.</p></div>
+  <div><h1>العملاء والمستخدمون</h1><p>كل الحسابات المسجلة مع أرقام الواتساب للتواصل المباشر.</p></div>
 </div>
 
 <nav class="tabs" aria-label="الصلاحيات">
@@ -31,7 +31,7 @@
               <div><b><%= u.name %> <% if (u.google_sub) { %><i class="fa-brands fa-google muted" style="font-size:11px" title="Google"></i><% } %><% if (u.is_blocked) { %> <span class="badge badge-danger">موقوف</span><% } %></b><small dir="ltr"><%= u.email %></small></div>
             </div>
           </td>
-          <td data-label="واتساب"><% if (u.wa_e164) { %><a class="small bold" style="color:var(--whatsapp)" href="<%= waLink(u.wa_e164) %>" target="_blank" rel="noopener" dir="ltr"><i class="fa-brands fa-whatsapp"></i> <%= displayWhatsapp(u.wa_e164) %></a><% } else { %><span class="badge badge-warning">لم يُكمل</span><% } %></td>
+          <td data-label="واتساب"><% if (u.wa_e164) { %><a class="small bold" style="color:var(--whatsapp)" href="<%= waLink(u.wa_e164) %>" target="_blank" rel="noopener" dir="ltr"><i class="fa-brands fa-whatsapp"></i> <%= displayWhatsapp(u.wa_e164) %></a><% } else { %><span class="badge badge-warning">لم يكمل</span><% } %></td>
           <td data-label="الصلاحية"><span class="badge badge-<%= ROLES[u.role].tone %>"><%= ROLES[u.role].label %></span></td>
           <td data-label="الطلبات"><%= u.orders_count %></td>
           <td data-label="المشتريات" class="nowrap"><%- moneyBase(u.spent) %></td>

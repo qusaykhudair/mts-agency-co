@@ -61,7 +61,7 @@ function originCheck(req, res, next) {
     }
   }
   if (host && allowed.has(host)) return next();
-  const err = new Error('تم رفض الطلب لأسباب أمنية. حدّث الصفحة وحاول مرة أخرى.');
+  const err = new Error('تم رفض الطلب لأسباب أمنية. حدث الصفحة وحاول مرة أخرى.');
   err.status = 403;
   err.expose = true;
   next(err);
@@ -194,7 +194,7 @@ const PROFILE_EXEMPT = /^\/(auth\/|logout|static\/|assets\/|uploads\/|files\/|ap
 function requireProfileCompletion(req, res, next) {
   if (!req.user || req.user.wa_e164 || PROFILE_EXEMPT.test(req.path) || req.path === '/') return next();
   if (req.method !== 'GET') {
-    const err = new Error('أكمل بيانات حسابك (رقم الواتساب) أولاً');
+    const err = new Error('أكمل بيانات حسابك (رقم الواتساب) أولا');
     err.status = 403;
     err.expose = true;
     return next(err);
@@ -205,7 +205,7 @@ function requireProfileCompletion(req, res, next) {
 function requireAuth(req, res, next) {
   if (req.user) return next();
   if (req.method === 'GET' && !isAjax(req)) return res.redirect('/login?next=' + encodeURIComponent(req.originalUrl));
-  const err = new Error('سجّل الدخول أولاً للمتابعة');
+  const err = new Error('سجل الدخول أولا للمتابعة');
   err.status = 401;
   err.expose = true;
   next(err);
@@ -240,7 +240,7 @@ function errorHandler(err, req, res, next) {
   const status = err.status || err.statusCode || 500;
   const expose = err.expose || status < 500;
   if (status >= 500) console.error(err);
-  const message = expose && err.message ? err.message : 'حدث خطأ غير متوقع، حاول مرة أخرى لاحقاً.';
+  const message = expose && err.message ? err.message : 'حدث خطأ غير متوقع، حاول مرة أخرى لاحقا.';
   if (res.headersSent) return;
   res.status(status);
   if (isAjax(req) || req.path.startsWith('/api/')) return res.json({ ok: false, message });

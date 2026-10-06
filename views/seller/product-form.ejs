@@ -14,7 +14,7 @@
 </nav>
 
 <div class="page-head">
-  <div><h1><%= product ? product.title : 'إضافة منتج جديد' %></h1><p>الأسعار بالعملة الأساسية للمتجر (<%= baseCurrency.name %> <%= baseCurrency.symbol %>) وتُحوَّل تلقائياً لعملات الدفع.</p></div>
+  <div><h1><%= product ? product.title : 'إضافة منتج جديد' %></h1><p>الأسعار بالعملة الأساسية للمتجر (<%= baseCurrency.name %> <%= baseCurrency.symbol %>) وتحول تلقائيا لعملات الدفع.</p></div>
   <% if (product) { %><div class="actions"><a class="btn btn-ghost" href="/store/product/<%= product.slug %>" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> عرض في المتجر</a></div><% } %>
 </div>
 
@@ -32,7 +32,7 @@
           <div class="field">
             <label class="label" for="platform_id">المنصة</label>
             <select class="select" id="platform_id" name="platform_id" data-platform-select>
-              <option value="">— بدون منصة —</option>
+              <option value="">بدون منصة</option>
               <% Object.entries(groups).forEach(([cat, list]) => { %>
               <optgroup label="<%= cat %>">
                 <% list.forEach((pl) => { %><option value="<%= pl.id %>" data-category="<%= pl.category_id || '' %>"<%= p.platform_id === pl.id ? ' selected' : '' %>><%= pl.name %></option><% }) %>
@@ -82,7 +82,7 @@
                 <div><span class="mini-label">السعر (<%= baseCurrency.symbol %>) *</span><input class="input" inputmode="decimal" name="plans[<%= i %>][price]" value="<%= major(pl.price) %>" placeholder="12" dir="ltr" data-rep-key="price"></div>
                 <div><span class="mini-label">قبل الخصم</span><input class="input" inputmode="decimal" name="plans[<%= i %>][old_price]" value="<%= major(pl.old_price) %>" placeholder="20" dir="ltr" data-rep-key="old_price"></div>
                 <div><span class="mini-label">المخزون</span><input class="input" type="number" lang="en" min="0" name="plans[<%= i %>][stock]" value="<%= pl.stock === null || pl.stock === undefined ? '' : pl.stock %>" placeholder="∞" data-rep-key="stock"></div>
-                <label class="switch"><input type="checkbox" name="plans[<%= i %>][is_active]" value="1" data-rep-key="is_active"<%= pl.is_active ? ' checked' : '' %>><span class="track"></span> مفعّلة</label>
+                <label class="switch"><input type="checkbox" name="plans[<%= i %>][is_active]" value="1" data-rep-key="is_active"<%= pl.is_active ? ' checked' : '' %>><span class="track"></span> مفعلة</label>
                 <button class="btn btn-ghost btn-icon btn-sm rep-remove" type="button" data-rep-remove aria-label="حذف الباقة"><i class="fa-solid fa-trash-can"></i></button>
               </div>
               <% }) %>
@@ -95,14 +95,14 @@
                 <div><span class="mini-label">السعر (<%= baseCurrency.symbol %>) *</span><input class="input" inputmode="decimal" name="plans[__i__][price]" placeholder="12" dir="ltr" data-rep-key="price"></div>
                 <div><span class="mini-label">قبل الخصم</span><input class="input" inputmode="decimal" name="plans[__i__][old_price]" placeholder="20" dir="ltr" data-rep-key="old_price"></div>
                 <div><span class="mini-label">المخزون</span><input class="input" type="number" lang="en" min="0" name="plans[__i__][stock]" placeholder="∞" data-rep-key="stock"></div>
-                <label class="switch"><input type="checkbox" name="plans[__i__][is_active]" value="1" checked data-rep-key="is_active"><span class="track"></span> مفعّلة</label>
+                <label class="switch"><input type="checkbox" name="plans[__i__][is_active]" value="1" checked data-rep-key="is_active"><span class="track"></span> مفعلة</label>
                 <button class="btn btn-ghost btn-icon btn-sm rep-remove" type="button" data-rep-remove aria-label="حذف الباقة"><i class="fa-solid fa-trash-can"></i></button>
               </div>
             </template>
             <button class="btn btn-soft btn-sm" type="button" data-rep-add style="justify-self:start"><i class="fa-solid fa-plus"></i> إضافة باقة</button>
           </div>
           <datalist id="durations"><option value="30">شهر</option><option value="90">3 أشهر</option><option value="180">6 أشهر</option><option value="365">سنة</option><option value="730">سنتان</option></datalist>
-          <p class="help">اترك «قبل الخصم» فارغاً إن لم يكن هناك خصم. اترك المخزون فارغاً لكمية غير محدودة. المدة تُستخدم لحساب تاريخ انتهاء الاشتراك تلقائياً.</p>
+          <p class="help">اترك «قبل الخصم» فارغا إن لم يكن هناك خصم. اترك المخزون فارغا لكمية غير محدودة. المدة تستخدم لحساب تاريخ انتهاء الاشتراك تلقائيا.</p>
         </div>
       </section>
 
@@ -145,7 +145,7 @@
       <section class="card card-body stack">
         <h3 class="form-section-title"><i class="fa-solid fa-eye"></i> النشر</h3>
         <label class="switch"><input type="checkbox" name="is_active" value="1"<%= !product || p.is_active ? ' checked' : '' %>><span class="track"></span> معروض في المتجر</label>
-        <label class="switch"><input type="checkbox" name="is_featured" value="1"<%= p.is_featured ? ' checked' : '' %>><span class="track"></span> منتج مميز (يظهر أولاً)</label>
+        <label class="switch"><input type="checkbox" name="is_featured" value="1"<%= p.is_featured ? ' checked' : '' %>><span class="track"></span> منتج مميز (يظهر أولا)</label>
         <% if (isAdmin && sellers.length > 1) { %>
         <div class="field">
           <label class="label" for="seller_id">البائع</label>
@@ -163,7 +163,7 @@
           <span class="thumb" data-img-preview><% if (p.cover_url) { %><img src="<%= p.cover_url %>" alt=""><% } else { %><i class="fa-regular fa-image" style="font-size:26px"></i><% } %></span>
           <div class="stack-sm grow">
             <input class="input" type="file" name="cover" accept="image/jpeg,image/png,image/webp,image/gif" data-img-input style="padding-top:10px">
-            <span class="help">اختياري — بدون صورة يتم إنشاء غلاف تلقائي بشعار المنصة وألوانها. (حتى 4MB)</span>
+            <span class="help">اختياري، وبدونها ننشئ غلافا تلقائيا بشعار المنصة وألوانها (حتى 4MB).</span>
             <% if (p.cover_url) { %><label class="check small"><input type="checkbox" name="remove_cover" value="1"> حذف الصورة الحالية</label><% } %>
           </div>
         </div>
@@ -173,18 +173,18 @@
         <h3 class="form-section-title"><i class="fa-solid fa-fire"></i> العروض والتمييز</h3>
         <div class="field">
           <label class="label" for="badge">شارة على المنتج</label>
-          <input class="input" id="badge" name="badge" value="<%= p.badge || '' %>" maxlength="30" list="badges" placeholder="مثال: الأكثر مبيعاً">
-          <datalist id="badges"><option value="الأكثر مبيعاً"><option value="عرض محدود"><option value="جديد"><option value="رائج"><option value="سعر اقتصادي"><option value="حصري"></datalist>
+          <input class="input" id="badge" name="badge" value="<%= p.badge || '' %>" maxlength="30" list="badges" placeholder="مثال: الأكثر مبيعا">
+          <datalist id="badges"><option value="الأكثر مبيعا"><option value="عرض محدود"><option value="جديد"><option value="رائج"><option value="سعر اقتصادي"><option value="حصري"></datalist>
         </div>
         <div class="field">
           <label class="label" for="offer_ends_at">ينتهي العرض في <span class="opt">(اختياري)</span></label>
           <input class="input" id="offer_ends_at" type="datetime-local" name="offer_ends_at" value="<%= offerLocal %>">
-          <span class="help">يظهر عدّاد تنازلي على المنتج، وبعد انتهاء الوقت يعود السعر تلقائياً إلى «قبل الخصم».</span>
+          <span class="help">يظهر عداد تنازلي على المنتج، وبعد انتهاء الوقت يعود السعر تلقائيا إلى «قبل الخصم».</span>
           <span class="field-error"></span>
         </div>
         <div class="field">
           <label class="label" for="slug">رابط المنتج (slug)</label>
-          <input class="input" id="slug" name="slug" value="<%= p.slug || '' %>" maxlength="80" dir="ltr" placeholder="يُنشأ تلقائياً من الاسم">
+          <input class="input" id="slug" name="slug" value="<%= p.slug || '' %>" maxlength="80" dir="ltr" placeholder="ينشأ تلقائيا من الاسم">
         </div>
       </section>
     </div>

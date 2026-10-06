@@ -183,7 +183,7 @@ function deliveryPreset(order) {
   const input = order.buyer_input || '';
   switch (order.delivery_method) {
     case 'upgrade':
-      return [{ label: 'الحساب المفعّل', value: input }, { label: 'حالة التفعيل', value: 'تم تفعيل الاشتراك على حسابك ✅' }];
+      return [{ label: 'الحساب المفعل', value: input }, { label: 'حالة التفعيل', value: 'تم تفعيل الاشتراك على حسابك' }];
     case 'invite':
       return [{ label: 'تم إرسال الدعوة إلى', value: input }, { label: 'طريقة القبول', value: 'افتح بريدك الإلكتروني واضغط على زر قبول الدعوة' }];
     case 'code':
@@ -202,10 +202,10 @@ router.get('/orders/:code', (req, res) => {
   const first = String(order.buyer_name || '').split(/\s+/)[0];
   const pay = orders.payLabel(order);
   const waTemplates = [
-    { icon: 'fa-solid fa-hand', label: 'تأكيد استلام الطلب', text: `مرحباً ${first} 👋\nاستلمنا طلبك ${order.code} (${order.product_title} — ${order.plan_name}) ونراجع إيصال التحويل الآن، وسنبلغك فور التأكيد.` },
-    { icon: 'fa-solid fa-image', label: 'طلب إيصال أوضح', text: `مرحباً ${first}،\nبخصوص طلبك ${order.code}: نحتاج صورة أوضح لإيصال التحويل بمبلغ ${pay} تُظهر المبلغ والتاريخ واسم المستفيد. يمكنك رفعها من صفحة الطلب:\n${link}` },
-    { icon: 'fa-solid fa-gift', label: 'إبلاغ بالتسليم', text: `مرحباً ${first} 🎉\nتم تسليم اشتراك ${order.product_title} — ${order.plan_name}.\nبيانات الاشتراك متاحة في صفحة طلبك:\n${link}` },
-    { icon: 'fa-solid fa-comment', label: 'رسالة عامة', text: `مرحباً ${first}،\nبخصوص طلبك ${order.code} في ${settings.get('store_name')}:\n` },
+    { icon: 'fa-solid fa-hand', label: 'تأكيد استلام الطلب', text: `مرحبا ${first}\nاستلمنا طلبك ${order.code} (${order.product_title}، ${order.plan_name}) ونراجع إيصال التحويل الآن، وسنبلغك عندما نؤكده.` },
+    { icon: 'fa-solid fa-image', label: 'طلب إيصال أوضح', text: `مرحبا ${first}،\nبخصوص طلبك ${order.code}: نحتاج صورة أوضح لإيصال التحويل بمبلغ ${pay} تظهر المبلغ والتاريخ واسم المستفيد. يمكنك رفعها من صفحة الطلب:\n${link}` },
+    { icon: 'fa-solid fa-gift', label: 'إبلاغ بالتسليم', text: `مرحبا ${first}\nاشتراكك في ${order.product_title} (${order.plan_name}) جاهز.\nتجد بياناته في صفحة طلبك:\n${link}` },
+    { icon: 'fa-solid fa-comment', label: 'رسالة عامة', text: `مرحبا ${first}،\nبخصوص طلبك ${order.code} في ${settings.get('store_name')}:\n` },
   ];
   res.render('seller/order', {
     active: 'seller-orders',
@@ -226,7 +226,7 @@ router.get('/orders/:code', (req, res) => {
     customerScoped: !isAdminUser(req.user),
     canReview: canReviewPayment(req.user),
     waTemplates,
-    rejectReasons: ['المبلغ المحوَّل غير مطابق للمبلغ المطلوب', 'صورة الإيصال غير واضحة', 'لم يصل التحويل إلى الحساب بعد', 'بيانات المحوِّل لا تطابق الإيصال', 'الإيصال مستخدم في طلب سابق'],
+    rejectReasons: ['المبلغ المحول غير مطابق للمبلغ المطلوب', 'صورة الإيصال غير واضحة', 'لم يصل التحويل إلى الحساب بعد', 'بيانات المحول لا تطابق الإيصال', 'الإيصال مستخدم في طلب سابق'],
   });
 });
 
@@ -273,7 +273,7 @@ router.post('/orders/:code/deliver', (req, res) => {
   orders.deliver(order, req.user, { fields, note, expiresAt });
   res.reply({
     ok: true,
-    message: wasUnderReview ? 'تم تأكيد الدفع وتسليم الاشتراك للعميل 🎉' : order.delivered_at ? 'تم تحديث بيانات الاشتراك وإبلاغ العميل' : 'تم تسليم الاشتراك للعميل 🎉',
+    message: wasUnderReview ? 'تم تأكيد الدفع وتسليم الاشتراك للعميل' : order.delivered_at ? 'تم تحديث بيانات الاشتراك وإبلاغ العميل' : 'تم تسليم الاشتراك للعميل',
     reload: true,
   });
 });
@@ -512,7 +512,7 @@ function saveProduct(req, res, existing) {
   });
   if (req.file) req.file.kept = true;
   if (oldCover && oldCover !== coverUrl) removePublic(oldCover);
-  res.reply({ ok: true, message: existing ? 'تم حفظ التعديلات بنجاح' : 'تمت إضافة المنتج بنجاح 🎉', redirect: `/seller/products/${id}/edit` });
+  res.reply({ ok: true, message: existing ? 'تم حفظ التعديلات' : 'تمت إضافة المنتج', redirect: `/seller/products/${id}/edit` });
 }
 
 router.post('/products', imageUpload('products', 'cover'), (req, res) => saveProduct(req, res, null));
@@ -537,7 +537,7 @@ router.post('/products/:id/delete', (req, res) => {
   const p = ownProduct(req);
   if (get('SELECT id FROM orders WHERE product_id = ? LIMIT 1', p.id)) {
     run('UPDATE products SET is_active = 0 WHERE id = ?', p.id);
-    return res.reply({ ok: true, message: 'المنتج مرتبط بطلبات سابقة، لذلك تم إخفاؤه بدلاً من حذفه', redirect: '/seller/products' });
+    return res.reply({ ok: true, message: 'المنتج مرتبط بطلبات سابقة، لذلك تم إخفاؤه بدلا من حذفه', redirect: '/seller/products' });
   }
   run('DELETE FROM products WHERE id = ?', p.id);
   if (p.cover_url) removePublic(p.cover_url);

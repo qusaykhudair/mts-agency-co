@@ -36,7 +36,7 @@
         <div class="pd-facts">
           <div class="pd-fact"><i class="<%= method.icon %>"></i><div><small>طريقة التسليم</small><b><%= method.short %></b></div></div>
           <div class="pd-fact"><i class="fa-solid fa-clock"></i><div><small>وقت التسليم</small><b><%= p.delivery_time || 'بعد تأكيد الدفع' %></b></div></div>
-          <div class="pd-fact"><i class="fa-solid fa-medal"></i><div><small>الضمان</small><b><%= p.warranty || 'دعم فني متواصل' %></b></div></div>
+          <div class="pd-fact"><i class="fa-solid fa-medal"></i><div><small>الضمان</small><b><%= p.warranty || 'دعم على واتساب' %></b></div></div>
           <div class="pd-fact"><i class="fa-solid fa-building-columns"></i><div><small>الدفع</small><b>تحويل بنكي ومحافظ</b></div></div>
         </div>
       </div>
@@ -77,7 +77,7 @@
           <div class="rating-big">
             <b><%= summary.avg %></b>
             <%- include('../partials/stars', { rating: summary.avg }) %>
-            <small style="display:block">بناءً على <%= summary.total %> تقييم</small>
+            <small style="display:block">من <%= summary.total %> تقييم</small>
           </div>
           <div class="rbars">
             <% [5, 4, 3, 2, 1].forEach((n) => { const pct = summary.total ? Math.round((summary.dist[n] / summary.total) * 100) : 0; %>
@@ -90,7 +90,7 @@
           <div class="review">
             <div class="review-head">
               <span class="avatar avatar-sm"><%= initials(r.author_name) %></span>
-              <div class="grow"><b><%= r.author_name %> <span class="badge badge-success" style="height:20px;font-size:10.5px"><i class="fa-solid fa-circle-check"></i> مشترٍ موثّق</span></b><small><%= fmtDate(r.created_at) %></small></div>
+              <div class="grow"><b><%= r.author_name %> <span class="badge badge-success" style="height:20px;font-size:10.5px"><i class="fa-solid fa-circle-check"></i> مشتر موثق</span></b><small><%= fmtDate(r.created_at) %></small></div>
               <%- include('../partials/stars', { rating: r.rating }) %>
             </div>
             <% if (r.comment) { %><p><%= r.comment %></p><% } %>
@@ -100,8 +100,8 @@
       <% } else { %>
         <div class="empty" style="padding:24px 10px">
           <span class="ic"><i class="fa-regular fa-star"></i></span>
-          <h3>لا توجد تقييمات بعد</h3>
-          <p>كن أول من يجرب هذا الاشتراك ويشارك رأيه بعد الاستلام.</p>
+          <h3>لم يقيمه أحد بعد</h3>
+          <p>إذا اشتريته، تستطيع تقييمه بعد أن تستلمه.</p>
         </div>
       <% } %>
     </section>
@@ -129,7 +129,7 @@
           <span class="radio"></span>
           <span class="pname"><%= pl.name %><small><%= pl.in_stock ? (pl.duration_days ? 'مدة الاشتراك: ' + durationLabel(pl.duration_days) : 'اشتراك دائم') : 'نفدت الكمية' %></small></span>
           <span class="pprice"><% if (pl.old_price) { %><s><%- money(pl.old_price) %></s><% } %><b><%- money(pl.price) %></b></span>
-          <% if (pl.discount > 0) { %><span class="save">وفّر <%= pl.discount %>%</span><% } %>
+          <% if (pl.discount > 0) { %><span class="save">وفر <%= pl.discount %>%</span><% } %>
         </label>
         <% }) %>
       </div>
@@ -149,9 +149,9 @@
       </div>
 
       <button class="btn btn-primary btn-lg btn-block" type="submit"<%= selectedPlan && selectedPlan.in_stock ? '' : ' disabled' %>>
-        <% if (user) { %><i class="fa-solid fa-bolt"></i> اشترِ الآن<% } else { %><i class="fa-solid fa-arrow-right-to-bracket"></i> سجّل دخولك للشراء<% } %>
+        <% if (user) { %><i class="fa-solid fa-bolt"></i> اشتر الآن<% } else { %><i class="fa-solid fa-arrow-right-to-bracket"></i> سجل دخولك للشراء<% } %>
       </button>
-      <p class="buy-note"><i class="fa-solid fa-lock"></i> الدفع بالتحويل البنكي أو المحافظ ويتم تأكيده يدوياً</p>
+      <p class="buy-note"><i class="fa-solid fa-lock"></i> تدفع بتحويل بنكي أو من محفظتك، ونؤكد الدفع بعد مراجعة الإيصال</p>
       <p class="buy-note" data-stock-note hidden></p>
     </form>
 
@@ -160,30 +160,30 @@
       <div class="seller-row">
         <% if (seller.role === 'admin') { %><img src="/static/img/logo-96.png" alt=""><% } else { %><span class="avatar avatar-lg"><%= initials(seller.store_name || seller.name) %></span><% } %>
         <div>
-          <b><%= seller.store_name || seller.name || settings.store_name %> <i class="fa-solid fa-circle-check" title="بائع موثّق"></i></b>
-          <small>بائع موثّق · عضو منذ <%= fmtDate(seller.created_at) %></small>
+          <b><%= seller.store_name || seller.name || settings.store_name %> <i class="fa-solid fa-circle-check" title="بائع موثق"></i></b>
+          <small>بائع موثق · عضو منذ <%= fmtDate(seller.created_at) %></small>
         </div>
       </div>
       <div class="seller-stats">
         <% if (sellerStats.done) { %>
-        <div><b><%= sellerRating && sellerRating.n ? sellerRating.avg : '—' %></b><small>تقييم البائع</small></div>
+        <div><b><%= sellerRating && sellerRating.n ? sellerRating.avg : '-' %></b><small>تقييم البائع</small></div>
         <div><b><%= sellerStats.done %></b><small>طلب مكتمل</small></div>
         <div><b dir="ltr"><%= Math.round((sellerStats.done / sellerStats.total) * 100) %>%</b><small>نسبة الإنجاز</small></div>
         <% } else { %>
-        <div><b><i class="fa-solid fa-circle-check text-brand"></i></b><small>بائع موثّق</small></div>
+        <div><b><i class="fa-solid fa-circle-check text-brand"></i></b><small>بائع موثق</small></div>
         <div><b><i class="fa-solid fa-bolt" style="color:var(--warning)"></i></b><small>تسليم سريع</small></div>
         <div><b><i class="fa-brands fa-whatsapp" style="color:var(--whatsapp)"></i></b><small>دعم مباشر</small></div>
         <% } %>
       </div>
-      <a class="btn btn-whatsapp btn-block" href="<%= waLink(storeWa, 'مرحباً، لدي استفسار عن: ' + p.title) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> استفسر عبر واتساب</a>
+      <a class="btn btn-whatsapp btn-block" href="<%= waLink(storeWa, 'مرحبا، عندي سؤال عن: ' + p.title) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اسأل عبر واتساب</a>
     </div>
 
     <div class="card side-card">
-      <h4><i class="fa-solid fa-shield-halved" style="color:var(--success)"></i> شراء آمن 100%</h4>
+      <h4><i class="fa-solid fa-shield-halved" style="color:var(--success)"></i> كيف نحمي طلبك</h4>
       <ul class="secure-list">
-        <li><i class="fa-solid fa-check"></i> كل إيصال تحويل يُراجع يدوياً من فريقنا قبل تأكيد الطلب.</li>
-        <li><i class="fa-solid fa-check"></i> تتابع حالة طلبك خطوة بخطوة من لوحة المشتري مع إشعارات فورية.</li>
-        <li><i class="fa-solid fa-check"></i> بيانات الاشتراك تظهر لك وحدك داخل صفحة الطلب في حسابك.</li>
+        <li><i class="fa-solid fa-check"></i> شخص من فريقنا يراجع كل إيصال قبل تأكيد الطلب.</li>
+        <li><i class="fa-solid fa-check"></i> تتابع كل خطوة في طلبك من حسابك، ويصلك إشعار عند كل تغيير.</li>
+        <li><i class="fa-solid fa-check"></i> بيانات اشتراكك تظهر لك وحدك في صفحة طلبك.</li>
       </ul>
     </div>
   </aside>
@@ -209,7 +209,7 @@
     <small class="muted" style="display:block;font-size:11.5px;line-height:1.2"><%= p.title %></small>
     <b class="price-now" data-total-mirror><%- money(selectedPlan ? selectedPlan.price : 0) %></b>
   </div>
-  <a class="btn btn-primary" href="#buybox" data-scroll-buybox><i class="fa-solid fa-bolt"></i> اشترِ الآن</a>
+  <a class="btn btn-primary" href="#buybox" data-scroll-buybox><i class="fa-solid fa-bolt"></i> اشتر الآن</a>
 </div>
 
 <%- include('../partials/bottom', { scripts: ['/static/js/product.js'] }) %>

@@ -26,7 +26,7 @@ function normalizeWhatsapp(countryKey, raw) {
   if (international) {
     if (input.trim().startsWith('00')) digits = digits.slice(2);
     if (!digits.startsWith(dialDigits)) {
-      return { error: `الرقم المُدخل لا يتطابق مع رمز الدولة المختار (${c.dial})` };
+      return { error: `الرقم المدخل لا يتطابق مع رمز الدولة المختار (${c.dial})` };
     }
     digits = digits.slice(dialDigits.length);
   }

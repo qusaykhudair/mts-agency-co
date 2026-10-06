@@ -22,10 +22,10 @@
   <div>
     <section class="card co-block">
       <h2 class="co-title"><span class="n">1</span> اختر طريقة الدفع</h2>
-      <p class="co-sub">اختر الطريقة التي ستحوّل من خلالها، وستظهر لك تفاصيل الحساب والمبلغ المطلوب تحويله بدقة.</p>
+      <p class="co-sub">اختر الطريقة التي ستحول بها، فيظهر لك رقم الحساب والمبلغ المطلوب بالضبط.</p>
 
       <% if (!methods.length) { %>
-        <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i><div>لا توجد طرق دفع مفعّلة حالياً. تواصل معنا عبر واتساب لإتمام طلبك.</div></div>
+        <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i><div>لا توجد طرق دفع مفعلة حاليا. تواصل معنا عبر واتساب لإتمام طلبك.</div></div>
       <% } %>
 
       <div class="field">
@@ -72,16 +72,16 @@
 
     <section class="card co-block" data-proof-block>
       <h2 class="co-title"><span class="n">2</span> بيانات التحويل وإيصال الدفع</h2>
-      <p class="co-sub">بعد إتمام التحويل أدخل البيانات التالية وأرفق صورة واضحة للإيصال ليقوم فريقنا بالتحقق منها.</p>
+      <p class="co-sub">بعد التحويل اكتب البيانات التالية وأرفق صورة واضحة للإيصال، ونتحقق منها ثم نؤكد طلبك.</p>
       <div class="form-grid cols-2">
         <div class="field">
-          <label class="label" for="sender_name">اسم المحوِّل <span class="req">*</span></label>
+          <label class="label" for="sender_name">اسم صاحب الحساب <span class="req">*</span></label>
           <div class="input-wrap"><i class="fa-solid fa-user"></i><input class="input" id="sender_name" name="sender_name" value="<%= user.name %>" maxlength="100" required autocomplete="name"></div>
-          <span class="help">الاسم كما يظهر في الحساب أو المحفظة التي حوّلت منها</span>
+          <span class="help">الاسم كما يظهر في الحساب أو المحفظة التي حولت منها</span>
           <span class="field-error"></span>
         </div>
         <div class="field">
-          <label class="label" for="sender_account"><span data-sender-label>رقم الحساب الذي حوّلت منه</span> <span class="req">*</span></label>
+          <label class="label" for="sender_account"><span data-sender-label>رقم الحساب الذي حولت منه</span> <span class="req">*</span></label>
           <div class="input-wrap"><i class="fa-solid fa-hashtag"></i><input class="input" id="sender_account" name="sender_account" maxlength="60" required dir="ltr" style="text-align:right" inputmode="text" placeholder="مثال: 0599123456"></div>
           <span class="help">رقم الحساب البنكي أو رقم المحفظة المستخدم في التحويل</span>
           <span class="field-error"></span>
@@ -103,7 +103,7 @@
             <div class="up-empty" data-up-empty>
               <span class="ic"><i class="fa-solid fa-cloud-arrow-up"></i></span>
               <b>اضغط لاختيار صورة الإيصال أو اسحبها إلى هنا</b>
-              <small>JPG أو PNG أو WEBP أو PDF — حتى 8 ميجابايت</small>
+              <small>JPG أو PNG أو WEBP أو PDF، حتى 8 ميجابايت</small>
             </div>
             <div class="up-preview" data-up-preview hidden>
               <img data-up-img alt="معاينة الإيصال" hidden>
@@ -125,7 +125,7 @@
 
         <div class="field span-2">
           <label class="check"><input type="checkbox" name="agree" value="1" required>
-            <span>أؤكد أنني حوّلت المبلغ المطلوب وأن بيانات التحويل والإيصال صحيحة، وأوافق على <a class="link" href="/store/terms" target="_blank">الشروط والأحكام</a>.</span>
+            <span>أؤكد أنني حولت المبلغ المطلوب وأن بيانات التحويل والإيصال صحيحة، وأوافق على <a class="link" href="/store/terms" target="_blank">الشروط والأحكام</a>.</span>
           </label>
           <span class="field-error"></span>
         </div>
@@ -146,7 +146,7 @@
         <div class="sum-line"><span>سعر الوحدة</span><b><%- money(plan.price) %></b></div>
         <div class="sum-line"><span>الكمية</span><b>× <%= quantity %></b></div>
         <% if (plan.old_price) { %>
-        <div class="sum-line"><span>وفّرت</span><b class="text-success"><%- money((plan.old_price - plan.price) * quantity) %></b></div>
+        <div class="sum-line"><span>وفرت</span><b class="text-success"><%- money((plan.old_price - plan.price) * quantity) %></b></div>
         <% } %>
         <div class="sum-line total"><span>الإجمالي</span><b><%- money(total) %></b></div>
         <div class="sum-line" data-pay-line hidden><span>المطلوب تحويله</span><b class="text-brand" data-pay-amount></b></div>
@@ -157,7 +157,7 @@
     </div>
     <div class="alert alert-success">
       <i class="fa-brands fa-whatsapp"></i>
-      <div><b>تحتاج مساعدة في التحويل؟</b>تواصل معنا عبر <a class="link" href="<%= waLink(storeWa, 'مرحباً، أحتاج مساعدة في الدفع لطلب: ' + product.title) %>" target="_blank" rel="noopener">واتساب</a> وسنرشدك خطوة بخطوة.</div>
+      <div><b>تحتاج مساعدة في التحويل؟</b>راسلنا على <a class="link" href="<%= waLink(storeWa, 'مرحبا، أحتاج مساعدة في الدفع لطلب: ' + product.title) %>" target="_blank" rel="noopener">واتساب</a> ونمشي معك في التحويل خطوة خطوة.</div>
     </div>
   </aside>
 </form>

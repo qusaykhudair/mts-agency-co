@@ -2,11 +2,11 @@
 <%
   const st = SERVICE_STATUS[r.status];
   const banner = {
-    pending: ['تم استلام طلبك', 'يراجع فريقنا التفاصيل وسيبدأ أحد المختصين العمل عليه قريباً. يمكنك إضافة أي تفاصيل أو ملفات في المحادثة أدناه.'],
+    pending: ['تم استلام طلبك', 'يراجع فريقنا التفاصيل وسيبدأ أحد المختصين العمل عليه قريبا. يمكنك إضافة أي تفاصيل أو ملفات في المحادثة أدناه.'],
     in_progress: ['جاري تنفيذ طلبك', 'يعمل فريقنا على طلبك الآن، وسيصلك إشعار فور التسليم.'],
-    delivered: ['تم تسليم طلبك 🎉', `راجع التسليم ثم اعتمده أو اطلب التعديلات. يُعتمد الطلب تلقائياً بعد ${autoDays} أيام من التسليم.`],
+    delivered: ['وصلك التسليم', `راجعه ثم اعتمده أو اطلب تعديلات. إن لم ترد خلال ${autoDays} أيام من التسليم نعتمده تلقائيا.`],
     revision: ['جاري تنفيذ التعديلات', 'وصلت ملاحظاتك إلى الفريق ويعمل على التعديلات المطلوبة.'],
-    completed: ['الطلب مكتمل', 'شكراً لثقتك بـ MTS Agency. ملفات التسليم متاحة لك هنا في أي وقت.'],
+    completed: ['الطلب مكتمل', 'شكرا لثقتك بـ MTS Agency. ملفات التسليم متاحة لك هنا في أي وقت.'],
     cancelled: ['تم إلغاء الطلب', r.cancel_reason || 'تم إلغاء هذا الطلب.'],
   }[r.status];
   const latest = [...events].reverse().find((e) => e.type === 'delivery');
@@ -20,7 +20,7 @@
 <% if (placed) { %>
 <div class="alert alert-success mb-16">
   <i class="fa-solid fa-circle-check"></i>
-  <div class="grow"><b>تم إرسال طلبك بنجاح — رقم الطلب <%= r.code %></b>سيراجعه فريقنا ويتواصل معك هنا وعبر واتساب.</div>
+  <div class="grow"><b>وصلنا طلبك، ورقمه <%= r.code %></b>سنقرؤه ونتواصل معك هنا وعلى واتساب.</div>
 </div>
 <% } %>
 
@@ -109,7 +109,7 @@
     </section>
 
     <section class="card card-body stack-sm">
-      <a class="btn btn-whatsapp btn-block" href="<%= waLink(storeWa, 'مرحباً MTS Agency، بخصوص طلب الخدمة ' + r.code + ' (' + r.title + ')') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> تواصل معنا عبر واتساب</a>
+      <a class="btn btn-whatsapp btn-block" href="<%= waLink(storeWa, 'مرحبا MTS Agency، بخصوص طلب الخدمة ' + r.code + ' (' + r.title + ')') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> تواصل معنا عبر واتساب</a>
       <% if (r.status === 'pending') { %>
       <form method="post" action="/account/services/<%= r.code %>/cancel" data-ajax data-confirm="سيتم إلغاء طلب الخدمة. متابعة؟" data-confirm-title="إلغاء الطلب" data-confirm-danger>
         <button class="btn btn-danger-soft btn-block" type="submit"><i class="fa-solid fa-ban"></i> إلغاء الطلب</button>

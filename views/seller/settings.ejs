@@ -27,7 +27,7 @@
       <section class="card">
         <div class="card-head"><h2><i class="fa-solid fa-pen-nib"></i> نصوص الواجهة</h2></div>
         <div class="card-body form-grid">
-          <div class="field"><label class="label" for="announcement">شريط الإعلان أعلى المتجر</label><input class="input" id="announcement" name="announcement" value="<%= s.announcement %>" maxlength="200"><span class="help">اتركه فارغاً لإخفاء الشريط.</span></div>
+          <div class="field"><label class="label" for="announcement">شريط الإعلان أعلى المتجر</label><input class="input" id="announcement" name="announcement" value="<%= s.announcement %>" maxlength="200"><span class="help">اتركه فارغا لإخفاء الشريط.</span></div>
           <div class="field"><label class="label" for="hero_title">عنوان البانر الرئيسي</label><input class="input" id="hero_title" name="hero_title" value="<%= s.hero_title %>" maxlength="120"><span class="help">استخدم «…» لتقسيم العنوان إلى سطرين بلون مميز.</span></div>
           <div class="field"><label class="label" for="hero_subtitle">وصف البانر</label><textarea class="textarea" id="hero_subtitle" name="hero_subtitle" rows="2" maxlength="300"><%= s.hero_subtitle %></textarea></div>
           <div class="field"><label class="label" for="checkout_note">ملاحظة صفحة الدفع</label><textarea class="textarea" id="checkout_note" name="checkout_note" rows="2" maxlength="400"><%= s.checkout_note %></textarea></div>
@@ -37,7 +37,7 @@
 
     <div class="stack">
       <section class="card">
-        <div class="card-head"><h2><i class="fa-brands fa-google"></i> تسجيل الدخول عبر Google</h2><span class="badge <%= googleClientId ? 'badge-success' : 'badge-muted' %>"><%= googleClientId ? 'مفعّل' : 'غير مفعّل' %></span></div>
+        <div class="card-head"><h2><i class="fa-brands fa-google"></i> تسجيل الدخول عبر Google</h2><span class="badge <%= googleClientId ? 'badge-success' : 'badge-muted' %>"><%= googleClientId ? 'مفعل' : 'غير مفعل' %></span></div>
         <div class="card-body stack">
           <div class="field">
             <label class="label" for="google_client_id">Google OAuth Client ID</label>
@@ -62,7 +62,7 @@
           <div class="field"><label class="label" for="max_quantity">أقصى كمية للطلب</label><input class="input" id="max_quantity" type="number" lang="en" name="max_quantity" value="<%= s.max_quantity %>" min="1" max="100"></div>
           <div class="field span-2">
             <label class="switch"><input type="checkbox" name="sellers_can_approve" value="1"<%= s.sellers_can_approve !== '0' ? ' checked' : '' %>><span class="track"></span> السماح للبائعين بتأكيد أو رفض الدفع لطلبات منتجاتهم</label>
-            <span class="help">أوقفه إذا كنت تريد أن تراجع إيصالات التحويل بنفسك (لأن المبالغ تصل إلى حسابات المتجر)، وسيتمكن البائع من التسليم بعد تأكيدك. لا يستطيع البائع أبداً إدارة طلب اشتراه بنفسه.</span>
+            <span class="help">أوقفه إذا كنت تريد أن تراجع إيصالات التحويل بنفسك (لأن المبالغ تصل إلى حسابات المتجر)، وسيتمكن البائع من التسليم بعد تأكيدك. لا يستطيع البائع أبدا إدارة طلب اشتراه بنفسه.</span>
           </div>
         </div>
       </section>

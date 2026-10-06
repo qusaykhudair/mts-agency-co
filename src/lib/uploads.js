@@ -123,7 +123,7 @@ function single(uploader, field, types) {
     mw(req, res, (err) => {
       if (err) {
         if (err instanceof multer.MulterError) {
-          const msg = err.code === 'LIMIT_FILE_SIZE' ? 'حجم الملف أكبر من الحد المسموح' : 'تعذّر رفع الملف، حاول مرة أخرى';
+          const msg = err.code === 'LIMIT_FILE_SIZE' ? 'حجم الملف أكبر من الحد المسموح' : 'تعذر رفع الملف، حاول مرة أخرى';
           return next(new UploadError(msg));
         }
         return next(err);
@@ -132,7 +132,7 @@ function single(uploader, field, types) {
       const real = sniff(req.file.path);
       if (!real || !types.includes(real)) {
         fs.rm(req.file.path, { force: true }, () => {});
-        return next(new UploadError('الملف المرفوع تالف أو ليس صورة/ملف PDF صالحاً'));
+        return next(new UploadError('الملف المرفوع تالف أو ليس صورة/ملف PDF صالحا'));
       }
       const ext = MIME_EXT[real];
       if (path.extname(req.file.path) !== ext) {
@@ -186,10 +186,10 @@ function serviceFiles(field = 'files', max = 6) {
         if (err instanceof multer.MulterError) {
           const msg =
             err.code === 'LIMIT_FILE_SIZE'
-              ? `حجم الملف أكبر من ${SERVICE_FILE_MB} ميجابايت — أرسل الملفات الكبيرة كرابط`
+              ? `حجم الملف أكبر من ${SERVICE_FILE_MB} ميجابايت. أرسل الملفات الكبيرة كرابط`
               : err.code === 'LIMIT_FILE_COUNT' || err.code === 'LIMIT_UNEXPECTED_FILE'
                 ? `يمكنك إرفاق ${max} ملفات كحد أقصى في المرة الواحدة`
-                : 'تعذّر رفع الملفات، حاول مرة أخرى';
+                : 'تعذر رفع الملفات، حاول مرة أخرى';
           return next(new UploadError(msg));
         }
         return next(err);

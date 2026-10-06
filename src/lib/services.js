@@ -152,7 +152,7 @@ function openCount(userId) {
 
 function create({ user, service, title, details, budget, deadline, links, files }) {
   if (openCount(user.id) >= MAX_OPEN_PER_CLIENT) {
-    throw new ServiceError(`لديك ${MAX_OPEN_PER_CLIENT} طلبات خدمة مفتوحة بالفعل. تابعها أولاً أو تواصل معنا عبر واتساب.`);
+    throw new ServiceError(`لديك ${MAX_OPEN_PER_CLIENT} طلبات خدمة مفتوحة بالفعل. تابعها أولا أو تواصل معنا عبر واتساب.`);
   }
   const r = tx(() => {
     const id = Number(
@@ -202,7 +202,7 @@ function assignTo(r, actor, member, { claim = false } = {}) {
 function assign(r, actor, memberId) {
   if (!OPEN_STATUSES.includes(r.status)) throw new ServiceError('لا يمكن تعيين منفذ لطلب مكتمل أو ملغي');
   const member = get("SELECT id, name, role FROM users WHERE id = ? AND role IN ('provider', 'admin') AND is_blocked = 0", memberId);
-  if (!member) throw new ServiceError('اختر منفذاً من فريق الخدمات');
+  if (!member) throw new ServiceError('اختر منفذا من فريق الخدمات');
   if (member.id === r.user_id) throw new ServiceError('لا يمكن إسناد الطلب إلى صاحبه');
   if (member.id === r.assigned_to) return r;
   return assignTo(r, actor, member);
@@ -210,7 +210,7 @@ function assign(r, actor, memberId) {
 
 /** A provider picks up a new request from the open pool. */
 function take(r, provider) {
-  if (!canTake(provider, r)) throw new ServiceError('هذا الطلب لم يعد متاحاً للاستلام', 409);
+  if (!canTake(provider, r)) throw new ServiceError('هذا الطلب لم يعد متاحا للاستلام', 409);
   return assignTo(r, provider, provider, { claim: true });
 }
 
@@ -231,12 +231,12 @@ function note(r, actor, body) {
 
 function deliver(r, actor, { body, links, files }) {
   if (!['in_progress', 'revision', 'delivered'].includes(r.status)) throw new ServiceError('لا يمكن التسليم في حالة الطلب الحالية');
-  if (!links.length && !files.length) throw new ServiceError('أضف رابطاً أو ملفاً واحداً على الأقل للتسليم');
+  if (!links.length && !files.length) throw new ServiceError('أضف رابطا أو ملفا واحدا على الأقل للتسليم');
   tx(() => {
     saveFiles(r.id, addEvent(r.id, actor.id, 'delivery', { body, links }), actor.id, files);
     run("UPDATE service_requests SET status = 'delivered', delivered_at = datetime('now') WHERE id = ?", r.id);
   });
-  notifyClient(r, { title: `تم تسليم طلبك ${r.code} 🎉`, body: 'راجع التسليم ثم اعتمده أو اطلب تعديلات', icon: 'fa-solid fa-gift', tone: 'success' });
+  notifyClient(r, { title: `وصلك تسليم طلبك ${r.code}`, body: 'راجع التسليم ثم اعتمده أو اطلب تعديلات', icon: 'fa-solid fa-gift', tone: 'success' });
   return byCode(r.code);
 }
 
@@ -254,13 +254,13 @@ function complete(r, actor, { auto = false } = {}) {
   if (r.status !== 'delivered') throw new ServiceError('يكتمل الطلب بعد التسليم فقط');
   const byClient = !!actor && actor.id === r.user_id;
   const days = Number(settings.get('service_auto_complete_days')) || 7;
-  const reason = byClient ? 'اعتمد العميل التسليم' : auto ? `أُغلق تلقائياً بعد ${days} أيام من التسليم دون ملاحظات` : 'أغلقت الإدارة الطلب';
+  const reason = byClient ? 'اعتمد العميل التسليم' : auto ? `أغلق تلقائيا بعد ${days} أيام من التسليم دون ملاحظات` : 'أغلقت الإدارة الطلب';
   tx(() => {
     run("UPDATE service_requests SET status = 'completed', completed_at = datetime('now') WHERE id = ?", r.id);
     addEvent(r.id, actor ? actor.id : null, 'completed', { body: reason });
   });
   if (byClient) {
-    notifyTeam(r, { title: `اعتمد العميل تسليم الطلب ${r.code} ✅`, body: r.title, icon: 'fa-solid fa-flag-checkered', tone: 'success' }, { exclude: actor.id });
+    notifyTeam(r, { title: `اعتمد العميل تسليم الطلب ${r.code}`, body: r.title, icon: 'fa-solid fa-flag-checkered', tone: 'success' }, { exclude: actor.id });
   } else {
     notifyClient(r, { title: `اكتمل طلبك ${r.code}`, body: reason, icon: 'fa-solid fa-flag-checkered', tone: 'success' });
   }

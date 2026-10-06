@@ -40,12 +40,12 @@ const SORTS = {
 };
 
 const SORT_LABELS = {
-  popular: 'الأكثر طلباً',
+  popular: 'الأكثر طلبا',
   newest: 'الأحدث',
   deals: 'أعلى خصم',
   price_asc: 'السعر: من الأقل',
   price_desc: 'السعر: من الأعلى',
-  rating: 'الأعلى تقييماً',
+  rating: 'الأعلى تقييما',
 };
 
 function offerEnd(product) {

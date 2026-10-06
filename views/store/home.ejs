@@ -7,17 +7,17 @@
 <div class="sh-top">
   <section class="sh-hero">
     <div class="sh-hero-copy">
-      <span class="sh-eyebrow"><i class="fa-solid fa-circle-check"></i> <%= totals.products %> اشتراكاً أصلياً من <%= totals.platforms %> منصة عالمية</span>
-      <h1><%= heroLead.trim() %><% if (heroRest.length) { %>…<br><span><%= heroRest.join('…').trim() %></span><% } %></h1>
+      <span class="sh-eyebrow"><i class="fa-solid fa-circle-check"></i> <%= totals.products %> اشتراكا أصليا من <%= totals.platforms %> منصة عالمية</span>
+      <h1><%= heroLead.trim() %><% if (heroRest.length) { %><br><span><%= heroRest.join('…').trim() %></span><% } %></h1>
       <p><%= settings.hero_subtitle %></p>
       <div class="sh-actions">
-        <a class="btn btn-primary btn-lg" href="/store/products">تسوّق الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
-        <a class="btn btn-lg" href="/store/products?sale=1&sort=deals"><i class="fa-solid fa-fire" style="color:var(--sale)"></i> أقوى العروض</a>
+        <a class="btn btn-primary btn-lg" href="/store/products">تسوق الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
+        <a class="btn btn-lg" href="/store/products?sale=1&sort=deals"><i class="fa-solid fa-fire" style="color:var(--sale)"></i> العروض الحالية</a>
       </div>
     </div>
     <% if (picks.length) { %>
     <div class="sh-picks">
-      <span class="sh-picks-title">الأكثر طلباً الآن</span>
+      <span class="sh-picks-title">الأكثر طلبا الآن</span>
       <% picks.forEach((p) => { %>
       <a class="sh-pick" href="/store/product/<%= p.slug %>">
         <span class="sh-pick-tile" style="--c1:<%= p.color1 %>;--c2:<%= p.color2 %>"><img src="<%= p.platform_logo %>" alt="" loading="lazy"></span>
@@ -39,7 +39,7 @@
     <div class="sh-deal-price">
       <b><%- money(spotlightPlan.price) %></b>
       <s><%- money(spotlightPlan.old_price) %></s>
-      <span class="h-save">وفّر <%= spotlightPlan.discount %>%</span>
+      <span class="h-save">وفر <%= spotlightPlan.discount %>%</span>
     </div>
     <% if (spotlight.offer_end) { %>
     <div class="sh-deal-timer"><span>ينتهي العرض خلال</span><span class="countdown" data-countdown="<%= spotlight.offer_end.toISOString() %>"></span></div>
@@ -68,8 +68,8 @@
 <section class="panel section">
   <div class="sec-head">
     <div>
-      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-star"></i></span> المنصات الأكثر طلباً</h2>
-      <p class="sec-sub">اختر المنصة لعرض جميع اشتراكاتها المتاحة</p>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-star"></i></span> المنصات الأكثر طلبا</h2>
+      <p class="sec-sub">اختر المنصة لترى كل باقاتها وأسعارها</p>
     </div>
     <a class="sec-link" href="/store/platforms">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
   </div>
@@ -83,8 +83,8 @@
 <section class="panel section" data-hscroll>
   <div class="sec-head">
     <div>
-      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-wand-magic-sparkles"></i></span> وصل حديثاً</h2>
-      <p class="sec-sub">أحدث الاشتراكات المضافة إلى المتجر</p>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-wand-magic-sparkles"></i></span> وصل حديثا</h2>
+      <p class="sec-sub">آخر ما أضفناه إلى المتجر</p>
     </div>
     <div class="flex gap-12">
       <a class="sec-link" href="/store/products?sort=newest">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
@@ -101,8 +101,8 @@
 <section class="panel section" data-hscroll>
   <div class="sec-head">
     <div>
-      <h2 class="sec-title"><span class="ic" style="background:var(--danger-bg);color:var(--sale)"><i class="fa-solid fa-fire"></i></span> أفضل العروض</h2>
-      <p class="sec-sub">اشتراكات بخصومات حقيقية — الكمية والوقت محدودان</p>
+      <h2 class="sec-title"><span class="ic" style="background:var(--danger-bg);color:var(--sale)"><i class="fa-solid fa-fire"></i></span> عروض بخصم</h2>
+      <p class="sec-sub">الخصم محسوب من السعر الأصلي للباقة، والعرض ينتهي بانتهاء وقته أو كميته</p>
     </div>
     <div class="flex gap-12">
       <a class="sec-link" href="/store/products?sale=1&sort=deals">عرض الكل <i class="fa-solid fa-arrow-left"></i></a>
@@ -119,8 +119,8 @@
 <section class="panel section">
   <div class="sec-head">
     <div>
-      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-wallet"></i></span> ادفع بالطريقة التي تناسبك</h2>
-      <p class="sec-sub">تحويل مباشر بدون بطاقات ائتمان — تظهر لك تفاصيل الحساب والمبلغ بدقة عند الطلب</p>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-wallet"></i></span> ادفع من البنك أو من محفظتك</h2>
+      <p class="sec-sub">لا تحتاج بطاقة ائتمان. عند الطلب يظهر لك رقم الحساب والمبلغ المطلوب بالضبط</p>
     </div>
     <a class="sec-link" href="/store/help">كيف أدفع؟ <i class="fa-solid fa-arrow-left"></i></a>
   </div>
@@ -139,8 +139,8 @@
 <section class="section">
   <div class="sec-head">
     <div>
-      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-crown"></i></span> الأكثر طلباً</h2>
-      <p class="sec-sub">الاشتراكات المفضّلة لدى عملائنا</p>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-crown"></i></span> الأكثر طلبا</h2>
+      <p class="sec-sub">ما يشتريه عملاؤنا أكثر من غيره</p>
     </div>
     <a class="sec-link" href="/store/products">كل الاشتراكات <i class="fa-solid fa-arrow-left"></i></a>
   </div>
@@ -153,8 +153,8 @@
 <section class="section">
   <div class="sec-head">
     <div>
-      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-route"></i></span> كيف تشتري خلال دقائق؟</h2>
-      <p class="sec-sub">أربع خطوات بسيطة من اختيار الاشتراك حتى استلامه</p>
+      <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-route"></i></span> كيف تشتري؟</h2>
+      <p class="sec-sub">أربع خطوات من اختيار الاشتراك حتى استلامه</p>
     </div>
   </div>
   <div class="steps">
@@ -169,7 +169,7 @@
   <div class="sec-head">
     <div>
       <h2 class="sec-title"><span class="ic" style="background:var(--warning-bg);color:var(--gold)"><i class="fa-solid fa-star"></i></span> آراء عملائنا</h2>
-      <p class="sec-sub">تقييمات حقيقية من مشترين أكملوا طلباتهم</p>
+      <p class="sec-sub">لا يقيم المنتج إلا من اشتراه واستلمه</p>
     </div>
   </div>
   <div class="grid-3">
@@ -192,7 +192,7 @@
   <div class="sec-head">
     <div>
       <h2 class="sec-title"><span class="ic"><i class="fa-solid fa-circle-question"></i></span> الأسئلة الشائعة</h2>
-      <p class="sec-sub">كل ما تحتاج معرفته قبل الشراء</p>
+      <p class="sec-sub">أسئلة تصلنا كثيرا قبل الشراء</p>
     </div>
     <a class="sec-link" href="/store/help">المزيد <i class="fa-solid fa-arrow-left"></i></a>
   </div>
@@ -207,9 +207,9 @@
   <span class="sh-request-ic"><i class="fa-brands fa-whatsapp"></i></span>
   <div class="grow">
     <h2>تبحث عن اشتراك غير موجود؟</h2>
-    <p>راسلنا عبر واتساب وسنوفّره لك بأفضل سعر وبأسرع وقت.</p>
+    <p>أرسل لنا اسمه على واتساب، نبحث عنه ونرد عليك بالسعر.</p>
   </div>
-  <a class="btn btn-whatsapp btn-lg" href="<%= waLink(storeWa, 'مرحباً MTS Store، أبحث عن اشتراك غير موجود في المتجر: ') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اطلب عبر واتساب</a>
+  <a class="btn btn-whatsapp btn-lg" href="<%= waLink(storeWa, 'مرحبا MTS Store، أبحث عن اشتراك غير موجود في المتجر: ') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اطلب عبر واتساب</a>
 </section>
 
 <%- include('../partials/bottom') %>

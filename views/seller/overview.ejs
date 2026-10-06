@@ -1,7 +1,7 @@
 <%- include('../partials/top') %>
 
 <div class="page-head">
-  <div><h1><%= isAdmin ? 'لوحة الإدارة' : 'لوحة البائع' %></h1><p>مرحباً <%= user.name.split(' ')[0] %> — <%= fmtDate(new Date()) %></p></div>
+  <div><h1><%= isAdmin ? 'لوحة الإدارة' : 'لوحة البائع' %></h1><p>مرحبا <%= user.name.split(' ')[0] %> · <%= fmtDate(new Date()) %></p></div>
   <div class="actions">
     <a class="btn btn-<%= stats.pending ? 'primary' : 'soft' %>" href="/seller/orders?status=under_review"><i class="fa-solid fa-receipt"></i> مراجعة الطلبات<% if (stats.pending) { %> (<%= stats.pending %>)<% } %></a>
     <a class="btn btn-soft" href="/seller/products/new"><i class="fa-solid fa-plus"></i> إضافة منتج</a>
@@ -11,7 +11,7 @@
 <% if (storageWarning) { %>
 <div class="alert alert-danger mb-16">
   <i class="fa-solid fa-triangle-exclamation"></i>
-  <div class="grow"><b>البيانات غير محفوظة بشكل دائم</b>لا يوجد قرص دائم (Volume) مرتبط بالخدمة على Railway، لذلك ستُحذف الطلبات والحسابات والإيصالات عند كل إعادة نشر. من صفحة الخدمة في Railway أضف Volume (مثلاً على المسار /data) ثم أعد النشر — سيستخدمه المتجر تلقائياً.</div>
+  <div class="grow"><b>البيانات غير محفوظة بشكل دائم</b>لا يوجد قرص دائم (Volume) مرتبط بالخدمة على Railway، لذلك ستحذف الطلبات والحسابات والإيصالات عند كل إعادة نشر. من صفحة الخدمة في Railway أضف Volume (مثلا على المسار /data) ثم أعد النشر، وسيستخدمه المتجر تلقائيا.</div>
 </div>
 <% } %>
 
@@ -19,7 +19,7 @@
   <div class="stat"><span class="ic"><i class="fa-solid fa-sack-dollar"></i></span><div><small>مبيعات هذا الشهر</small><b><%- moneyBase(stats.month_revenue) %></b></div></div>
   <div class="stat warning"><span class="ic"><i class="fa-solid fa-hourglass-half"></i></span><div><small>بانتظار مراجعة الدفع</small><b><%= stats.pending %></b><a class="stretch" href="/seller/orders?status=under_review" aria-label="الطلبات بانتظار المراجعة"></a></div></div>
   <div class="stat info"><span class="ic"><i class="fa-solid fa-gears"></i></span><div><small>بانتظار التسليم</small><b><%= stats.processing %></b><a class="stretch" href="/seller/orders?status=processing" aria-label="الطلبات قيد التجهيز"></a></div></div>
-  <div class="stat success"><span class="ic"><i class="fa-solid fa-circle-check"></i></span><div><small>طلبات مسلّمة</small><b><%= stats.delivered %></b><a class="stretch" href="/seller/orders?status=delivered" aria-label="الطلبات المسلّمة"></a></div></div>
+  <div class="stat success"><span class="ic"><i class="fa-solid fa-circle-check"></i></span><div><small>طلبات مسلمة</small><b><%= stats.delivered %></b><a class="stretch" href="/seller/orders?status=delivered" aria-label="الطلبات المسلمة"></a></div></div>
 </div>
 
 <div class="dash-grid">
@@ -46,7 +46,7 @@
       <% } else { %>
       <div class="empty" style="padding:30px 10px">
         <span class="ic" style="background:var(--success-bg);color:var(--success)"><i class="fa-solid fa-mug-hot"></i></span>
-        <h3>لا توجد طلبات معلّقة</h3>
+        <h3>لا توجد طلبات معلقة</h3>
         <p>كل الطلبات تمت معالجتها. ستصلك إشعارات فور وصول طلب جديد.</p>
       </div>
       <% } %>
@@ -54,7 +54,7 @@
 
     <section class="card">
       <div class="card-head">
-        <h2>المبيعات — آخر 14 يوماً</h2>
+        <h2>المبيعات في آخر 14 يوما</h2>
         <span class="badge badge-brand"><%- moneyBase(chartTotal) %></span>
       </div>
       <div class="card-body">
@@ -86,7 +86,7 @@
     <% } %>
 
     <section class="card">
-      <div class="card-head"><h2>الأكثر مبيعاً</h2><a class="sec-link" href="/seller/products">المنتجات <i class="fa-solid fa-arrow-left"></i></a></div>
+      <div class="card-head"><h2>الأكثر مبيعا</h2><a class="sec-link" href="/seller/products">المنتجات <i class="fa-solid fa-arrow-left"></i></a></div>
       <div class="card-body stack-sm">
         <% if (topProducts.length) { %>
           <% topProducts.forEach((p, i) => { %>

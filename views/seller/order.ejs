@@ -2,10 +2,10 @@
 <%
   const st = ORDER_STATUS[order.status];
   const staffBanner = {
-    under_review: ['بانتظار مراجعة إيصال الدفع', 'تحقق من وصول المبلغ المطلوب إلى الحساب ومطابقة اسم المحوِّل ورقم حسابه، ثم أكّد الدفع أو ارفض الإيصال مع ذكر السبب.'],
-    payment_rejected: ['تم رفض الإيصال — بانتظار العميل', 'سيقوم العميل بإرسال إيصال جديد من صفحة الطلب، وسيصلك إشعار عند ذلك.'],
-    processing: ['تم تأكيد الدفع — جهّز الاشتراك', 'أدخل بيانات الاشتراك في نموذج التسليم ليصل للعميل فوراً مع إشعار.'],
-    delivered: ['تم التسليم — بانتظار تأكيد العميل', 'يكتمل الطلب تلقائياً بعد ' + settings.auto_complete_days + ' أيام إن لم يبلغ العميل عن مشكلة. يمكنك تعديل البيانات عند الحاجة.'],
+    under_review: ['بانتظار مراجعة إيصال الدفع', 'تحقق من وصول المبلغ المطلوب إلى الحساب ومطابقة اسم صاحب الحساب ورقمه، ثم أكد الدفع أو ارفض الإيصال مع ذكر السبب.'],
+    payment_rejected: ['تم رفض الإيصال، بانتظار العميل', 'سيقوم العميل بإرسال إيصال جديد من صفحة الطلب، وسيصلك إشعار عند ذلك.'],
+    processing: ['تم تأكيد الدفع، جهز الاشتراك', 'أدخل بيانات الاشتراك في نموذج التسليم ليصل للعميل فورا مع إشعار.'],
+    delivered: ['تم التسليم، بانتظار تأكيد العميل', 'يكتمل الطلب تلقائيا بعد ' + settings.auto_complete_days + ' أيام إن لم يبلغ العميل عن مشكلة. يمكنك تعديل البيانات عند الحاجة.'],
     completed: ['الطلب مكتمل', 'تم تسليم الاشتراك وتأكيد الاستلام. يمكنك تحديث البيانات عند الاستبدال خلال فترة الضمان.'],
     cancelled: ['الطلب ملغي', 'تم إلغاء هذا الطلب.'],
   }[order.status];
@@ -17,7 +17,7 @@
     'كود تفعيل': [{ label: 'كود التفعيل', value: '' }, { label: 'رابط الاسترداد', value: '' }],
     'رابط تفعيل': [{ label: 'رابط التفعيل', value: '' }],
     'دعوة بالبريد': [{ label: 'تم إرسال الدعوة إلى', value: order.buyer_input || '' }, { label: 'طريقة القبول', value: 'افتح بريدك الإلكتروني واضغط على زر قبول الدعوة' }],
-    'ترقية الحساب': [{ label: 'الحساب المفعّل', value: order.buyer_input || '' }, { label: 'حالة التفعيل', value: 'تم تفعيل الاشتراك على حسابك ✅' }],
+    'ترقية الحساب': [{ label: 'الحساب المفعل', value: order.buyer_input || '' }, { label: 'حالة التفعيل', value: 'تم تفعيل الاشتراك على حسابك' }],
   };
 %>
 
@@ -50,14 +50,14 @@
       <div class="od-head">
         <%- include('../partials/mini-cover', { o: order }) %>
         <div class="grow">
-          <b><%= order.product_title %> — <%= order.plan_name %><%= order.quantity > 1 ? ' × ' + order.quantity : '' %></b>
+          <b><%= order.product_title %> (<%= order.plan_name %>)<%= order.quantity > 1 ? ' × ' + order.quantity : '' %></b>
           <small><%= durationLabel(order.duration_days) %> · <%= fmtDateTime(order.created_at) %> · <%= timeAgo(order.created_at) %></small>
         </div>
         <% if (order.product_slug) { %><a class="btn btn-ghost btn-sm" href="/store/product/<%= order.product_slug %>" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> المنتج</a><% } %>
       </div>
       <div class="status-banner <%= st.tone %>">
         <span class="ic"><i class="<%= st.icon %>"></i></span>
-        <div><b><%= staffBanner[0] %></b><p><%= staffBanner[1] %><% if (order.status === 'payment_rejected' && order.reject_reason) { %> — سبب الرفض: <%= order.reject_reason %><% } %></p></div>
+        <div><b><%= staffBanner[0] %></b><p><%= staffBanner[1] %><% if (order.status === 'payment_rejected' && order.reject_reason) { %>. سبب الرفض: <%= order.reject_reason %><% } %></p></div>
       </div>
       <%- include('../partials/order-stepper', { order }) %>
     </section>
@@ -73,8 +73,8 @@
               <b><%- orderPay(order) %></b>
             </div>
             <div class="kv">
-              <div class="kv-row"><span>اسم المحوِّل</span><span><%= order.sender_name %></span></div>
-              <div class="kv-row"><span><%= method ? method.sender_account_label : 'الحساب المحوَّل منه' %></span><span class="flex gap-8"><bdi dir="ltr"><%= order.sender_account %></bdi><button class="copy-btn" type="button" data-copy="<%= order.sender_account %>" aria-label="نسخ"><i class="fa-regular fa-copy"></i></button></span></div>
+              <div class="kv-row"><span>اسم صاحب الحساب</span><span><%= order.sender_name %></span></div>
+              <div class="kv-row"><span><%= method ? method.sender_account_label : 'الحساب المحول منه' %></span><span class="flex gap-8"><bdi dir="ltr"><%= order.sender_account %></bdi><button class="copy-btn" type="button" data-copy="<%= order.sender_account %>" aria-label="نسخ"><i class="fa-regular fa-copy"></i></button></span></div>
               <div class="kv-row"><span>سعر الصرف المعتمد</span><span dir="ltr">1 <%= order.base_currency %> = <%= order.pay_rate %> <%= order.pay_currency %></span></div>
               <div class="kv-row"><span>تاريخ الإرسال</span><span><%= fmtDateTime(order.created_at) %></span></div>
               <% if (order.reviewer_name) { %><div class="kv-row"><span>راجعه</span><span><%= order.reviewer_name %></span></div><% } %>
@@ -84,7 +84,7 @@
 
         <% if (methodDetails.length) { %>
         <details class="mt-16" style="border:1px dashed var(--border-strong);border-radius:14px;padding:10px 14px">
-          <summary class="bold small" style="cursor:pointer"><i class="fa-solid fa-building-columns text-brand"></i> الحساب المستلِم (للمطابقة)</summary>
+          <summary class="bold small" style="cursor:pointer"><i class="fa-solid fa-building-columns text-brand"></i> الحساب المستلم (للمطابقة)</summary>
           <div class="kv mt-8">
             <% methodDetails.forEach((d) => { %><div class="kv-row"><span><%= d.label %></span><span<%= isLatin(d.value) ? ' dir=ltr' : '' %>><%= d.value %></span></div><% }) %>
           </div>
@@ -92,7 +92,7 @@
         <% } %>
 
         <% if (order.status === 'under_review' && !canReview) { %>
-        <div class="alert alert-warning mt-16"><i class="fa-solid fa-user-shield"></i><div><b>بانتظار تأكيد الدفع من إدارة المتجر</b>المبالغ تُحوَّل إلى حسابات المتجر، لذلك تؤكدها الإدارة. ستتمكن من تسليم الاشتراك فور التأكيد وسيصلك إشعار.</div></div>
+        <div class="alert alert-warning mt-16"><i class="fa-solid fa-user-shield"></i><div><b>بانتظار تأكيد الدفع من إدارة المتجر</b>المبالغ تحول إلى حسابات المتجر، لذلك تؤكدها الإدارة. ستتمكن من تسليم الاشتراك فور التأكيد وسيصلك إشعار.</div></div>
         <% } %>
         <% if (order.status === 'under_review' && canReview) { %>
         <div class="form-actions mt-16">
@@ -107,7 +107,7 @@
             <% rejectReasons.forEach((r) => { %><button class="chip" type="button" data-fill="#reason" data-value="<%= r %>" style="height:32px;font-size:12.5px"><%= r %></button><% }) %>
           </div>
           <div class="field">
-            <textarea class="textarea" id="reason" name="reason" rows="2" maxlength="400" required placeholder="مثال: المبلغ المحوَّل أقل من المطلوب"></textarea>
+            <textarea class="textarea" id="reason" name="reason" rows="2" maxlength="400" required placeholder="مثال: المبلغ المحول أقل من المطلوب"></textarea>
             <span class="field-error"></span>
           </div>
           <button class="btn btn-danger" type="submit" style="justify-self:start"><i class="fa-solid fa-paper-plane"></i> تأكيد الرفض وإبلاغ العميل</button>
@@ -119,8 +119,8 @@
     <% if (canDeliver) { %>
     <section class="card<%= ['delivered', 'completed'].includes(order.status) ? ' delivery-card' : '' %>" id="deliver">
       <div class="card-head">
-        <h2><i class="fa-solid fa-gift"></i> <%= delivery ? 'بيانات الاشتراك المسلَّمة' : 'تسليم الاشتراك للعميل' %></h2>
-        <% if (delivery) { %><span class="badge badge-success"><i class="fa-solid fa-check"></i> سُلّم <%= timeAgo(order.delivered_at) %></span><% } %>
+        <h2><i class="fa-solid fa-gift"></i> <%= delivery ? 'بيانات الاشتراك المسلمة' : 'تسليم الاشتراك للعميل' %></h2>
+        <% if (delivery) { %><span class="badge badge-success"><i class="fa-solid fa-check"></i> سلم <%= timeAgo(order.delivered_at) %></span><% } %>
       </div>
       <form class="card-body stack" method="post" action="/seller/orders/<%= order.code %>/deliver" data-ajax novalidate
         <% if (order.status === 'under_review') { %>data-confirm="سيتم تأكيد الدفع وتسليم الاشتراك للعميل مباشرة. متابعة؟" data-confirm-title="تأكيد الدفع والتسليم"<% } %>>
@@ -133,7 +133,7 @@
         <% } %>
         <% if (order.buyer_note) { %><div class="alert"><i class="fa-solid fa-comment-dots"></i><div><b>ملاحظة العميل</b><span class="pre-line"><%= order.buyer_note %></span></div></div><% } %>
         <% if (order.status === 'under_review') { %>
-        <div class="alert alert-warning"><i class="fa-solid fa-circle-info"></i><div>لم يتم تأكيد الدفع بعد — عند التسليم من هنا سيتم تأكيد الدفع تلقائياً.</div></div>
+        <div class="alert alert-warning"><i class="fa-solid fa-circle-info"></i><div>لم يتم تأكيد الدفع بعد. عند التسليم من هنا سيتم تأكيد الدفع تلقائيا.</div></div>
         <% } %>
 
         <div class="flex flex-wrap gap-8 between">
@@ -175,7 +175,7 @@
           <div class="field">
             <label class="label" for="expires_at">تاريخ انتهاء الاشتراك</label>
             <input class="input" id="expires_at" type="date" name="expires_at" value="<%= defaultExpiry %>">
-            <span class="help">محسوب تلقائياً حسب مدة الباقة (<%= durationLabel(order.duration_days) %>) — اتركه فارغاً للاشتراك الدائم.</span>
+            <span class="help">محسوب تلقائيا حسب مدة الباقة (<%= durationLabel(order.duration_days) %>). اتركه فارغا للاشتراك الدائم.</span>
             <span class="field-error"></span>
           </div>
         </div>
@@ -204,7 +204,7 @@
         <div class="grow" style="min-width:0"><b style="display:block"><%= order.buyer_name %></b><small class="muted ellipsis" style="display:block" dir="ltr"><%= order.buyer_email %></small></div>
       </div>
       <div class="kv">
-        <div class="kv-row"><span>واتساب</span><span dir="ltr"><%= order.buyer_whatsapp ? displayWhatsapp(order.buyer_whatsapp) : '—' %></span></div>
+        <div class="kv-row"><span>واتساب</span><span dir="ltr"><%= order.buyer_whatsapp ? displayWhatsapp(order.buyer_whatsapp) : '-' %></span></div>
         <div class="kv-row"><span>عدد طلباته<%= customerScoped ? ' من منتجاتك' : '' %></span><span><%= customer.orders_count %></span></div>
         <div class="kv-row"><span>إجمالي مشترياته<%= customerScoped ? ' منك' : '' %></span><span><%- moneyBase(customer.spent) %></span></div>
       </div>

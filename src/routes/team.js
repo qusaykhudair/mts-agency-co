@@ -26,7 +26,7 @@ function mountRequestRoutes(router, { base, active }) {
     return r;
   }
   const working = (req, r) => {
-    if (!services.canWork(req.user, r)) throw forbidden('استلم الطلب أولاً حتى تتمكن من العمل عليه');
+    if (!services.canWork(req.user, r)) throw forbidden('استلم الطلب أولا حتى تتمكن من العمل عليه');
   };
   const adminOnly = (req) => {
     if (!isAdmin(req.user)) throw forbidden('هذا الإجراء من صلاحيات الإدارة');
@@ -56,7 +56,7 @@ function mountRequestRoutes(router, { base, active }) {
       budgets: BUDGETS,
       maxMb: SERVICE_FILE_MB,
       autoDays: Number(settings.get('service_auto_complete_days')) || 7,
-      waText: `مرحباً ${first}، معك فريق MTS Agency بخصوص طلب الخدمة ${r.code} (${r.title}).\nرابط الطلب: ${site}/account/services/${r.code}`,
+      waText: `مرحبا ${first}، معك فريق MTS Agency بخصوص طلب الخدمة ${r.code} (${r.title}).\nرابط الطلب: ${site}/account/services/${r.code}`,
     });
   });
 
@@ -75,7 +75,7 @@ function mountRequestRoutes(router, { base, active }) {
     const r = load(req);
     working(req, r);
     const body = cleanText(req.body.body, 4000);
-    if (!body && !req.files.length) return res.reply({ ok: false, errors: { body: 'اكتب رسالتك أو أرفق ملفاً' } });
+    if (!body && !req.files.length) return res.reply({ ok: false, errors: { body: 'اكتب رسالتك أو أرفق ملفا' } });
     services.message(r, req.user, { body, files: req.files });
     req.files.forEach((f) => (f.kept = true));
     res.reply(done(req, r, 'تم إرسال الرسالة إلى العميل'));
@@ -97,11 +97,11 @@ function mountRequestRoutes(router, { base, active }) {
     const links = urls(req.body.links, 10);
     if (links.error) return res.reply({ ok: false, errors: { links: links.error } });
     if (!links.links.length && !req.files.length) {
-      return res.reply({ ok: false, message: 'أضف رابطاً أو ملفاً واحداً على الأقل للتسليم', errors: { links: 'أضف رابط التسليم أو أرفق الملفات' } });
+      return res.reply({ ok: false, message: 'أضف رابطا أو ملفا واحدا على الأقل للتسليم', errors: { links: 'أضف رابط التسليم أو أرفق الملفات' } });
     }
     const updated = services.deliver(r, req.user, { body, links: links.links, files: req.files });
     req.files.forEach((f) => (f.kept = true));
-    res.reply(done(req, updated, 'تم تسليم الطلب للعميل وإبلاغه 🎉'));
+    res.reply(done(req, updated, 'تم التسليم ووصل العميل إشعار'));
   });
 
   router.post(`${base}/:code/complete`, (req, res) => {

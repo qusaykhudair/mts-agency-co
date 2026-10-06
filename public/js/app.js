@@ -123,7 +123,7 @@
             .join('')
         : '<div class="notif-empty"><i class="fa-regular fa-bell" style="font-size:22px;display:block;margin-bottom:6px"></i>لا توجد إشعارات بعد</div>';
     } catch {
-      list.innerHTML = '<div class="notif-empty">تعذّر تحميل الإشعارات</div>';
+      list.innerHTML = '<div class="notif-empty">تعذر تحميل الإشعارات</div>';
     }
   }
   on(document, 'click', (e) => {
@@ -267,7 +267,7 @@
     if (!btn) return;
     e.preventDefault();
     const ok = await copyText(btn.dataset.copy);
-    if (!ok) return toast('تعذّر النسخ، انسخ النص يدوياً', 'error');
+    if (!ok) return toast('تعذر النسخ، انسخ النص يدويا', 'error');
     const html = btn.innerHTML;
     btn.classList.add('is-copied');
     btn.innerHTML = '<i class="fa-solid fa-check"></i>' + (btn.textContent.trim() ? ' تم النسخ' : '');
@@ -510,7 +510,7 @@
       }
       if (!res) {
         done();
-        return toast(xhr.status === 413 ? 'حجم الملف كبير جداً' : 'حدث خطأ غير متوقع، حاول مرة أخرى', 'error');
+        return toast(xhr.status === 413 ? 'حجم الملف كبير جدا' : 'حدث خطأ غير متوقع، حاول مرة أخرى', 'error');
       }
       if (res.ok) {
         if (res.redirect) return void (window.location.href = res.redirect);
@@ -528,7 +528,7 @@
     };
     xhr.onerror = () => {
       done();
-      toast('تعذّر الاتصال بالخادم، تحقق من الإنترنت وحاول مجدداً', 'error');
+      toast('تعذر الاتصال بالخادم، تحقق من الإنترنت وحاول مجددا', 'error');
     };
     // Only upload forms are multipart; everything else goes URL-encoded.
     const multipart = (form.getAttribute('enctype') || '').includes('multipart');

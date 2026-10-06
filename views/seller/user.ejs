@@ -15,7 +15,7 @@
           <p class="muted small" dir="ltr" style="text-align:right"><%= u.email %></p>
           <p class="muted small">عضو منذ <%= fmtDate(u.created_at) %><% if (u.last_login_at) { %> · آخر دخول <%= timeAgo(u.last_login_at) %><% } %></p>
         </div>
-        <% if (u.wa_e164) { %><a class="btn btn-whatsapp" href="<%= waLink(u.wa_e164, 'مرحباً ' + u.name.split(' ')[0] + '، معك فريق ' + settings.store_name + '.') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> <bdi dir="ltr"><%= displayWhatsapp(u.wa_e164) %></bdi></a><% } %>
+        <% if (u.wa_e164) { %><a class="btn btn-whatsapp" href="<%= waLink(u.wa_e164, 'مرحبا ' + u.name.split(' ')[0] + '، معك فريق ' + settings.store_name + '.') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> <bdi dir="ltr"><%= displayWhatsapp(u.wa_e164) %></bdi></a><% } %>
       </div>
       <div class="stats mt-16">
         <div class="stat"><span class="ic"><i class="fa-solid fa-bag-shopping"></i></span><div><small>الطلبات</small><b><%= stats.n %></b></div></div>
@@ -45,7 +45,7 @@
         <input class="input" name="store_name" value="<%= u.store_name || '' %>" maxlength="60" placeholder="اسم المتجر (للبائعين)">
         <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ الصلاحية</button>
       </form>
-      <p class="help">البائع: يدير منتجاته وطلباتها فقط. منفذ الخدمات: يستلم طلبات خدمات MTS ويعمل عليها ويسلّمها للعملاء. المدير: صلاحيات كاملة.</p>
+      <p class="help">البائع: يدير منتجاته وطلباتها فقط. منفذ الخدمات: يستلم طلبات خدمات MTS ويعمل عليها ويسلمها للعملاء. المدير: صلاحيات كاملة.</p>
     </section>
 
     <section class="card card-body stack-sm">

@@ -45,19 +45,19 @@
       <%- link('acc-services', '/account/services', 'fa-solid fa-briefcase', 'طلبات الخدمات') %>
       <%- link('acc-notifs', '/account/notifications', 'fa-solid fa-bell', 'الإشعارات', counts.unread, true) %>
       <%- link('acc-profile', '/account/profile', 'fa-solid fa-user-gear', 'الملف الشخصي') %>
-      <% if (user && user.role === 'buyer') { %><%- link('acc-seller', '/account/become-seller', 'fa-solid fa-store', 'أصبح بائعاً') %><% } %>
+      <% if (user && user.role === 'buyer') { %><%- link('acc-seller', '/account/become-seller', 'fa-solid fa-store', 'أصبح بائعا') %><% } %>
       <% if (isStaff || isProvider) { %>
         <div class="sb-label">العمل</div>
         <% if (isStaff) { %><%- link('', '/seller', 'fa-solid fa-gauge-high', isAdmin ? 'لوحة الإدارة' : 'لوحة البائع', counts.pendingOrders, true) %><% } %>
         <% if (isProvider) { %><%- link('', '/provider', 'fa-solid fa-inbox', 'لوحة الخدمات', counts.services, true) %><% } %>
       <% } %>
-      <div class="sb-label">تصفّح</div>
+      <div class="sb-label">تصفح</div>
       <%- link('', '/store', 'fa-solid fa-store', 'متجر الاشتراكات') %>
       <%- link('', '/services', 'fa-solid fa-briefcase', 'خدمات MTS') %>
     <% } else { %>
       <div class="sb-cta">
         <% if (!user) { %>
-          <a class="btn btn-primary btn-block" href="/login?next=<%= encodeURIComponent(url) %>"><i class="fa-solid fa-arrow-right-to-bracket"></i> سجّل دخولك</a>
+          <a class="btn btn-primary btn-block" href="/login?next=<%= encodeURIComponent(url) %>"><i class="fa-solid fa-arrow-right-to-bracket"></i> سجل دخولك</a>
         <% } else if (isStaff) { %>
           <a class="btn btn-primary btn-block" href="/seller"><i class="fa-solid fa-gauge-high"></i> <%= isAdmin ? 'لوحة الإدارة' : 'لوحة البائع' %></a>
         <% } else if (isProvider) { %>
@@ -66,11 +66,11 @@
           <a class="btn btn-primary btn-block" href="/account"><i class="fa-solid fa-house-user"></i> لوحة حسابي</a>
         <% } %>
       </div>
-      <div class="sb-label">تصفّح المتجر</div>
+      <div class="sb-label">تصفح المتجر</div>
       <%- link('home', '/store', 'fa-solid fa-house', 'الرئيسية') %>
       <%- link('products', '/store/products', 'fa-solid fa-grip', 'جميع الاشتراكات') %>
       <%- link('platforms', '/store/platforms', 'fa-solid fa-shapes', 'المنصات') %>
-      <%- link('deals', '/store/products?sale=1&sort=deals', 'fa-solid fa-fire', 'أفضل العروض') %>
+      <%- link('deals', '/store/products?sale=1&sort=deals', 'fa-solid fa-fire', 'العروض الحالية') %>
       <%- link('help', '/store/help', 'fa-solid fa-circle-question', 'كيف أشتري؟') %>
       <% if (locals.navCategories && navCategories.length) { %>
         <div class="sb-label">الأقسام</div>
@@ -89,7 +89,7 @@
 
   <div class="sb-foot">
     <% if (!staffArea) { %>
-    <a class="sb-card wa" href="<%= waLink(storeWa, 'مرحباً MTS Store، لدي استفسار') %>" target="_blank" rel="noopener">
+    <a class="sb-card wa" href="<%= waLink(storeWa, 'مرحبا MTS Store، لدي استفسار') %>" target="_blank" rel="noopener">
       <span class="ic"><i class="fa-brands fa-whatsapp"></i></span>
       <span><b>الدعم عبر واتساب</b><small>نرد عليك بأسرع وقت</small></span>
     </a>
@@ -97,7 +97,7 @@
     <% if (navMode === 'store' && !isStaff && !isProvider) { %>
       <a class="sb-card" href="/account/become-seller">
         <span class="ic"><i class="fa-solid fa-store"></i></span>
-        <span><b>أصبح بائعاً</b><small>اعرض اشتراكاتك على المتجر</small></span>
+        <span><b>أصبح بائعا</b><small>اعرض اشتراكاتك على المتجر</small></span>
       </a>
     <% } %>
     <% if (staffArea) { %><%- link('', '/', 'fa-solid fa-arrow-up-right-from-square', 'عرض الموقع') %><% } %>

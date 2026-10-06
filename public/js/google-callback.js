@@ -15,7 +15,7 @@
 
   const token = params.get('id_token');
   if (!token) {
-    return fail(params.get('error') === 'access_denied' ? 'تم إلغاء تسجيل الدخول عبر Google.' : 'تعذّر تسجيل الدخول عبر Google، حاول مرة أخرى.');
+    return fail(params.get('error') === 'access_denied' ? 'تم إلغاء تسجيل الدخول عبر Google.' : 'تعذر تسجيل الدخول عبر Google، حاول مرة أخرى.');
   }
   fetch('/auth/google', {
     method: 'POST',
@@ -25,7 +25,7 @@
     .then((res) => res.json())
     .then((data) => {
       if (data.ok && data.redirect) return window.location.replace(data.redirect);
-      fail(data.message || 'تعذّر تسجيل الدخول عبر Google، حاول مرة أخرى.');
+      fail(data.message || 'تعذر تسجيل الدخول عبر Google، حاول مرة أخرى.');
     })
-    .catch(() => fail('تعذّر الاتصال بالخادم، تحقق من الإنترنت وحاول مرة أخرى.'));
+    .catch(() => fail('تعذر الاتصال بالخادم، تحقق من الإنترنت وحاول مرة أخرى.'));
 })();

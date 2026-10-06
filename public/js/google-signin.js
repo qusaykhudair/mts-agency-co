@@ -19,7 +19,7 @@
 
   async function signIn(response) {
     if (!response || response.error || !response.access_token) {
-      return fail(response && response.error === 'access_denied' ? 'تم إلغاء تسجيل الدخول عبر Google.' : 'تعذّر تسجيل الدخول عبر Google، حاول مرة أخرى.');
+      return fail(response && response.error === 'access_denied' ? 'تم إلغاء تسجيل الدخول عبر Google.' : 'تعذر تسجيل الدخول عبر Google، حاول مرة أخرى.');
     }
     busy(true);
     try {
@@ -30,9 +30,9 @@
       });
       const data = await res.json();
       if (data.ok && data.redirect) return window.location.assign(data.redirect);
-      fail(data.message || 'تعذّر تسجيل الدخول عبر Google، حاول مرة أخرى.');
+      fail(data.message || 'تعذر تسجيل الدخول عبر Google، حاول مرة أخرى.');
     } catch {
-      fail('تعذّر الاتصال بالخادم، تحقق من الإنترنت وحاول مرة أخرى.');
+      fail('تعذر الاتصال بالخادم، تحقق من الإنترنت وحاول مرة أخرى.');
     }
   }
 

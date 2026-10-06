@@ -1,7 +1,7 @@
 <%- include('../partials/top') %>
 
 <div class="page-head">
-  <div><h1>الطلبات</h1><p>راجع إيصالات التحويل، أكّد الدفع وسلّم الاشتراكات للعملاء.</p></div>
+  <div><h1>الطلبات</h1><p>راجع إيصالات التحويل، أكد الدفع وسلم الاشتراكات للعملاء.</p></div>
 </div>
 
 <nav class="tabs" aria-label="حالات الطلبات">
@@ -12,7 +12,7 @@
 
 <form class="filters" method="get">
   <% if (tab) { %><input type="hidden" name="status" value="<%= tab %>"><% } %>
-  <div class="input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input class="input" type="search" name="q" value="<%= q %>" placeholder="ابحث برقم الطلب، اسم العميل، الواتساب، اسم المحوِّل أو رقم الحساب…"></div>
+  <div class="input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input class="input" type="search" name="q" value="<%= q %>" placeholder="ابحث برقم الطلب، اسم العميل، الواتساب، اسم المحول أو رقم الحساب…"></div>
   <select class="select" name="method" data-autosubmit-field aria-label="طريقة الدفع">
     <option value="">كل طرق الدفع</option>
     <% methods.forEach((m) => { %><option value="<%= m.id %>"<%= methodId === m.id ? ' selected' : '' %>><%= m.name %></option><% }) %>

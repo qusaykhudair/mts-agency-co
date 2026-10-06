@@ -6,7 +6,7 @@ const TZ = process.env.DISPLAY_TIMEZONE || 'Africa/Cairo';
 const ORDER_STATUS = {
   under_review: { label: 'بانتظار مراجعة الدفع', short: 'قيد المراجعة', tone: 'warning', icon: 'fa-solid fa-hourglass-half' },
   payment_rejected: { label: 'تم رفض إيصال الدفع', short: 'الدفع مرفوض', tone: 'danger', icon: 'fa-solid fa-circle-xmark' },
-  processing: { label: 'تم تأكيد الدفع — جاري تجهيز الاشتراك', short: 'قيد التجهيز', tone: 'info', icon: 'fa-solid fa-gears' },
+  processing: { label: 'تم تأكيد الدفع، ونجهز الاشتراك', short: 'قيد التجهيز', tone: 'info', icon: 'fa-solid fa-gears' },
   delivered: { label: 'تم تسليم بيانات الاشتراك', short: 'تم التسليم', tone: 'success', icon: 'fa-solid fa-box-open' },
   completed: { label: 'الطلب مكتمل', short: 'مكتمل', tone: 'success', icon: 'fa-solid fa-circle-check' },
   cancelled: { label: 'تم إلغاء الطلب', short: 'ملغي', tone: 'muted', icon: 'fa-solid fa-ban' },
@@ -43,7 +43,7 @@ const ROLES = {
 const SERVICE_STATUS = {
   pending: { label: 'بانتظار مراجعة الفريق', short: 'طلب جديد', tone: 'warning', icon: 'fa-solid fa-inbox' },
   in_progress: { label: 'قيد التنفيذ', short: 'قيد التنفيذ', tone: 'info', icon: 'fa-solid fa-person-digging' },
-  delivered: { label: 'تم التسليم — بانتظار مراجعة العميل', short: 'تم التسليم', tone: 'success', icon: 'fa-solid fa-box-open' },
+  delivered: { label: 'تم التسليم، بانتظار مراجعة العميل', short: 'تم التسليم', tone: 'success', icon: 'fa-solid fa-box-open' },
   revision: { label: 'مطلوب تعديلات', short: 'تعديلات مطلوبة', tone: 'warning', icon: 'fa-solid fa-rotate' },
   completed: { label: 'مكتمل', short: 'مكتمل', tone: 'success', icon: 'fa-solid fa-circle-check' },
   cancelled: { label: 'ملغي', short: 'ملغي', tone: 'muted', icon: 'fa-solid fa-ban' },
@@ -66,7 +66,7 @@ const BUDGETS = {
   '100_300': 'من 100$ إلى 300$',
   '300_1000': 'من 300$ إلى 1,000$',
   over_1000: 'أكثر من 1,000$',
-  flexible: 'غير محددة — أنتظر عرض السعر',
+  flexible: 'غير محددة، أنتظر عرض السعر',
 };
 
 function toDate(v) {
@@ -153,7 +153,7 @@ function timeAgo(v) {
   const hr = Math.round(min / 60);
   if (hr < 24) return 'منذ ' + plural(hr, 'ساعة', 'ساعتين', 'ساعات', 'ساعة');
   const day = Math.round(hr / 24);
-  if (day < 30) return 'منذ ' + plural(day, 'يوم', 'يومين', 'أيام', 'يوماً');
+  if (day < 30) return 'منذ ' + plural(day, 'يوم', 'يومين', 'أيام', 'يوما');
   return fmtDate(d);
 }
 
@@ -174,10 +174,10 @@ function durationLabel(days) {
     if (m === 1) return 'شهر';
     if (m === 2) return 'شهران';
     if (m <= 10) return `${m} أشهر`;
-    return `${m} شهراً`;
+    return `${m} شهرا`;
   }
   if (days === 7) return 'أسبوع';
-  return plural(days, 'يوم', 'يومان', 'أيام', 'يوماً');
+  return plural(days, 'يوم', 'يومان', 'أيام', 'يوما');
 }
 
 function slugify(s) {
@@ -201,11 +201,11 @@ function initials(name) {
   return (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : '')).toUpperCase();
 }
 
-// "5 أيام", "15 يوماً"…
+// "5 أيام", "15 يوما"…
 function daysText(n) {
   const d = Math.max(0, Math.round(Number(n) || 0));
   if (d === 0) return 'أقل من يوم';
-  return plural(d, 'يوم واحد', 'يومان', 'أيام', 'يوماً');
+  return plural(d, 'يوم واحد', 'يومان', 'أيام', 'يوما');
 }
 
 function parseJson(s, fallback) {

@@ -4,12 +4,12 @@
   <div class="auth-card wide">
     <div class="auth-icon"><i class="fa-solid fa-user-plus"></i></div>
     <h1>إنشاء حساب جديد</h1>
-    <p class="sub">أنشئ حسابك خلال دقيقة لتتمكن من الشراء ومتابعة اشتراكاتك.</p>
+    <p class="sub">دقيقة واحدة، وبعدها تشتري وتتابع اشتراكاتك من مكان واحد.</p>
 
     <%- include('../partials/google-button', { mode: 'signup', next }) %>
     <% if (googleClientId) { %><p class="help center mt-8">عند التسجيل عبر Google سنطلب منك رقم الواتساب في الخطوة التالية.</p><% } %>
 
-    <div class="auth-divider">أو أنشئ حساباً بالبريد الإلكتروني</div>
+    <div class="auth-divider">أو أنشئ حسابا بالبريد الإلكتروني</div>
 
     <form class="stack" method="post" action="/register" data-ajax novalidate>
       <input type="hidden" name="next" value="<%= next %>">
@@ -57,12 +57,12 @@
     </form>
 
     <div class="auth-perks">
-      <div><i class="fa-solid fa-circle-check"></i> تابع حالة طلباتك واشتراكاتك لحظة بلحظة</div>
-      <div><i class="fa-solid fa-circle-check"></i> استلم بيانات الاشتراك داخل حسابك بأمان</div>
-      <div><i class="fa-solid fa-circle-check"></i> تواصل سريع عبر واتساب عند الحاجة</div>
+      <div><i class="fa-solid fa-circle-check"></i> ترى أين وصل طلبك في أي وقت</div>
+      <div><i class="fa-solid fa-circle-check"></i> بيانات اشتراكك محفوظة في حسابك ولا يراها غيرك</div>
+      <div><i class="fa-solid fa-circle-check"></i> نصل إليك على واتساب إذا احتاج طلبك شيئا</div>
     </div>
 
-    <p class="auth-foot">لديك حساب بالفعل؟ <a class="link" href="/login<%= next ? '?next=' + encodeURIComponent(next) : '' %>">سجّل الدخول</a></p>
+    <p class="auth-foot">لديك حساب بالفعل؟ <a class="link" href="/login<%= next ? '?next=' + encodeURIComponent(next) : '' %>">سجل الدخول</a></p>
   </div>
 </div>
 

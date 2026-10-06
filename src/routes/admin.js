@@ -124,7 +124,7 @@ router.post('/platforms/:id/delete', (req, res) => {
   const p = get('SELECT * FROM platforms WHERE id = ?', int(req.params.id, { fallback: 0 }));
   if (!p) throw notFound('المنصة');
   if (get('SELECT id FROM products WHERE platform_id = ? LIMIT 1', p.id)) {
-    return res.reply({ ok: false, message: 'لا يمكن حذف منصة مرتبطة بمنتجات. انقل المنتجات أو أخفِ المنصة بدلاً من ذلك.' });
+    return res.reply({ ok: false, message: 'لا يمكن حذف منصة مرتبطة بمنتجات. انقل المنتجات أو أخف المنصة بدلا من ذلك.' });
   }
   run('DELETE FROM platforms WHERE id = ?', p.id);
   if (p.logo_url) removePublic(p.logo_url);
@@ -164,7 +164,7 @@ router.post('/categories/:id/delete', (req, res) => {
   const c = get('SELECT * FROM categories WHERE id = ?', int(req.params.id, { fallback: 0 }));
   if (!c) throw notFound('القسم');
   if (get('SELECT id FROM products WHERE category_id = ? LIMIT 1', c.id)) {
-    return res.reply({ ok: false, message: 'لا يمكن حذف قسم يحتوي على منتجات. انقلها لقسم آخر أو أخفِ القسم.' });
+    return res.reply({ ok: false, message: 'لا يمكن حذف قسم يحتوي على منتجات. انقلها لقسم آخر أو أخف القسم.' });
   }
   run('UPDATE platforms SET category_id = NULL WHERE category_id = ?', c.id);
   run('DELETE FROM categories WHERE id = ?', c.id);
@@ -232,7 +232,7 @@ function saveMethod(req, res, existing) {
     currency.code,
     JSON.stringify(details),
     lines(b.instructions, 12).join('\n') || null,
-    clean(b.sender_account_label, 80) || 'رقم الحساب المحوَّل منه',
+    clean(b.sender_account_label, 80) || 'رقم الحساب المحول منه',
     bool(b.is_active) ? 1 : 0,
     int(b.sort_order, { min: 0, max: 999, fallback: 0 }),
   ];
@@ -277,7 +277,7 @@ router.post('/payment-methods/:id/delete', (req, res) => {
   if (!m) throw notFound('طريقة الدفع');
   if (get('SELECT id FROM orders WHERE payment_method_id = ? LIMIT 1', m.id)) {
     run('UPDATE payment_methods SET is_active = 0 WHERE id = ?', m.id);
-    return res.reply({ ok: true, message: 'طريقة الدفع مستخدمة في طلبات سابقة، لذلك تم إيقافها بدلاً من حذفها', reload: true });
+    return res.reply({ ok: true, message: 'طريقة الدفع مستخدمة في طلبات سابقة، لذلك تم إيقافها بدلا من حذفها', reload: true });
   }
   run('DELETE FROM payment_methods WHERE id = ?', m.id);
   if (m.logo_url) removePublic(m.logo_url);
@@ -334,7 +334,7 @@ router.post('/currencies/add', (req, res) => {
   const rate = Number(str(req.body.rate).replace(',', '.'));
   const errors = {};
   if (!/^[A-Z]{3}$/.test(code)) errors.code = 'رمز العملة 3 أحرف لاتينية مثل JOD';
-  else if (money.byCode(code)) errors.code = 'العملة موجودة مسبقاً';
+  else if (money.byCode(code)) errors.code = 'العملة موجودة مسبقا';
   if (!clean(req.body.name, 40)) errors.name = 'اسم العملة مطلوب';
   if (!clean(req.body.symbol, 8)) errors.symbol = 'رمز العرض مطلوب';
   if (!(rate > 0)) errors.rate = 'سعر الصرف غير صالح';
@@ -358,7 +358,7 @@ router.post('/currencies/:code/delete', (req, res) => {
   if (get('SELECT id FROM payment_methods WHERE currency_code = ? LIMIT 1', cur.code) || get('SELECT id FROM orders WHERE pay_currency = ? OR base_currency = ? LIMIT 1', cur.code, cur.code)) {
     run('UPDATE currencies SET is_active = 0 WHERE code = ?', cur.code);
     money.load();
-    return res.reply({ ok: true, message: 'العملة مستخدمة في طرق دفع أو طلبات، لذلك تم إيقافها بدلاً من حذفها', reload: true });
+    return res.reply({ ok: true, message: 'العملة مستخدمة في طرق دفع أو طلبات، لذلك تم إيقافها بدلا من حذفها', reload: true });
   }
   run('DELETE FROM currencies WHERE code = ?', cur.code);
   money.load();
@@ -455,7 +455,7 @@ router.post('/users/:id/role', (req, res) => {
   // Service requests in progress must not be left with someone who can no longer open them.
   if (['provider', 'admin'].includes(u.role) && !['provider', 'admin'].includes(role)) {
     const open = get("SELECT COUNT(*) AS n FROM service_requests WHERE assigned_to = ? AND status IN ('in_progress', 'delivered', 'revision')", u.id).n;
-    if (open) return res.reply({ ok: false, message: `لدى هذا العضو ${open} طلب خدمة مفتوح — أسندها إلى منفذ آخر أولاً` });
+    if (open) return res.reply({ ok: false, message: `لدى هذا العضو ${open} طلب خدمة مفتوح. أسندها إلى منفذ آخر أولا` });
   }
   const storeName = clean(req.body.store_name, 60) || u.store_name || null;
   run('UPDATE users SET role = ?, store_name = ? WHERE id = ?', role, storeName, u.id);
@@ -463,10 +463,10 @@ router.post('/users/:id/role', (req, res) => {
     const granted = {
       admin: ['مدير المتجر', 'يمكنك الآن إدارة المتجر وطلبات الخدمات بالكامل.', '/seller'],
       seller: ['البائع', 'يمكنك الآن الوصول إلى لوحة البائع لإدارة المنتجات والطلبات.', '/seller'],
-      provider: ['منفذ الخدمات', 'ستصلك طلبات خدمات MTS Agency في لوحة الخدمات لتعمل عليها وتسلّمها للعملاء.', '/provider'],
+      provider: ['منفذ الخدمات', 'ستصلك طلبات خدمات MTS Agency في لوحة الخدمات لتعمل عليها وتسلمها للعملاء.', '/provider'],
     }[role];
     notify(u.id, {
-      title: granted ? `تم منحك صلاحيات ${granted[0]} 🎉` : 'تم تحديث صلاحيات حسابك',
+      title: granted ? `أصبح لحسابك صلاحيات ${granted[0]}` : 'تم تحديث صلاحيات حسابك',
       body: granted ? granted[1] : null,
       link: granted ? granted[2] : '/account',
       icon: 'fa-solid fa-user-shield',
@@ -491,7 +491,7 @@ router.post('/users/:id/password', async (req, res) => {
   if (password.length < 8) return res.reply({ ok: false, errors: { password: 'كلمة المرور 8 أحرف على الأقل' } });
   run('UPDATE users SET password_hash = ? WHERE id = ?', await hashPassword(password), u.id);
   if (u.id !== req.user.id) endAllSessions(u.id);
-  res.reply({ ok: true, message: 'تم تعيين كلمة المرور الجديدة — أرسلها للمستخدم وانصحه بتغييرها', reload: true });
+  res.reply({ ok: true, message: 'تم تعيين كلمة المرور الجديدة. أرسلها للمستخدم وانصحه بتغييرها', reload: true });
 });
 
 router.post('/users/:id/whatsapp', (req, res) => {
@@ -519,7 +519,7 @@ router.get('/applications', (req, res) => {
 router.post('/applications/:id/:decision', (req, res) => {
   const a = get('SELECT * FROM seller_applications WHERE id = ?', int(req.params.id, { fallback: 0 }));
   if (!a) throw notFound('الطلب');
-  if (a.status !== 'pending') return res.reply({ ok: false, message: 'تمت مراجعة هذا الطلب مسبقاً' });
+  if (a.status !== 'pending') return res.reply({ ok: false, message: 'تمت مراجعة هذا الطلب مسبقا' });
   const approve = req.params.decision === 'approve';
   if (!approve && req.params.decision !== 'reject') throw notFound('الإجراء');
   const note = cleanText(req.body.note, 400) || null;
@@ -528,8 +528,8 @@ router.post('/applications/:id/:decision', (req, res) => {
     if (approve) run("UPDATE users SET role = CASE WHEN role = 'admin' THEN 'admin' ELSE 'seller' END, store_name = ? WHERE id = ?", a.store_name, a.user_id);
   });
   notify(a.user_id, {
-    title: approve ? 'تمت الموافقة على طلبك كبائع 🎉' : 'لم تتم الموافقة على طلب البائع',
-    body: approve ? `متجرك «${a.store_name}» جاهز، ابدأ بإضافة منتجاتك من لوحة البائع.` : note || 'يمكنك تعديل بياناتك وإعادة التقديم لاحقاً.',
+    title: approve ? 'وافقنا على طلبك كبائع' : 'لم تتم الموافقة على طلب البائع',
+    body: approve ? `متجرك «${a.store_name}» جاهز، ابدأ بإضافة منتجاتك من لوحة البائع.` : note || 'يمكنك تعديل بياناتك وإعادة التقديم لاحقا.',
     link: approve ? '/seller' : '/account/become-seller',
     icon: approve ? 'fa-solid fa-store' : 'fa-solid fa-circle-xmark',
     tone: approve ? 'success' : 'danger',
@@ -663,7 +663,7 @@ router.post('/services/:id/delete', (req, res) => {
   // Past requests keep their own copy of the service name, so a used service is only hidden.
   if (get('SELECT id FROM service_requests WHERE service_id = ? LIMIT 1', s.id)) {
     run('UPDATE services SET is_active = 0 WHERE id = ?', s.id);
-    return res.reply({ ok: true, message: 'الخدمة مرتبطة بطلبات سابقة، لذلك تم إخفاؤها بدلاً من حذفها', reload: true });
+    return res.reply({ ok: true, message: 'الخدمة مرتبطة بطلبات سابقة، لذلك تم إخفاؤها بدلا من حذفها', reload: true });
   }
   run('DELETE FROM services WHERE id = ?', s.id);
   res.reply({ ok: true, message: 'تم حذف الخدمة', redirect: '/seller/services' });
@@ -694,7 +694,7 @@ router.post('/settings', (req, res) => {
     return /^https?:\/\//i.test(s) ? s : '';
   };
   const googleId = clean(b.google_client_id, 200);
-  if (googleId && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleId)) errors.google_client_id = 'المعرّف يجب أن ينتهي بـ .apps.googleusercontent.com';
+  if (googleId && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleId)) errors.google_client_id = 'المعرف يجب أن ينتهي بـ .apps.googleusercontent.com';
   if (Object.keys(errors).length) return res.reply({ ok: false, errors, message: Object.values(errors)[0] });
   settings.set({
     store_name: clean(b.store_name, 60) || 'MTS Store',

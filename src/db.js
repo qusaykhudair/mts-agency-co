@@ -140,7 +140,7 @@ const MIGRATIONS = [
     currency_code        TEXT NOT NULL REFERENCES currencies(code),
     details              TEXT NOT NULL DEFAULT '[]',
     instructions         TEXT,
-    sender_account_label TEXT NOT NULL DEFAULT 'رقم الحساب المحوَّل منه',
+    sender_account_label TEXT NOT NULL DEFAULT 'رقم الحساب المحول منه',
     is_active            INTEGER NOT NULL DEFAULT 1,
     sort_order           INTEGER NOT NULL DEFAULT 0
   );
@@ -336,6 +336,8 @@ const MIGRATIONS = [
   CREATE INDEX idx_service_files_request ON service_files(request_id, event_id);
   `,
   },
+  // v4: the shop's default wording rewritten in plain human Arabic; see src/lib/copy-v4.js.
+  { run: (database) => require('./lib/copy-v4').apply(database) },
 ];
 
 function migrate() {
@@ -348,7 +350,8 @@ function migrate() {
     db.exec('BEGIN');
     try {
       const before = step.foreignKeysOff ? fkProblems() : 0;
-      db.exec(step.sql);
+      if (step.run) step.run(db);
+      else db.exec(step.sql);
       if (step.foreignKeysOff && fkProblems() > before) throw new Error(`Migration ${v + 1} would break foreign keys`);
       db.exec(`PRAGMA user_version = ${v + 1}`);
       db.exec('COMMIT');

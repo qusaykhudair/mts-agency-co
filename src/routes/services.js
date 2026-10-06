@@ -18,8 +18,8 @@ router.get('/services', (req, res) => {
   res.render('services/index', {
     nav: 'site',
     pageTitle: 'خدماتنا',
-    fullTitle: 'خدمات MTS Agency — تصميم، برمجة، تسويق وإنتاج مرئي',
-    pageDesc: 'اطلب خدمات MTS Agency أونلاين: تصميم وبرمجة المواقع، الهوية البصرية، التسويق الإلكتروني، الإنتاج المرئي وإدارة صفحات التواصل — وتابع التنفيذ واستلم التسليم من حسابك.',
+    fullTitle: 'خدمات MTS Agency | تصميم وبرمجة وتسويق وإنتاج مرئي',
+    pageDesc: 'اطلب من MTS Agency موقعك أو هويتك البصرية أو حملتك الإعلانية أو فيديو لمشروعك، وتابع العمل واستلمه من حسابك.',
     services: activeServices(),
   });
 });
@@ -44,13 +44,13 @@ router.post('/services/request', requireAuth, requestLimiter, serviceFiles('file
   const service = get('SELECT * FROM services WHERE id = ? AND is_active = 1', int(b.service_id, { fallback: 0 }));
   if (!service) errors.service_id = 'اختر الخدمة المطلوبة';
   const title = clean(b.title, 120);
-  if (title.length < 4) errors.title = 'اكتب عنواناً مختصراً لطلبك';
+  if (title.length < 4) errors.title = 'اكتب عنوانا مختصرا لطلبك';
   const details = cleanText(b.details, 5000);
-  if (details.length < 20) errors.details = 'اشرح ما تحتاجه بتفاصيل أكثر (20 حرفاً على الأقل)';
+  if (details.length < 20) errors.details = 'اشرح ما تحتاجه بتفاصيل أكثر (20 حرفا على الأقل)';
   const budget = pick(BUDGETS, b.budget);
   let deadline = clean(b.deadline, 10) || null;
   if (deadline && (!/^\d{4}-\d{2}-\d{2}$/.test(deadline) || Number.isNaN(Date.parse(deadline)))) errors.deadline = 'تاريخ غير صالح';
-  else if (deadline && deadline < isoDay(new Date())) errors.deadline = 'اختر تاريخاً قادماً';
+  else if (deadline && deadline < isoDay(new Date())) errors.deadline = 'اختر تاريخا قادما';
   const links = urls(b.links, 10);
   if (links.error) errors.links = links.error;
   if (Object.keys(errors).length) {
@@ -60,7 +60,7 @@ router.post('/services/request', requireAuth, requestLimiter, serviceFiles('file
   if (!deadline) deadline = null;
   const r = services.create({ user: req.user, service, title, details, budget, deadline, links: links.links, files: req.files });
   req.files.forEach((f) => (f.kept = true));
-  res.reply({ ok: true, message: 'تم إرسال طلبك بنجاح، سيراجعه فريقنا ويتواصل معك قريباً', redirect: `/account/services/${r.code}?new=1` });
+  res.reply({ ok: true, message: 'وصلنا طلبك، وسنتواصل معك بعد أن نقرأه', redirect: `/account/services/${r.code}?new=1` });
 });
 
 module.exports = router;

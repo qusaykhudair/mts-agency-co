@@ -9,10 +9,11 @@ const DEFAULTS = {
   support_email: 'mts.agency.co@gmail.com',
   facebook_url: 'https://www.facebook.com/mts.agency.co',
   instagram_url: 'https://www.instagram.com/mts.agency.co/',
-  announcement: '⚡ تسليم سريع للاشتراكات بعد تأكيد الدفع — ادفع عبر بنك فلسطين، جوال باي، بال باي أو فودافون كاش',
-  hero_title: 'كل اشتراكاتك الرقمية… في مكان واحد',
-  hero_subtitle: 'اشتراكات الذكاء الاصطناعي والتصميم والترفيه والإنتاجية بأسعار منافسة، دفع محلي سهل وتسليم سريع مع متابعة مباشرة عبر واتساب.',
-  checkout_note: 'بعد إرسال الطلب يقوم فريقنا بمراجعة إيصال التحويل، وسيصلك إشعار فور تأكيد الدفع وتسليم بيانات الاشتراك داخل حسابك.',
+  announcement: 'ادفع من بنك فلسطين أو جوال باي أو بال باي أو فودافون كاش، واستلم اشتراكك في حسابك بعد تأكيد التحويل',
+  // "…" splits the store headline: the part after it shows on its own highlighted line.
+  hero_title: 'اشتراكاتك العالمية… بالشيكل أو الجنيه',
+  hero_subtitle: 'ChatGPT وCanva وCapCut وNetflix وغيرها، تدفع ثمنها من بنك فلسطين أو جوال باي أو بال باي أو فودافون كاش، وتصلك بيانات الاشتراك في حسابك بعد تأكيد التحويل.',
+  checkout_note: 'نراجع إيصالك بأنفسنا، وعندما نؤكد الدفع تجد بيانات اشتراكك في صفحة الطلب ويصلك إشعار بذلك.',
   google_client_id: '',
   auto_complete_days: '3',
   // Delivered service requests the client never answered are closed after this many days.

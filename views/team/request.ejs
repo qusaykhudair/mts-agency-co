@@ -2,10 +2,10 @@
 <%
   const st = SERVICE_STATUS[r.status];
   const banner = {
-    pending: can.take ? ['طلب جديد متاح', 'راجع التفاصيل ثم استلم الطلب لتبدأ العمل عليه.'] : ['طلب جديد بانتظار التعيين', 'اختر منفذاً للطلب من القائمة الجانبية ليبدأ العمل عليه.'],
+    pending: can.take ? ['طلب جديد متاح', 'راجع التفاصيل ثم استلم الطلب لتبدأ العمل عليه.'] : ['طلب جديد بانتظار التعيين', 'اختر منفذا للطلب من القائمة الجانبية ليبدأ العمل عليه.'],
     in_progress: ['قيد التنفيذ', 'تواصل مع العميل عند الحاجة، وعند الانتهاء أرسل التسليم من نموذج التسليم.'],
-    delivered: ['بانتظار مراجعة العميل', `يعتمد العميل التسليم أو يطلب تعديلات، ويُغلق الطلب تلقائياً بعد ${autoDays} أيام.`],
-    revision: ['طلب العميل تعديلات', 'راجع ملاحظات العميل في المحادثة ثم أرسل تسليماً جديداً.'],
+    delivered: ['بانتظار مراجعة العميل', `يعتمد العميل التسليم أو يطلب تعديلات، ويغلق الطلب تلقائيا بعد ${autoDays} أيام.`],
+    revision: ['طلب العميل تعديلات', 'راجع ملاحظات العميل في المحادثة ثم أرسل تسليما جديدا.'],
     completed: ['الطلب مكتمل', 'تم اعتماد التسليم وإغلاق الطلب.'],
     cancelled: ['الطلب ملغي', r.cancel_reason || 'تم إلغاء هذا الطلب.'],
   }[r.status];
@@ -35,7 +35,7 @@
         <div><b><%= banner[0] %></b><p><%= banner[1] %></p></div>
       </div>
       <% if (can.take) { %>
-      <form method="post" action="<%= base %>/<%= r.code %>/take" data-ajax data-confirm="ستصبح مسؤولاً عن تنفيذ هذا الطلب وتسليمه للعميل. متابعة؟" data-confirm-title="استلام الطلب">
+      <form method="post" action="<%= base %>/<%= r.code %>/take" data-ajax data-confirm="ستصبح مسؤولا عن تنفيذ هذا الطلب وتسليمه للعميل. متابعة؟" data-confirm-title="استلام الطلب">
         <button class="btn btn-primary btn-lg" type="submit"><i class="fa-solid fa-hand"></i> استلام الطلب والبدء بالعمل</button>
       </form>
       <% } %>
@@ -51,13 +51,13 @@
 
     <% if (can.deliver) { %>
     <section class="card" id="deliver">
-      <div class="card-head"><h2><i class="fa-solid fa-gift"></i> <%= r.status === 'delivered' ? 'إرسال تسليم محدّث' : 'تسليم العمل للعميل' %></h2></div>
+      <div class="card-head"><h2><i class="fa-solid fa-gift"></i> <%= r.status === 'delivered' ? 'إرسال تسليم محدث' : 'تسليم العمل للعميل' %></h2></div>
       <form class="card-body stack" method="post" action="<%= base %>/<%= r.code %>/deliver" enctype="multipart/form-data" data-ajax novalidate
         data-confirm="سيصل التسليم للعميل مع إشعار، ويتحول الطلب إلى «تم التسليم». متابعة؟" data-confirm-title="تسليم الطلب">
         <div class="field">
           <label class="label" for="dLinks">روابط التسليم</label>
           <textarea class="textarea" id="dLinks" name="links" rows="3" dir="ltr" placeholder="https://drive.google.com/…&#10;https://www.figma.com/…"></textarea>
-          <span class="help">رابط في كل سطر — مثل Google Drive أو WeTransfer للملفات الكبيرة.</span>
+          <span class="help">رابط في كل سطر، مثل Google Drive أو WeTransfer للملفات الكبيرة.</span>
           <span class="field-error"></span>
         </div>
         <%- include('../partials/file-picker', { id: 'dFiles', max: 10, maxMb, label: 'ملفات التسليم' }) %>
@@ -119,7 +119,7 @@
         <div class="kv-row"><span>الخدمة</span><span><%= r.service_name %></span></div>
         <div class="kv-row"><span>الميزانية</span><span><%= r.budget ? (budgets[r.budget] || r.budget) : 'غير محددة' %></span></div>
         <div class="kv-row"><span>الموعد المطلوب</span><span><%= r.deadline ? fmtDate(r.deadline) : 'مرن' %><% if (daysLeft !== null && !['completed', 'cancelled'].includes(r.status)) { %> <small class="<%= daysLeft < 0 ? 'text-danger' : 'muted' %>">(<%= daysLeft < 0 ? 'متأخر' : daysLeft === 0 ? 'اليوم' : 'بعد ' + daysText(daysLeft) %>)</small><% } %></span></div>
-        <div class="kv-row"><span>المنفذ</span><span><%= r.assignee_name || 'غير معيّن' %></span></div>
+        <div class="kv-row"><span>المنفذ</span><span><%= r.assignee_name || 'غير معين' %></span></div>
         <div class="kv-row"><span>آخر تحديث</span><span><%= timeAgo(r.updated_at) %></span></div>
       </div>
     </section>

@@ -1,9 +1,9 @@
 <%- include('../partials/top') %>
 
 <div class="page-head">
-  <div><h1>أهلاً، <%= user.name.split(' ')[0] %> 👋</h1><p>طلباتك واشتراكاتك وطلبات الخدمات في مكان واحد.</p></div>
+  <div><h1>أهلا، <%= user.name.split(' ')[0] %></h1><p>طلباتك واشتراكاتك وطلبات الخدمات في مكان واحد.</p></div>
   <div class="actions">
-    <a class="btn btn-primary" href="/store"><i class="fa-solid fa-bag-shopping"></i> تسوّق</a>
+    <a class="btn btn-primary" href="/store"><i class="fa-solid fa-bag-shopping"></i> تسوق</a>
     <a class="btn btn-soft" href="/services/request"><i class="fa-solid fa-briefcase"></i> اطلب خدمة</a>
   </div>
 </div>
@@ -11,7 +11,7 @@
 <% attention.forEach((a) => { %>
 <div class="alert alert-danger mb-16">
   <i class="fa-solid fa-triangle-exclamation"></i>
-  <div class="grow"><b>تم رفض إيصال الدفع للطلب <%= a.code %> (<%= a.product_title %>)</b><%= a.reject_reason %> — أرسل إيصالاً صحيحاً لإكمال طلبك.</div>
+  <div class="grow"><b>تم رفض إيصال الدفع للطلب <%= a.code %> (<%= a.product_title %>)</b><%= a.reject_reason %>. أرسل إيصالا صحيحا لنكمل طلبك.</div>
   <a class="btn btn-danger btn-sm" href="/account/orders/<%= a.code %>">إعادة الإرسال</a>
 </div>
 <% }) %>
@@ -32,8 +32,8 @@
         <div class="empty" style="padding:30px 10px">
           <span class="ic"><i class="fa-solid fa-bag-shopping"></i></span>
           <h3>لا توجد طلبات بعد</h3>
-          <p>تصفّح الاشتراكات واختر ما يناسبك، وسيظهر طلبك هنا لتتابعه خطوة بخطوة.</p>
-          <a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-grip"></i> تصفّح الاشتراكات</a>
+          <p>تصفح الاشتراكات واختر ما يناسبك، وسيظهر طلبك هنا لتتابعه خطوة بخطوة.</p>
+          <a class="btn btn-primary" href="/store/products"><i class="fa-solid fa-grip"></i> تصفح الاشتراكات</a>
         </div>
       <% } %>
     </div>
@@ -48,13 +48,13 @@
           <a class="sub-card" href="/account/orders/<%= s.code %>">
             <div class="top">
               <%- include('../partials/mini-cover', { o: s }) %>
-              <div class="grow"><b><%= s.product_title %></b><small><%= s.plan_name %> · <%= s.daysLeft === null ? 'بدون انتهاء' : s.daysLeft > 0 ? 'متبقٍ ' + daysText(s.daysLeft) : 'ينتهي اليوم' %></small></div>
+              <div class="grow"><b><%= s.product_title %></b><small><%= s.plan_name %> · <%= s.daysLeft === null ? 'بدون انتهاء' : s.daysLeft > 0 ? 'متبق ' + daysText(s.daysLeft) : 'ينتهي اليوم' %></small></div>
             </div>
             <% if (s.progress !== null) { %><div class="progress <%= s.daysLeft <= 3 ? 'danger' : s.daysLeft <= 7 ? 'warn' : '' %>"><span style="width:<%= s.progress %>%"></span></div><% } %>
           </a>
           <% }) %>
         <% } else { %>
-          <p class="muted small center" style="padding:14px 0">لا توجد اشتراكات نشطة حالياً.</p>
+          <p class="muted small center" style="padding:14px 0">لا توجد اشتراكات نشطة حاليا.</p>
         <% } %>
       </div>
     </section>
@@ -65,7 +65,7 @@
         <% if (serviceRequests.length) { %>
           <% serviceRequests.forEach((r) => { %><%- include('../partials/service-card', { r, href: '/account/services/' + r.code }) %><% }) %>
         <% } else { %>
-          <p class="muted small center" style="padding:10px 0">لا توجد طلبات خدمات. <a class="link" href="/services">تصفّح خدمات MTS</a></p>
+          <p class="muted small center" style="padding:10px 0">لا توجد طلبات خدمات. <a class="link" href="/services">تصفح خدمات MTS</a></p>
         <% } %>
       </div>
     </section>

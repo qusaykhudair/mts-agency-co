@@ -21,6 +21,6 @@
 <% if (order.expires_at) { const left = daysLeft(order.expires_at); %>
 <div class="flex flex-wrap gap-8 mt-16">
   <span class="badge badge-lg <%= left > 7 ? 'badge-success' : left > 0 ? 'badge-warning' : 'badge-danger' %>"><i class="fa-regular fa-calendar-check"></i> صالح حتى <%= fmtDate(order.expires_at) %></span>
-  <span class="badge badge-lg badge-muted"><%= left > 0 ? 'متبقٍ ' + daysText(left) : 'انتهت مدة الاشتراك' %></span>
+  <span class="badge badge-lg badge-muted"><%= left > 0 ? 'متبق ' + daysText(left) : 'انتهت مدة الاشتراك' %></span>
 </div>
 <% } %>

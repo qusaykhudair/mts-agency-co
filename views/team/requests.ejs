@@ -4,7 +4,7 @@
 <div class="page-head">
   <div>
     <h1>طلبات الخدمات</h1>
-    <p><%= scope === 'admin' ? 'وزّع الطلبات الجديدة على فريق التنفيذ وتابع التسليم حتى الاعتماد.' : 'استلم الطلبات الجديدة، تواصل مع العملاء وسلّم أعمالك من هنا.' %></p>
+    <p><%= scope === 'admin' ? 'وزع الطلبات الجديدة على فريق التنفيذ وتابع التسليم حتى الاعتماد.' : 'استلم الطلبات الجديدة، تواصل مع العملاء وسلم أعمالك من هنا.' %></p>
   </div>
   <% if (scope === 'admin') { %><div class="actions"><a class="btn btn-soft" href="/seller/services"><i class="fa-solid fa-briefcase"></i> الخدمات المعروضة</a></div><% } %>
 </div>
@@ -43,7 +43,7 @@
             </div>
           </td>
           <td data-label="العميل"><%= r.client_name %></td>
-          <% if (scope === 'admin') { %><td data-label="المنفذ"><%= r.assignee_name || '—' %></td><% } %>
+          <% if (scope === 'admin') { %><td data-label="المنفذ"><%= r.assignee_name || '-' %></td><% } %>
           <td data-label="الحالة"><%- include('../partials/service-badge', { status: r.status }) %></td>
           <td data-label="آخر تحديث" class="nowrap"><%= timeAgo(r.updated_at) %></td>
           <td><div class="t-actions"><a class="btn btn-<%= r.status === 'pending' || r.status === 'revision' ? 'primary' : 'soft' %> btn-sm" href="<%= base %>/<%= r.code %>">فتح <i class="fa-solid fa-arrow-left"></i></a></div></td>
@@ -56,7 +56,7 @@
   <div class="empty">
     <span class="ic"><i class="fa-solid fa-<%= tab === 'pool' || tab === 'pending' ? 'inbox' : 'mug-hot' %>"></i></span>
     <h3><%= q ? 'لا توجد نتائج مطابقة' : tab === 'pool' ? 'لا توجد طلبات جديدة متاحة الآن' : 'لا توجد طلبات هنا' %></h3>
-    <p><%= q ? 'جرّب كلمات بحث أخرى.' : 'ستصلك إشعارات فور وصول طلب خدمة جديد.' %></p>
+    <p><%= q ? 'جرب كلمات بحث أخرى.' : 'ستصلك إشعارات فور وصول طلب خدمة جديد.' %></p>
   </div>
   <% } %>
 </section>

@@ -1,6 +1,6 @@
 <%- include('../partials/top') %>
 <%
-  const m = method || { type: 'bank', icon: 'fa-solid fa-building-columns', color: '#2457e8', is_active: 1, sort_order: 0, details: [], sender_account_label: 'رقم الحساب الذي حوّلت منه' };
+  const m = method || { type: 'bank', icon: 'fa-solid fa-building-columns', color: '#2457e8', is_active: 1, sort_order: 0, details: [], sender_account_label: 'رقم الحساب الذي حولت منه' };
   const rows = m.details.length ? m.details : [{ label: 'رقم الحساب', value: '', copy: true }, { label: 'اسم صاحب الحساب', value: '', copy: true }];
 %>
 
@@ -34,11 +34,11 @@
           <select class="select" id="currency_code" name="currency_code" required>
             <% currencies.forEach((c) => { %><option value="<%= c.code %>"<%= m.currency_code === c.code ? ' selected' : '' %>><%= c.name %> (<%= c.symbol %>)</option><% }) %>
           </select>
-          <span class="help">يُحسب المبلغ المطلوب تحويله بهذه العملة حسب سعر الصرف.</span>
+          <span class="help">يحسب المبلغ المطلوب تحويله بهذه العملة حسب سعر الصرف.</span>
           <span class="field-error"></span>
         </div>
         <div class="field span-2">
-          <label class="label" for="sender_account_label">عنوان حقل «الحساب المحوَّل منه» للعميل</label>
+          <label class="label" for="sender_account_label">عنوان حقل «الحساب المحول منه» للعميل</label>
           <input class="input" id="sender_account_label" name="sender_account_label" value="<%= m.sender_account_label %>" maxlength="80">
         </div>
       </section>
@@ -102,7 +102,7 @@
       </section>
       <section class="card card-body stack">
         <div class="field"><label class="label" for="sort_order">الترتيب</label><input class="input" id="sort_order" type="number" lang="en" name="sort_order" value="<%= m.sort_order %>" min="0"></div>
-        <label class="switch"><input type="checkbox" name="is_active" value="1"<%= m.is_active ? ' checked' : '' %>><span class="track"></span> مفعّلة للعملاء</label>
+        <label class="switch"><input type="checkbox" name="is_active" value="1"<%= m.is_active ? ' checked' : '' %>><span class="track"></span> مفعلة للعملاء</label>
         <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
       </section>
     </div>

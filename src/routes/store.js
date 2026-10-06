@@ -93,8 +93,8 @@ function renderCatalog(req, res, { category = null, platform = null }) {
     chips = catalog.platformsWithCounts({ categoryId: category.id }).map((p) => ({ label: p.name, href: '/store/platform/' + p.slug, count: p.product_count }));
   } else {
     head = {
-      title: q ? `نتائج البحث عن «${q}»` : onSale ? 'أفضل العروض والخصومات' : 'جميع الاشتراكات',
-      desc: q ? 'المنتجات المطابقة لبحثك في المتجر.' : onSale ? 'اشتراكات عليها خصومات حقيقية لفترة محدودة.' : 'تصفّح كل الاشتراكات الرقمية المتوفرة واختر ما يناسبك.',
+      title: q ? `نتائج البحث عن «${q}»` : onSale ? 'العروض والخصومات الحالية' : 'جميع الاشتراكات',
+      desc: q ? 'المنتجات المطابقة لبحثك في المتجر.' : onSale ? 'اشتراكات عليها خصومات حقيقية لفترة محدودة.' : 'تصفح كل الاشتراكات الرقمية المتوفرة واختر ما يناسبك.',
       icon: q ? 'fa-solid fa-magnifying-glass' : onSale ? 'fa-solid fa-fire' : 'fa-solid fa-grip',
       crumbs: [],
     };
@@ -182,11 +182,11 @@ router.get('/product/:slug', (req, res, next) => {
 /* ---------- Checkout ---------- */
 function checkoutContext({ productSlug, productId, planId, qty }) {
   const product = str(productSlug) ? catalog.getProduct({ slug: str(productSlug) }) : catalog.getProduct({ id: int(productId, { fallback: 0 }) });
-  if (!product) return { error: 'المنتج غير متوفر حالياً' };
+  if (!product) return { error: 'المنتج غير متوفر حاليا' };
   const plan = product.plans.find((pl) => String(pl.id) === str(planId));
   const back = '/store/product/' + product.slug;
   if (!plan) return { error: 'اختر باقة صحيحة لهذا المنتج', back };
-  if (!plan.in_stock) return { error: 'هذه الباقة غير متوفرة حالياً', back };
+  if (!plan.in_stock) return { error: 'هذه الباقة غير متوفرة حاليا', back };
   const maxQty = int(settings.get('max_quantity'), { min: 1, max: 100, fallback: 10 });
   const quantity = int(qty, { min: 1, max: maxQty, fallback: 1 });
   if (plan.stock !== null && plan.stock !== undefined && plan.stock < quantity) {
@@ -233,11 +233,11 @@ router.post('/checkout', requireAuth, checkoutLimiter, receiptUpload('receipt'),
 
   const errors = {};
   const method = get('SELECT * FROM payment_methods WHERE id = ? AND is_active = 1', int(req.body.payment_method_id, { fallback: 0 }));
-  if (!method) errors.payment_method_id = 'اختر طريقة الدفع التي حوّلت من خلالها';
+  if (!method) errors.payment_method_id = 'اختر طريقة الدفع التي حولت من خلالها';
   const senderName = clean(req.body.sender_name, 100);
   if (senderName.length < 3) errors.sender_name = 'اكتب اسم صاحب الحساب الذي تم التحويل منه';
   const senderAccount = toLatinDigits(clean(req.body.sender_account, 60));
-  if (senderAccount.replace(/\s/g, '').length < 4) errors.sender_account = 'اكتب رقم الحساب أو المحفظة الذي حوّلت منه';
+  if (senderAccount.replace(/\s/g, '').length < 4) errors.sender_account = 'اكتب رقم الحساب أو المحفظة الذي حولت منه';
   let buyerInput = null;
   if (product.buyer_input_label) {
     buyerInput = clean(req.body.buyer_input, 200);
@@ -261,7 +261,7 @@ router.post('/checkout', requireAuth, checkoutLimiter, receiptUpload('receipt'),
     receipt: req.file,
   });
   req.file.kept = true;
-  res.reply({ ok: true, message: `تم إرسال طلبك ${order.code} بنجاح 🎉`, redirect: `/account/orders/${order.code}?placed=1` });
+  res.reply({ ok: true, message: `وصلنا طلبك ${order.code}. سنراجع الإيصال ونبلغك`, redirect: `/account/orders/${order.code}?placed=1` });
 });
 
 /* ---------- Misc ---------- */
