@@ -338,6 +338,8 @@ const MIGRATIONS = [
   },
   // v4: the shop's default wording rewritten in plain human Arabic; see src/lib/copy-v4.js.
   { run: (database) => require('./lib/copy-v4').apply(database) },
+  // v5: the sample products' descriptions rewritten and checked; see src/lib/copy-v5.js.
+  { run: (database) => require('./lib/copy-v5').apply(database) },
 ];
 
 function migrate() {

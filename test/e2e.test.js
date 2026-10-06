@@ -1173,7 +1173,7 @@ test('migrating a v2 database keeps users, sessions and orders and adds the prov
     }));`;
   const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db') };
   const out = execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' });
-  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()), { version: 4, users: 2, sessions: 1, orders: 7, notifications: 1, fk: 0, fkEnforced: true });
+  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()), { version: 5, users: 2, sessions: 1, orders: 7, notifications: 1, fk: 0, fkEnforced: true });
 });
 
 test('migration v4 rewrites the default wording but keeps what the admin wrote and every order', () => {
@@ -1219,7 +1219,7 @@ test('migration v4 rewrites the default wording but keeps what the admin wrote a
     }));`;
   const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db'), OLD_HERO: oldHero, OLD_SUMMARY: oldSummary };
   const out = JSON.parse(execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' }).trim().split('\n').pop());
-  assert.equal(out.version, 4);
+  assert.equal(out.version, 5);
   // Untouched defaults take the new wording.
   assert.equal(out.hero, SETTINGS.hero_subtitle.to);
   assert.equal(out.web, SERVICES['web-development'].summary.to);
@@ -1234,4 +1234,35 @@ test('migration v4 rewrites the default wording but keeps what the admin wrote a
   assert.deepEqual(out.capcut, { title: 'CapCut Pro — مونتاج الفيديو', description: 'حرر فيديوهاتك بكل مزايا CapCut Pro.' });
   // Orders are records: never rewritten.
   assert.deepEqual(out.o, { product_title: 'Canva Pro — عضوية فريق', payment_method_name: 'جوال باي — Jawwal Pay', sender_name: 'محمّد' });
+});
+
+test('migration v5 rewrites sample product copy that was never edited, and only that', () => {
+  const { execFileSync } = require('child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mts-v4-'));
+  const { PRODUCTS } = require('../src/lib/copy-v5');
+  // The ChatGPT Plus copy as a database seeded earlier holds it after migration v4 (no diacritics).
+  const seeded = Object.fromEntries(Object.entries(PRODUCTS['chatgpt-plus']).map(([col, v]) => [col, v.from.find((x) => !/[ً-ْ]/.test(x)) || v.from[0]]));
+  const code = `
+    const { DatabaseSync } = require('node:sqlite');
+    const { MIGRATIONS } = require('./src/db');
+    const old = new DatabaseSync(process.env.OLD_DB);
+    old.exec(MIGRATIONS[0]); old.exec(MIGRATIONS[1]); old.exec(MIGRATIONS[2].sql); MIGRATIONS[3].run(old); old.exec('PRAGMA user_version = 4');
+    const f = JSON.parse(process.env.OLD_FIELDS);
+    old.exec("INSERT INTO users (id, name, email, role) VALUES (1, 'A', 'a@test.local', 'admin')");
+    const ins = old.prepare('INSERT INTO products (seller_id, title, slug, short_description, description, features, activation_steps, region_note) VALUES (1, ?, ?, ?, ?, ?, ?, ?)');
+    ins.run('ChatGPT Plus — ترقية على حسابك', 'chatgpt-plus', f.short_description, f.description, f.features, f.activation_steps, f.region_note);
+    ins.run('Canva Pro — عضوية فريق', 'canva-pro', 'وصف كتبه المدير', 'وصف كامل كتبه المدير', '["ميزة كتبها المدير"]', '[]', 'ملاحظة المدير');
+    old.close();
+    const db = require('./src/db');
+    db.migrate();
+    console.log(JSON.stringify({
+      version: db.get('PRAGMA user_version').user_version,
+      chat: db.get("SELECT short_description, description, features, activation_steps, region_note FROM products WHERE slug = 'chatgpt-plus'"),
+      canva: db.get("SELECT short_description, description, features, region_note FROM products WHERE slug = 'canva-pro'"),
+    }));`;
+  const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db'), OLD_FIELDS: JSON.stringify(seeded) };
+  const out = JSON.parse(execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' }).trim().split('\n').pop());
+  assert.equal(out.version, 5);
+  assert.deepEqual(out.chat, Object.fromEntries(Object.entries(PRODUCTS['chatgpt-plus']).map(([col, v]) => [col, v.to])));
+  assert.deepEqual(out.canva, { short_description: 'وصف كتبه المدير', description: 'وصف كامل كتبه المدير', features: '["ميزة كتبها المدير"]', region_note: 'ملاحظة المدير' });
 });
