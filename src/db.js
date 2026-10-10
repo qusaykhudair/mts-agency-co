@@ -340,6 +340,23 @@ const MIGRATIONS = [
   { run: (database) => require('./lib/copy-v4').apply(database) },
   // v5: the sample products' descriptions rewritten and checked; see src/lib/copy-v5.js.
   { run: (database) => require('./lib/copy-v5').apply(database) },
+  // v6: e-mail verification codes. Accounts created before this existed count as verified.
+  `
+  ALTER TABLE users ADD COLUMN email_verified_at TEXT;
+  UPDATE users SET email_verified_at = COALESCE(last_login_at, created_at);
+
+  CREATE TABLE email_codes (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    email      TEXT NOT NULL,
+    code_hash  TEXT NOT NULL,
+    attempts   INTEGER NOT NULL DEFAULT 0,
+    expires_at TEXT NOT NULL,
+    used_at    TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX idx_email_codes_user ON email_codes(user_id, created_at);
+  `,
 ];
 
 function migrate() {

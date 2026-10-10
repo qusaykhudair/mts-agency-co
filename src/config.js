@@ -37,6 +37,25 @@ module.exports = {
   trustProxy: env.TRUST_PROXY ? Number(env.TRUST_PROXY) : isProd || onRailway ? 1 : 0,
   sessionDays: Number(env.SESSION_DAYS) || 30,
   googleClientId: env.GOOGLE_CLIENT_ID || '',
+  // Outgoing e-mail (verification codes). Gmail API works on every Railway plan; SMTP needs Railway Pro.
+  mail: {
+    from: (env.MAIL_FROM || '').trim(),
+    fromName: env.MAIL_FROM_NAME || 'MTS Store',
+    gmail: {
+      clientId: env.GMAIL_CLIENT_ID || '',
+      clientSecret: env.GMAIL_CLIENT_SECRET || '',
+      refreshToken: env.GMAIL_REFRESH_TOKEN || '',
+    },
+    smtp: {
+      host: env.SMTP_HOST || '',
+      port: Number(env.SMTP_PORT) || 465,
+      secure: env.SMTP_SECURE ? env.SMTP_SECURE !== 'false' : (Number(env.SMTP_PORT) || 465) === 465,
+      user: env.SMTP_USER || '',
+      pass: env.SMTP_PASS || '',
+    },
+    // "outbox" writes messages to data/outbox instead of sending them (local preview only).
+    transport: env.MAIL_TRANSPORT || '',
+  },
   rateLimitOff: env.RATE_LIMIT === 'off',
   seedDemo: env.SEED_DEMO !== 'false',
   admin: {

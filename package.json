@@ -8,6 +8,8 @@
     "start": "node --disable-warning=ExperimentalWarning server.js",
     "dev": "node --disable-warning=ExperimentalWarning --watch-path=src --watch-path=server.js server.js",
     "reset-db": "node --disable-warning=ExperimentalWarning scripts/reset-db.js",
+    "gmail-auth": "node scripts/gmail-auth.js",
+    "mail-test": "node --disable-warning=ExperimentalWarning scripts/mail-test.js",
     "test": "node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\""
   },
   "engines": {
@@ -22,6 +24,7 @@
     "google-auth-library": "^11.1.0",
     "helmet": "^8.3.0",
     "libphonenumber-js": "^1.13.14",
-    "multer": "^2.4.0"
+    "multer": "^2.4.0",
+    "nodemailer": "^10.1.0"
   }
 }

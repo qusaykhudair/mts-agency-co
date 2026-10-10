@@ -7011,3 +7011,53 @@ a.kv-row:hover > span:first-child {
 .th-msg header b {
   overflow-wrap: anywhere;
 }
+
+/* E-mail verification code */
+.code-input {
+  height: 60px;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.code-input::placeholder {
+  letter-spacing: 10px;
+  color: var(--text-3);
+}
+.verify-mail {
+  font-weight: 700;
+  color: var(--text);
+}
+.verify-resend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--text-3);
+}
+.verify-resend .link:disabled {
+  color: var(--text-3);
+  cursor: default;
+  text-decoration: none;
+}
+.verify-change {
+  margin-top: 14px;
+  text-align: center;
+}
+.verify-change summary {
+  display: inline-block;
+  cursor: pointer;
+  color: var(--brand-600);
+  font-size: 14px;
+  font-weight: 600;
+}
+.verify-change[open] summary {
+  margin-bottom: 12px;
+}
+.verify-change form {
+  text-align: right;
+}

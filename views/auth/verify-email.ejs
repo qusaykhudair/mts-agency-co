@@ -1,0 +1,47 @@
+<%- include('../partials/top') %>
+
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-icon"><i class="fa-solid fa-envelope-circle-check"></i></div>
+    <h1>تأكيد بريدك الإلكتروني</h1>
+    <% if (hasCode) { %>
+    <p class="sub">أرسلنا كودا من 6 أرقام إلى <bdi dir="ltr" class="verify-mail"><%= maskedEmail %></bdi>. اكتبه هنا ليتفعل حسابك.</p>
+    <% } else { %>
+    <p class="sub">اضغط «أرسل الكود» ليصلك كود من 6 أرقام على <bdi dir="ltr" class="verify-mail"><%= maskedEmail %></bdi>، ثم اكتبه هنا ليتفعل حسابك.</p>
+    <% } %>
+
+    <form class="stack" method="post" action="/auth/verify-email" data-ajax novalidate data-verify-form>
+      <input type="hidden" name="next" value="<%= next %>">
+      <div class="field">
+        <label class="label" for="code">كود التأكيد</label>
+        <input class="input code-input" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="------" dir="ltr" required data-code-input<%= hasCode ? ' autofocus' : '' %>>
+        <span class="field-error"></span>
+        <span class="help">ينتهي الكود بعد <%= minutes %> دقيقة. لم تجده؟ ابحث في مجلد الرسائل غير المرغوب فيها (Spam).</span>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-check"></i> تأكيد البريد</button>
+    </form>
+
+    <form class="verify-resend" method="post" action="/auth/verify-email/resend" data-ajax data-resend-form<%= hasCode ? '' : ' data-reload' %>>
+      <span><%= hasCode ? 'لم يصلك الكود؟' : 'لم يصلك كود بعد.' %></span>
+      <button class="<%= hasCode ? 'link' : 'btn btn-soft btn-sm' %>" type="submit" data-resend data-wait="<%= wait %>" data-label="<%= hasCode ? 'أرسل كودا جديدا' : 'أرسل الكود' %>"><%= hasCode ? 'أرسل كودا جديدا' : 'أرسل الكود' %></button>
+    </form>
+
+    <details class="verify-change">
+      <summary>كتبت بريدك خطأ؟</summary>
+      <form class="stack-sm" method="post" action="/auth/verify-email/change" data-ajax novalidate>
+        <div class="field">
+          <label class="label" for="new_email">البريد الصحيح</label>
+          <div class="input-wrap"><i class="fa-regular fa-envelope"></i><input class="input" id="new_email" name="email" type="email" dir="ltr" autocomplete="email" required placeholder="name@example.com"></div>
+          <span class="field-error"></span>
+        </div>
+        <button class="btn btn-soft btn-block" type="submit"><i class="fa-solid fa-paper-plane"></i> غير البريد وأرسل الكود</button>
+      </form>
+    </details>
+
+    <form method="post" action="/logout" class="auth-foot">
+      <button class="link" type="submit" style="font-size:13.5px">تسجيل الخروج</button>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/verify-email.js'] }) %>

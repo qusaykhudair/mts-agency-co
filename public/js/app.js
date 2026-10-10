@@ -524,6 +524,7 @@
       showErrors(form, res.errors);
       if (res.message) toast(res.message, 'error');
       else if (res.errors) toast(Object.values(res.errors)[0], 'error');
+      form.dispatchEvent(new CustomEvent('mts:error', { detail: res }));
       if (res.redirect) setTimeout(() => (window.location.href = res.redirect), 900);
     };
     xhr.onerror = () => {

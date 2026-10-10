@@ -146,7 +146,7 @@ test('brand homepage shows live catalogue data and agency services', async () =>
 
   const health = await stranger.get('/healthz');
   assert.equal(health.status, 200);
-  assert.deepEqual(await health.json(), { ok: true, storage: 'persistent', version: 'dev' });
+  assert.deepEqual(await health.json(), { ok: true, storage: 'persistent', version: 'dev', mail: 'off' });
 
   const legacy = await stranger.get('/index.html');
   assert.equal(legacy.status, 301);
@@ -1138,9 +1138,104 @@ test('Google popup sign-in accepts only access tokens issued to this site', asyn
     assert.equal(ok.body.redirect, '/auth/complete-profile?next=%2Faccount%2Fservices');
     assert.equal(get("SELECT email FROM users WHERE google_sub = 'g-pop-1'").email, 'popup@test.local');
     assert.equal((await c.get('/auth/complete-profile')).status, 200, 'the new session is active');
+    assert.ok(get("SELECT email_verified_at FROM users WHERE google_sub = 'g-pop-1'").email_verified_at, 'Google already verified the address');
   } finally {
     global.fetch = realFetch;
     settings.set({ google_client_id: '' });
+  }
+});
+
+const signUp = (client, email, wa) =>
+  client.post('/register', { name: 'Code Tester', email, password: 'password123', password_confirm: 'password123', wa_country: 'PS', wa_number: wa, agree: '1' });
+
+test('e-mail sign-ups confirm the address with a 6-digit code before using the store', async () => {
+  const mail = require('../src/lib/mail');
+  const outbox = mail.useMemoryTransport();
+  const codeOf = (to) => outbox.filter((m) => m.to === to).pop().subject.match(/\d{6}/)[0];
+  try {
+    const c = new Client();
+    const email = 'verify.me@test.local';
+    const reg = await c.post('/register', { name: 'Verify Me', email, password: 'password123', password_confirm: 'password123', wa_country: 'PS', wa_number: '0599111222', agree: '1', next: '/account/orders' });
+    assert.equal(reg.body.ok, true, JSON.stringify(reg.body));
+    assert.equal(reg.body.redirect, '/auth/verify-email?next=%2Faccount%2Forders');
+    const code = codeOf(email);
+    const sent = outbox.find((m) => m.to === email);
+    assert.ok(sent.html.includes(code) && sent.text.includes(code) && sent.attachments[0].cid === 'logo@mts');
+    assert.ok(sent.html.includes('dir="rtl"') && !/[ً-ْ—]/.test(sent.html + sent.text), 'Arabic, right to left, no diacritics or em dashes');
+    assert.ok(!get("SELECT code_hash FROM email_codes WHERE email = ?", email).code_hash.includes(code), 'only a salted hash is stored');
+
+    // Until the code is entered, store pages send the user back to the code page.
+    const gated = await c.get('/account');
+    assert.equal(gated.status, 302);
+    assert.match(gated.headers.get('location'), /^\/auth\/verify-email\?next=/);
+    const page = await c.get('/auth/verify-email');
+    assert.equal(page.status, 200);
+    assert.ok((await page.text()).includes('ve••••••@test.local'), 'the address is shown masked');
+
+    const wrong = await c.post('/auth/verify-email', { code: code === '000000' ? '111111' : '000000' });
+    assert.equal(wrong.body.ok, false);
+    assert.match(wrong.body.message, /4 محاولات/);
+    const tooSoon = await c.post('/auth/verify-email/resend', {});
+    assert.equal(tooSoon.body.ok, false, 'a new code waits a minute');
+    assert.ok(tooSoon.body.wait > 0);
+
+    const ok = await c.post('/auth/verify-email', { code, next: '/account/orders' });
+    assert.equal(ok.body.ok, true, JSON.stringify(ok.body));
+    assert.equal(ok.body.redirect, '/account/orders');
+    assert.ok(get('SELECT email_verified_at FROM users WHERE email = ?', email).email_verified_at);
+    assert.equal((await c.get('/account')).status, 200);
+  } finally {
+    mail.useRealTransport();
+  }
+  // Without mail settings nobody is asked for a code.
+  const plain = await signUp(new Client(), 'no.mail@test.local', '0599111223');
+  assert.equal(plain.body.redirect, '/store');
+});
+
+test('codes lock after five wrong tries, expire, can be resent and follow a corrected address', async () => {
+  const mail = require('../src/lib/mail');
+  const outbox = mail.useMemoryTransport();
+  const codeOf = (to) => outbox.filter((m) => m.to === to).pop().subject.match(/\d{6}/)[0];
+  const userId = (email) => get('SELECT id FROM users WHERE email = ?', email).id;
+  try {
+    const c = new Client();
+    await signUp(c, 'typo@test.local', '0599111224');
+    const first = codeOf('typo@test.local');
+    const wrong = first === '000000' ? '111111' : '000000';
+    for (let i = 0; i < 5; i++) await c.post('/auth/verify-email', { code: wrong });
+    const locked = await c.post('/auth/verify-email', { code: first });
+    assert.equal(locked.body.ok, false, 'five wrong tries lock the code');
+    assert.match(locked.body.message, /اطلب كودا جديدا/);
+
+    run("UPDATE email_codes SET created_at = datetime('now', '-2 minutes') WHERE user_id = ?", userId('typo@test.local'));
+    const resent = await c.post('/auth/verify-email/resend', {});
+    assert.equal(resent.body.ok, true, JSON.stringify(resent.body));
+    const second = codeOf('typo@test.local');
+    run("UPDATE email_codes SET expires_at = datetime('now', '-1 minute') WHERE user_id = ? AND used_at IS NULL", userId('typo@test.local'));
+    assert.match((await c.post('/auth/verify-email', { code: second })).body.message, /انتهت صلاحية/);
+
+    // A typo in the address: fix it on the code page and the code goes to the new address.
+    assert.equal((await c.post('/auth/verify-email/change', { email: 'admin@test.local' })).body.ok, false, 'an address in use is refused');
+    const fixed = await c.post('/auth/verify-email/change', { email: 'Fixed@Test.local' });
+    assert.equal(fixed.body.ok, true, JSON.stringify(fixed.body));
+    // Digits typed on an Arabic keyboard work too.
+    const arabicDigits = codeOf('fixed@test.local').replace(/\d/g, (d) => String.fromCharCode(0x0660 + Number(d)));
+    assert.equal((await c.post('/auth/verify-email', { code: arabicDigits })).body.ok, true);
+    assert.ok(get("SELECT email_verified_at FROM users WHERE email = 'fixed@test.local'").email_verified_at);
+
+    // Logging in to an unconfirmed account leads to the code page, without a second e-mail while a code is valid.
+    await signUp(new Client(), 'later@test.local', '0599111225');
+    const before = outbox.length;
+    const login = await new Client().post('/login', { email: 'later@test.local', password: 'password123' });
+    assert.equal(login.body.redirect, '/auth/verify-email');
+    assert.equal(outbox.length, before);
+
+    // Support case: the admin confirms the address by hand.
+    const laterId = userId('later@test.local');
+    assert.equal((await admin.post(`/seller/users/${laterId}/verify-email`, {})).body.ok, true);
+    assert.ok(get('SELECT email_verified_at FROM users WHERE id = ?', laterId).email_verified_at);
+  } finally {
+    mail.useRealTransport();
   }
 });
 
@@ -1168,12 +1263,14 @@ test('migrating a v2 database keeps users, sessions and orders and adds the prov
       sessions: db.get('SELECT COUNT(*) AS n FROM sessions').n,
       orders: db.get("SELECT user_id FROM orders WHERE code = 'MTS-1'").user_id,
       notifications: db.get('SELECT COUNT(*) AS n FROM notifications').n,
+      // Accounts that existed before e-mail verification count as verified.
+      verified: Boolean(db.get('SELECT email_verified_at FROM users WHERE id = 7').email_verified_at),
       fk: db.all('PRAGMA foreign_key_check').length,
       fkEnforced: (() => { try { db.run("INSERT INTO notifications (user_id, title) VALUES (999, 'x')"); return false; } catch { return true; } })(),
     }));`;
   const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db') };
   const out = execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' });
-  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()), { version: 5, users: 2, sessions: 1, orders: 7, notifications: 1, fk: 0, fkEnforced: true });
+  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()), { version: 6, users: 2, sessions: 1, orders: 7, notifications: 1, fk: 0, fkEnforced: true, verified: true });
 });
 
 test('migration v4 rewrites the default wording but keeps what the admin wrote and every order', () => {
@@ -1219,7 +1316,7 @@ test('migration v4 rewrites the default wording but keeps what the admin wrote a
     }));`;
   const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db'), OLD_HERO: oldHero, OLD_SUMMARY: oldSummary };
   const out = JSON.parse(execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' }).trim().split('\n').pop());
-  assert.equal(out.version, 5);
+  assert.equal(out.version, 6);
   // Untouched defaults take the new wording.
   assert.equal(out.hero, SETTINGS.hero_subtitle.to);
   assert.equal(out.web, SERVICES['web-development'].summary.to);
@@ -1262,7 +1359,7 @@ test('migration v5 rewrites sample product copy that was never edited, and only 
     }));`;
   const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db'), OLD_FIELDS: JSON.stringify(seeded) };
   const out = JSON.parse(execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' }).trim().split('\n').pop());
-  assert.equal(out.version, 5);
+  assert.equal(out.version, 6);
   assert.deepEqual(out.chat, Object.fromEntries(Object.entries(PRODUCTS['chatgpt-plus']).map(([col, v]) => [col, v.to])));
   assert.deepEqual(out.canva, { short_description: 'وصف كتبه المدير', description: 'وصف كامل كتبه المدير', features: '["ميزة كتبها المدير"]', region_note: 'ملاحظة المدير' });
 });

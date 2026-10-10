@@ -34,7 +34,8 @@ function createApp() {
   // Uptime/health check; also tells whether data survives redeploys (Railway volume attached).
   app.get('/healthz', (req, res) => {
     get('SELECT 1');
-    res.set('Cache-Control', 'no-store').json({ ok: true, storage: config.ephemeralStorage ? 'ephemeral' : 'persistent', version: config.commit || 'dev' });
+    // mail: which transport sends verification codes ("off" until the keys are set); never any secret.
+    res.set('Cache-Control', 'no-store').json({ ok: true, storage: config.ephemeralStorage ? 'ephemeral' : 'persistent', version: config.commit || 'dev', mail: require('./lib/mail').transportName() });
   });
   app.get('/robots.txt', (req, res) => res.type('text').send('User-agent: *\nDisallow: /account\nDisallow: /seller\nDisallow: /api\nDisallow: /files\n'));
 
@@ -51,6 +52,7 @@ function createApp() {
   app.use(loadUser);
   app.use(mw.flash);
   app.use(mw.locals);
+  app.use(mw.requireEmailVerification);
   app.use(mw.requireProfileCompletion);
 
   /* ---------- Routes ---------- */

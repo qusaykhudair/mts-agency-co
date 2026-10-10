@@ -6,6 +6,7 @@ const { get, run } = require('../db');
 const { hashPassword, verifyPassword, startSession, endSession, isStaff, isProvider, resolveGoogleUser } = require('../lib/auth');
 const { normalizeWhatsapp } = require('../lib/phone');
 const settings = require('../lib/settings');
+const emailVerify = require('../lib/email-verify');
 const { str, safeNext, clean, isEmail, bool } = require('../lib/util');
 const { requireAuth } = require('../middleware');
 const { limiter } = require('../lib/limits');
@@ -15,8 +16,11 @@ const router = express.Router();
 const loginLimiter = limiter(20, 15, 'محاولات دخول كثيرة، انتظر بضع دقائق ثم حاول مجددا');
 const registerLimiter = limiter(10, 60, 'محاولات تسجيل كثيرة من هذا الجهاز، حاول لاحقا');
 const googleLimiter = limiter(30, 15, 'محاولات كثيرة، حاول بعد قليل');
+const verifyLimiter = limiter(30, 15, 'محاولات كثيرة، انتظر بضع دقائق ثم حاول مرة أخرى');
+const codeLimiter = limiter(10, 60, 'طلبت أكوادا كثيرة، حاول بعد قليل');
 
 const homeFor = (user) => (isStaff(user) ? '/seller' : isProvider(user) ? '/provider' : '/account');
+const verifyUrl = (next) => '/auth/verify-email' + (next ? '?next=' + encodeURIComponent(next) : '');
 const firstName = (name) => String(name || '').trim().split(/\s+/)[0];
 
 // Equalise timing between unknown e-mails and wrong passwords.
@@ -57,6 +61,12 @@ router.post('/login', loginLimiter, async (req, res) => {
   if (user.is_blocked) return res.reply({ ok: false, message: 'تم إيقاف هذا الحساب. تواصل مع الدعم لمزيد من التفاصيل.' });
 
   startSession(req, res, user.id);
+  if (emailVerify.required(user)) {
+    // Signed up but never confirmed the e-mail: send a code unless one is already waiting.
+    const sent = await emailVerify.ensureCode(user);
+    if (!sent.ok && !sent.wait) req.flash('error', sent.message);
+    return res.reply({ ok: true, redirect: verifyUrl(next) });
+  }
   const redirect = user.wa_e164 ? next || homeFor(user) : '/auth/complete-profile' + (next ? '?next=' + encodeURIComponent(next) : '');
   res.reply({ ok: true, message: `أهلا بعودتك يا ${firstName(user.name)}`, redirect });
 });
@@ -105,7 +115,63 @@ router.post('/register', registerLimiter, async (req, res) => {
     throw err;
   }
   startSession(req, res, userId);
+  const user = get('SELECT * FROM users WHERE id = ?', userId);
+  if (emailVerify.required(user)) {
+    const sent = await emailVerify.sendCode(user, { force: true });
+    if (!sent.ok) req.flash('error', sent.message);
+    return res.reply({ ok: true, message: sent.ok ? 'أرسلنا كود التأكيد إلى بريدك' : null, redirect: verifyUrl(next || '/store') });
+  }
   res.reply({ ok: true, message: `أهلا بك يا ${firstName(name)}، حسابك جاهز`, redirect: next || '/store' });
+});
+
+/* ---------- E-mail verification (6-digit code) ---------- */
+router.get('/auth/verify-email', requireAuth, (req, res) => {
+  const next = safeNext(req.query.next, '');
+  if (!emailVerify.required(req.user)) return res.redirect(next || homeFor(req.user));
+  authPage(res, 'auth/verify-email', {
+    pageTitle: 'تأكيد البريد الإلكتروني',
+    next,
+    maskedEmail: emailVerify.maskEmail(req.user.email),
+    wait: emailVerify.cooldown(req.user.id),
+    hasCode: Boolean(emailVerify.activeCode(req.user)),
+    minutes: emailVerify.CODE_MINUTES,
+  });
+});
+
+router.post('/auth/verify-email', requireAuth, verifyLimiter, (req, res) => {
+  const next = safeNext(req.body.next, '');
+  if (!emailVerify.required(req.user)) return res.reply({ ok: true, redirect: next || homeFor(req.user) });
+  const result = emailVerify.verify(req.user, req.body.code);
+  if (!result.ok) return res.reply({ ok: false, message: result.message, errors: { code: result.message } });
+  res.reply({ ok: true, message: `تم تأكيد بريدك، أهلا بك يا ${firstName(req.user.name)}`, redirect: next || homeFor(req.user) });
+});
+
+router.post('/auth/verify-email/resend', requireAuth, codeLimiter, async (req, res) => {
+  if (!emailVerify.required(req.user)) return res.reply({ ok: true, reload: true });
+  const sent = await emailVerify.sendCode(req.user);
+  if (!sent.ok) return res.reply({ ok: false, message: sent.message, data: { wait: sent.wait || 0 } });
+  res.reply({ ok: true, message: 'أرسلنا كودا جديدا إلى بريدك', data: { wait: sent.wait } });
+});
+
+// A typo in the address at sign-up: fix it here and the code goes to the new address.
+router.post('/auth/verify-email/change', requireAuth, codeLimiter, async (req, res) => {
+  if (!emailVerify.required(req.user)) return res.reply({ ok: true, reload: true });
+  const email = clean(req.body.email, 254).toLowerCase();
+  if (!isEmail(email)) return res.reply({ ok: false, errors: { email: 'أدخل بريدا إلكترونيا صحيحا' } });
+  if (email === req.user.email.toLowerCase()) return res.reply({ ok: false, errors: { email: 'هذا هو بريدك الحالي نفسه' } });
+  if (get('SELECT id FROM users WHERE email = ? AND id != ?', email, req.user.id)) return res.reply({ ok: false, errors: { email: 'هذا البريد مسجل في حساب آخر' } });
+  try {
+    run('UPDATE users SET email = ? WHERE id = ?', email, req.user.id);
+  } catch (err) {
+    if (/UNIQUE/i.test(err.message)) return res.reply({ ok: false, errors: { email: 'هذا البريد مسجل في حساب آخر' } });
+    throw err;
+  }
+  const sent = await emailVerify.sendCode({ ...req.user, email }, { force: true });
+  if (!sent.ok) {
+    req.flash('error', sent.message);
+    return res.reply({ ok: true, reload: true });
+  }
+  res.reply({ ok: true, message: 'غيرنا بريدك وأرسلنا الكود إليه', reload: true });
 });
 
 /* ---------- Google ----------

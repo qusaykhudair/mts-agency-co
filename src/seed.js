@@ -347,8 +347,8 @@ async function ensureAdmin() {
   const wa = fromInternational(config.admin.whatsapp || settings.get('whatsapp_number'));
   const waFields = wa.error ? {} : wa;
   const info = run(
-    `INSERT INTO users (name, email, password_hash, role, store_name, wa_country, wa_dial, wa_number, wa_e164)
-     VALUES (?, ?, ?, 'admin', ?, ?, ?, ?, ?)`,
+    `INSERT INTO users (name, email, password_hash, role, store_name, wa_country, wa_dial, wa_number, wa_e164, email_verified_at)
+     VALUES (?, ?, ?, 'admin', ?, ?, ?, ?, ?, datetime('now'))`,
     config.admin.name,
     email,
     await hashPassword(password),

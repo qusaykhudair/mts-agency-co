@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="x-apple-disable-message-reformatting">
+<meta name="color-scheme" content="light">
+<meta name="supported-color-schemes" content="light">
+<title>كود تأكيد بريدك</title>
+<style>
+  body { margin: 0; padding: 0; }
+  a { text-decoration: none; }
+  @media (max-width: 620px) {
+    .card { width: 100% !important; }
+    .px { padding-left: 22px !important; padding-right: 22px !important; }
+    .code { font-size: 30px !important; letter-spacing: 8px !important; }
+  }
+</style>
+</head>
+<body style="margin:0;padding:0;background-color:#eef3ff;">
+<div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;mso-hide:all;">الكود <%= code %> ينتهي بعد <%= minutes %> دقيقة.</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#eef3ff;">
+  <tr>
+    <td align="center" style="padding:32px 12px;">
+
+      <table role="presentation" class="card" width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;max-width:560px;background-color:#ffffff;border:1px solid #dce6ff;border-radius:18px;">
+        <tr>
+          <td style="height:5px;line-height:5px;font-size:0;background-color:#2f6bff;border-radius:18px 18px 0 0;">&nbsp;</td>
+        </tr>
+        <tr>
+          <td align="center" style="padding:30px 32px 4px;">
+            <img src="cid:logo@mts" width="112" alt="MTS" style="display:block;width:112px;height:auto;border:0;outline:none;">
+          </td>
+        </tr>
+        <tr>
+          <td class="px" dir="rtl" style="padding:20px 40px 4px;text-align:right;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;color:#0b1530;">
+            <h1 style="margin:0 0 12px;font-size:22px;line-height:1.5;font-weight:700;color:#0b1530;">تأكيد بريدك الإلكتروني</h1>
+            <p style="margin:0 0 4px;font-size:15px;line-height:1.9;color:#334155;">أهلا <%= name %>،</p>
+            <p style="margin:0;font-size:15px;line-height:1.9;color:#334155;">اكتب هذا الكود في صفحة التأكيد على <%= storeName %> ليتفعل حسابك:</p>
+          </td>
+        </tr>
+        <tr>
+          <td class="px" align="center" style="padding:20px 40px 10px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td align="center" dir="ltr" class="code" style="background-color:#eef3ff;border:1px solid #c9d8ff;border-radius:14px;padding:18px 10px;font-family:'Courier New',Consolas,monospace;font-size:36px;line-height:1.2;font-weight:700;letter-spacing:12px;color:#1b45c4;"><%= code %></td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+        <tr>
+          <td class="px" dir="rtl" align="center" style="padding:4px 40px 0;text-align:center;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;font-size:13px;line-height:1.8;color:#64748b;">ينتهي الكود بعد <%= minutes %> دقيقة، ويعمل مرة واحدة فقط.</td>
+        </tr>
+        <% if (appUrl) { %>
+        <tr>
+          <td align="center" style="padding:22px 40px 4px;">
+            <a href="<%= appUrl %>/auth/verify-email" style="display:inline-block;background-color:#2f6bff;color:#ffffff;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;font-size:15px;font-weight:700;line-height:1;padding:14px 28px;border-radius:12px;">افتح صفحة التأكيد</a>
+          </td>
+        </tr>
+        <% } %>
+        <tr>
+          <td class="px" dir="rtl" style="padding:24px 40px 32px;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td dir="rtl" style="background-color:#f8fafc;border:1px solid #eef2f7;border-radius:12px;padding:14px 16px;text-align:right;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;font-size:13px;line-height:1.85;color:#475569;">لم تنشئ حسابا في <%= storeName %>؟ تجاهل هذه الرسالة، فلن يتفعل أي حساب ببريدك دون هذا الكود. ولا تعط الكود لأي شخص، ففريقنا لن يطلبه منك.</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <table role="presentation" class="card" width="560" cellpadding="0" cellspacing="0" border="0" style="width:560px;max-width:560px;">
+        <tr>
+          <td dir="rtl" align="center" style="padding:20px 20px 4px;text-align:center;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;font-size:12px;line-height:1.9;color:#64748b;">
+            <%= storeName %> من MTS Agency، جسر السويس، القاهرة، مصر
+            <% if (appUrl || waUrl) { %><br>
+              <% if (appUrl) { %><a href="<%= appUrl %>" style="color:#2457e8;">زيارة الموقع</a><% } %>
+              <% if (appUrl && waUrl) { %>&nbsp;·&nbsp;<% } %>
+              <% if (waUrl) { %><a href="<%= waUrl %>" style="color:#2457e8;">تواصل معنا على واتساب</a><% } %>
+            <% } %>
+          </td>
+        </tr>
+      </table>
+
+    </td>
+  </tr>
+</table>
+</body>
+</html>

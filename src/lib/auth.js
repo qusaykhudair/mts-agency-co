@@ -101,21 +101,25 @@ const isServiceTeam = (user) => isProvider(user) || isAdmin(user);
  * WhatsApp number are cleared and every session is ended. Admin accounts are created by the
  * operator, so they are linked as they are.
  */
+// Google has verified the address (callers require email_verified), so these accounts count as confirmed.
 function resolveGoogleUser(payload) {
   const email = String(payload.email).toLowerCase();
   const picture = typeof payload.picture === 'string' ? payload.picture : null;
   let user = get('SELECT * FROM users WHERE google_sub = ?', payload.sub);
-  if (user) return { user };
+  if (user) {
+    if (!user.email_verified_at) run("UPDATE users SET email_verified_at = datetime('now') WHERE id = ?", user.id);
+    return { user: get('SELECT * FROM users WHERE id = ?', user.id) };
+  }
 
   user = get('SELECT * FROM users WHERE email = ?', email);
   if (user) {
     if (user.google_sub) return { error: 'هذا البريد مرتبط بحساب Google آخر' };
     if (user.role === 'admin') {
-      run('UPDATE users SET google_sub = ?, avatar_url = COALESCE(avatar_url, ?) WHERE id = ?', payload.sub, picture, user.id);
+      run("UPDATE users SET google_sub = ?, avatar_url = COALESCE(avatar_url, ?), email_verified_at = COALESCE(email_verified_at, datetime('now')) WHERE id = ?", payload.sub, picture, user.id);
       return { user: get('SELECT * FROM users WHERE id = ?', user.id), linked: true };
     }
     run(
-      `UPDATE users SET google_sub = ?, avatar_url = COALESCE(avatar_url, ?), password_hash = NULL,
+      `UPDATE users SET google_sub = ?, avatar_url = COALESCE(avatar_url, ?), password_hash = NULL, email_verified_at = COALESCE(email_verified_at, datetime('now')),
          wa_country = NULL, wa_dial = NULL, wa_number = NULL, wa_e164 = NULL WHERE id = ?`,
       payload.sub,
       picture,
@@ -126,7 +130,7 @@ function resolveGoogleUser(payload) {
   }
 
   const name = String(payload.name || email.split('@')[0]).trim().slice(0, 80) || email.split('@')[0];
-  const id = Number(run('INSERT INTO users (name, email, google_sub, avatar_url) VALUES (?, ?, ?, ?)', name, email, payload.sub, picture).lastInsertRowid);
+  const id = Number(run("INSERT INTO users (name, email, google_sub, avatar_url, email_verified_at) VALUES (?, ?, ?, ?, datetime('now'))", name, email, payload.sub, picture).lastInsertRowid);
   return { user: get('SELECT * FROM users WHERE id = ?', id), created: true };
 }
 

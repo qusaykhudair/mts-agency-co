@@ -9,6 +9,7 @@ const { hashPassword, endAllSessions } = require('../lib/auth');
 const { fromInternational } = require('../lib/phone');
 const { slugify, parseJson, ROLES } = require('../lib/format');
 const services = require('../lib/services');
+const emailVerify = require('../lib/email-verify');
 const { mountRequestRoutes } = require('./team');
 const { imageUpload, publicUrl, removePublic, discard } = require('../lib/uploads');
 const { str, clean, cleanText, lines, int, bool, color, icon, isEmail, pick } = require('../lib/util');
@@ -483,6 +484,13 @@ router.post('/users/:id/block', (req, res) => {
   run('UPDATE users SET is_blocked = 1 - is_blocked WHERE id = ?', u.id);
   if (!u.is_blocked) endAllSessions(u.id);
   res.reply({ ok: true, message: u.is_blocked ? 'تم تفعيل الحساب' : 'تم إيقاف الحساب وتسجيل خروجه', reload: true });
+});
+
+// Support case: the customer never received the code, and the admin has checked the address another way.
+router.post('/users/:id/verify-email', (req, res) => {
+  const u = loadUser(req);
+  emailVerify.markVerified(u.id);
+  res.reply({ ok: true, message: 'تم تأكيد البريد', reload: true });
 });
 
 router.post('/users/:id/password', async (req, res) => {

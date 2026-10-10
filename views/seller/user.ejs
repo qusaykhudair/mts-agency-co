@@ -11,7 +11,7 @@
       <div class="flex gap-16 flex-wrap">
         <% if (u.avatar_url) { %><img class="avatar avatar-lg" src="<%= u.avatar_url %>" alt="" referrerpolicy="no-referrer"><% } else { %><span class="avatar avatar-lg"><%= initials(u.name) %></span><% } %>
         <div class="grow">
-          <h1 style="font-size:21px"><%= u.name %> <span class="badge badge-<%= ROLES[u.role].tone %>"><%= ROLES[u.role].label %></span><% if (u.is_blocked) { %> <span class="badge badge-danger">موقوف</span><% } %></h1>
+          <h1 style="font-size:21px"><%= u.name %> <span class="badge badge-<%= ROLES[u.role].tone %>"><%= ROLES[u.role].label %></span><% if (u.is_blocked) { %> <span class="badge badge-danger">موقوف</span><% } %><% if (!u.email_verified_at) { %> <span class="badge badge-warning">البريد غير مؤكد</span><% } %></h1>
           <p class="muted small" dir="ltr" style="text-align:right"><%= u.email %></p>
           <p class="muted small">عضو منذ <%= fmtDate(u.created_at) %><% if (u.last_login_at) { %> · آخر دخول <%= timeAgo(u.last_login_at) %><% } %></p>
         </div>
@@ -64,6 +64,16 @@
       </form>
       <p class="help">استخدمها عند طلب العميل استعادة كلمة المرور عبر واتساب بعد التحقق من هويته.</p>
     </section>
+
+    <% if (!u.email_verified_at) { %>
+    <section class="card card-body stack-sm">
+      <h3 class="form-section-title"><i class="fa-solid fa-envelope-circle-check"></i> البريد غير مؤكد</h3>
+      <p class="help">لم يكتب هذا العميل كود التأكيد بعد. إن تأكدت أن البريد بريده ولم يصله الكود، أكده من هنا.</p>
+      <form method="post" action="/seller/users/<%= u.id %>/verify-email" data-ajax data-confirm="اعتبار بريد هذا المستخدم مؤكدا؟">
+        <button class="btn btn-soft btn-block" type="submit"><i class="fa-solid fa-check"></i> تأكيد البريد يدويا</button>
+      </form>
+    </section>
+    <% } %>
 
     <% if (u.id !== user.id) { %>
     <section class="card card-body">

@@ -190,6 +190,19 @@ function locals(req, res, next) {
 
 const PROFILE_EXEMPT = /^\/(auth\/|logout|static\/|assets\/|uploads\/|files\/|api\/|favicon)/;
 
+// E-mail sign-ups confirm their address with a code before using the store (only while mail is configured).
+function requireEmailVerification(req, res, next) {
+  if (!req.user || req.user.email_verified_at || PROFILE_EXEMPT.test(req.path) || req.path === '/') return next();
+  if (!require('./lib/mail').isConfigured()) return next();
+  if (req.method !== 'GET') {
+    const err = new Error('أكد بريدك الإلكتروني أولا');
+    err.status = 403;
+    err.expose = true;
+    return next(err);
+  }
+  return res.redirect('/auth/verify-email?next=' + encodeURIComponent(req.originalUrl));
+}
+
 // Accounts (e.g. new Google sign-ups) must add a WhatsApp number before using the store.
 function requireProfileCompletion(req, res, next) {
   if (!req.user || req.user.wa_e164 || PROFILE_EXEMPT.test(req.path) || req.path === '/') return next();
@@ -273,6 +286,7 @@ module.exports = {
   flash,
   locals,
   paginate,
+  requireEmailVerification,
   requireProfileCompletion,
   requireAuth,
   requireStaff,
