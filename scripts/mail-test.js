@@ -12,9 +12,13 @@ const mail = require('../src/lib/mail');
 const { message } = require('../src/lib/email-verify');
 
 (async () => {
-  console.log(`طريقة الإرسال: ${mail.transportName()}`);
+  console.log(`طريقة الإرسال: ${await mail.check()}`);
   if (!mail.isConfigured()) {
-    console.error('البريد غير مضبوط بعد. املأ قيم GMAIL_ في ملف .env (أو قيم SMTP_) ثم أعد المحاولة.');
+    console.error(
+      mail.transportName() === 'off'
+        ? 'البريد غير مضبوط بعد. املأ قيم GMAIL_ في ملف .env (أو قيم SMTP_) ثم أعد المحاولة.'
+        : `لم نتمكن من الاتصال بخادم البريد: ${mail.health.error}`,
+    );
     process.exit(1);
   }
   const msg = await message({ name: 'صديقنا', email: to }, '123456');

@@ -35,7 +35,7 @@ function createApp() {
   app.get('/healthz', (req, res) => {
     get('SELECT 1');
     // mail: which transport sends verification codes ("off" until the keys are set); never any secret.
-    res.set('Cache-Control', 'no-store').json({ ok: true, storage: config.ephemeralStorage ? 'ephemeral' : 'persistent', version: config.commit || 'dev', mail: require('./lib/mail').transportName() });
+    res.set('Cache-Control', 'no-store').json({ ok: true, storage: config.ephemeralStorage ? 'ephemeral' : 'persistent', version: config.commit || 'dev', mail: require('./lib/mail').status() });
   });
   app.get('/robots.txt', (req, res) => res.type('text').send('User-agent: *\nDisallow: /account\nDisallow: /seller\nDisallow: /api\nDisallow: /files\n'));
 

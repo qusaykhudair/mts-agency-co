@@ -38,6 +38,8 @@ async function main() {
     if (config.ephemeralStorage) {
       console.warn('[storage] WARNING: no Railway volume is attached — orders, accounts and receipts will be lost on the next deploy. Add a volume to this service.');
     }
+    // E-mail verification switches on once the mail server (Gmail) answers.
+    require('./src/lib/mail').startChecks();
   });
   const shutdown = () => server.close(() => process.exit(0));
   process.on('SIGINT', shutdown);

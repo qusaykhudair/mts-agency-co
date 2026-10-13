@@ -20,6 +20,15 @@ Object.assign(process.env, {
   TRUST_PROXY: '0',
   // Many accounts are registered from one IP here; the limiter itself is checked in its own test.
   RATE_LIMIT: 'off',
+  // Never send real e-mail from tests, whatever the local .env holds.
+  GMAIL_CLIENT_ID: '',
+  GMAIL_CLIENT_SECRET: '',
+  GMAIL_REFRESH_TOKEN: '',
+  SMTP_HOST: '',
+  SMTP_USER: '',
+  SMTP_PASS: '',
+  MAIL_FROM: '',
+  MAIL_TRANSPORT: '',
 });
 
 const { migrate, get, all, run } = require('../src/db');
@@ -1236,6 +1245,26 @@ test('codes lock after five wrong tries, expire, can be resent and follow a corr
     assert.ok(get('SELECT email_verified_at FROM users WHERE id = ?', laterId).email_verified_at);
   } finally {
     mail.useRealTransport();
+  }
+});
+
+test('a mail server that cannot be reached leaves verification off instead of blocking sign-ups', async () => {
+  const config = require('../src/config');
+  const mail = require('../src/lib/mail');
+  const saved = { ...config.mail.smtp };
+  // Like Railway below the Pro plan: SMTP credentials are set but the connection is refused.
+  Object.assign(config.mail.smtp, { host: '127.0.0.1', port: 9, secure: false, user: 'shop@test.local', pass: 'not-a-real-password' });
+  try {
+    assert.equal(mail.status(), 'smtp-checking');
+    assert.equal(mail.isConfigured(), false, 'not trusted before a live check');
+    assert.equal(await mail.check(), 'smtp-unreachable');
+    assert.equal(mail.isConfigured(), false);
+    assert.doesNotMatch(mail.health.error, /not-a-real-password/);
+    const res = await signUp(new Client(), 'blocked.smtp@test.local', '0599111226');
+    assert.equal(res.body.redirect, '/store', 'sign-up goes on without a code');
+    assert.equal((await (await stranger.get('/healthz')).json()).mail, 'smtp-unreachable');
+  } finally {
+    Object.assign(config.mail.smtp, saved);
   }
 });
 
