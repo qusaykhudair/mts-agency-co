@@ -2237,13 +2237,76 @@ bdi,
   align-self: center;
 }
 .rep-row.plan-row {
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
+}
+/* A plan: name, duration, stock on one line; original price + profit = sale price on the next. */
+.plan-line {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: end;
+}
+.plan-op {
+  display: none;
+}
+.plan-total output {
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  padding: 0 14px;
+  border-radius: 12px;
+  background: var(--brand-50);
+  color: var(--brand);
+  font-weight: 800;
+  white-space: nowrap;
+}
+.plan-split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  font-size: 12.5px;
+  color: var(--text-2);
+}
+.plan-split:empty {
+  display: none;
+}
+.plan-split .is-fee {
+  color: var(--brand);
+  font-weight: 700;
+}
+.plan-split .is-net {
+  color: var(--success);
+  font-weight: 700;
+}
+.plan-split .is-loss {
+  color: var(--danger);
+  font-weight: 700;
+}
+@media (max-width: 699px) {
+  /* Phones: two fields per row; the plan name takes the whole first row. */
+  .plan-line {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .plan-line:not(.plan-money) > div:first-child {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 700px) {
+  .plan-line {
+    grid-template-columns: minmax(0, 1.4fr) minmax(0, 0.8fr) minmax(0, 0.8fr) auto auto;
+  }
+  .plan-line.plan-money {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .plan-op {
+    display: block;
+    padding-bottom: 13px;
+    font-weight: 800;
+    font-size: 18px;
+    color: var(--text-3);
+  }
 }
 @media (min-width: 900px) {
-  .rep-row.plan-row {
-    grid-template-columns: 1.3fr 0.8fr 0.8fr 0.8fr 0.7fr auto auto;
-    align-items: end;
-  }
   .rep-row.pair-row {
     grid-template-columns: 1fr 1.6fr auto auto;
     align-items: end;
@@ -4631,6 +4694,14 @@ bdi,
   gap: 6px;
   height: 190px;
   padding-top: 10px;
+  /* The hidden tooltips of the edge bars must not widen the page on phones. */
+  overflow-x: clip;
+}
+.chart .bar:first-child .tip {
+  inset-inline-start: 0;
+}
+.chart .bar:last-child .tip {
+  inset-inline-end: 0;
 }
 .chart .bar {
   position: relative;
@@ -7060,4 +7131,192 @@ a.kv-row:hover > span:first-child {
 }
 .verify-change form {
   text-align: right;
+}
+
+/* ---------- Accounts (commission, earnings, seller fees) ---------- */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 800;
+  margin: 4px 0 12px;
+}
+.seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  overflow-x: auto;
+  scrollbar-width: none;
+  max-width: 100%;
+}
+.seg::-webkit-scrollbar {
+  display: none;
+}
+.seg-item {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 9px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-2);
+  white-space: nowrap;
+}
+.seg-item:hover {
+  color: var(--text);
+  background: var(--surface);
+}
+.seg-item.is-active {
+  background: var(--brand);
+  color: #fff;
+}
+.acc-filter {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px 16px;
+}
+.acc-filter-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.acc-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 16px;
+}
+.acc-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+}
+.acc-period-label {
+  font-size: 15px;
+  font-weight: 800;
+  padding: 0 4px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+}
+.acc-field {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+.acc-field .input,
+.acc-field .select {
+  height: 40px;
+  min-width: 150px;
+}
+.acc-cur {
+  margin-inline-start: auto;
+}
+.acc-note {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin: 0;
+}
+.acc-kv {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 14px 18px;
+}
+.acc-kv > div {
+  display: grid;
+  gap: 2px;
+  align-content: start;
+  min-width: 0;
+}
+.acc-kv small {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-3);
+}
+.acc-kv b {
+  font-size: 17px;
+  font-weight: 800;
+}
+.acc-table td,
+.acc-table th {
+  vertical-align: top;
+}
+.acc-table tr.is-muted td {
+  opacity: 0.6;
+}
+.acc-example {
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px dashed var(--border-strong);
+  font-size: 13.5px;
+  color: var(--text-2);
+  display: grid;
+  gap: 6px;
+}
+.acc-example b {
+  color: var(--text);
+}
+.acc-example p {
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 10px;
+}
+.acc-example p.is-current {
+  background: var(--brand-50);
+}
+.input-affix {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.input-affix span {
+  font-weight: 800;
+  color: var(--text-3);
+}
+.fee-banner {
+  align-items: center;
+}
+.fee-banner b {
+  display: block;
+}
+@media (max-width: 640px) {
+  /* The export menu sits under the period tabs and opens into the page. */
+  .acc-filter-top {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .acc-filter-top .dd {
+    align-self: flex-start;
+  }
+  .acc-filter-top .dd-menu {
+    inset-inline-end: auto;
+    inset-inline-start: 0;
+  }
+  .acc-cur {
+    margin-inline-start: 0;
+  }
+  .acc-field,
+  .acc-field .input,
+  .acc-field .select {
+    width: 100%;
+  }
+  .acc-filter-row {
+    align-items: stretch;
+  }
+  .fee-banner {
+    flex-wrap: wrap;
+  }
 }

@@ -1,0 +1,24 @@
+<%- include('../partials/top') %>
+<% const sum = payouts.reduce((s, p) => s + p.base_now, 0); %>
+
+<div class="page-head">
+  <div><h1>التحويلات للبائعين</h1><p>المبالغ التي حولناها للبائعين من أرباحهم. سجل تحويلا جديدا من صفحة حساب البائع.</p></div>
+</div>
+
+<%- include('_nav') %>
+<%- include('_period', { exportBase: '/seller/accounts/export', exportSeller: seller ? seller.id : null, keep: { seller: seller ? seller.id : '' } }) %>
+
+<form class="filters mt-16" method="get">
+  <% Object.entries({ ...period.params, cur: cur.code }).forEach(([k, v]) => { %><input type="hidden" name="<%= k %>" value="<%= v %>"><% }) %>
+  <select class="select" name="seller" data-autosubmit-field aria-label="البائع">
+    <option value="">كل البائعين</option>
+    <% sellerOptions.forEach((o) => { %><option value="<%= o.id %>"<%= seller && seller.id === o.id ? ' selected' : '' %>><%= o.label %></option><% }) %>
+  </select>
+  <span class="badge badge-success" style="align-self:center"><%= payouts.length %> تحويل · <%- amt(sum) %></span>
+</form>
+
+<section class="card">
+  <%- include('_payouts', { rows: payouts, showSeller: !seller, canDelete: true }) %>
+</section>
+
+<%- include('../partials/bottom') %>

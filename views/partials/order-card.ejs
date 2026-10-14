@@ -5,7 +5,7 @@
     <small><span class="code bold text-brand"><%= o.code %></span> · <%= fmtDate(o.created_at) %> · <%= o.payment_method_name %></small>
   </div>
   <div class="o-side">
-    <%- include('status-badge', { status: o.status }) %>
+    <%- include('status-badge', { status: o.refunded_at ? 'refunded' : o.status }) %>
     <span class="money-wrap bold"><%- orderPay(o) %></span>
   </div>
 </a>

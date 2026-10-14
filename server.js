@@ -8,6 +8,7 @@ const money = require('./src/lib/money');
 const { purgeExpiredSessions } = require('./src/lib/auth');
 const orders = require('./src/lib/orders');
 const services = require('./src/lib/services');
+const sellerFees = require('./src/lib/seller-fees');
 const { createApp } = require('./src/app');
 
 async function main() {
@@ -16,6 +17,8 @@ async function main() {
   await seed();
   settings.load();
   money.load();
+  // When each seller loses access follows the current fee settings.
+  sellerFees.sync();
 
   const housekeeping = () => {
     try {
@@ -24,6 +27,8 @@ async function main() {
       if (n) console.log(`[jobs] auto-completed ${n} delivered order(s)`);
       const s = services.autoComplete();
       if (s) console.log(`[jobs] auto-completed ${s} delivered service request(s)`);
+      const r = sellerFees.remind();
+      if (r) console.log(`[jobs] sent ${r} seller fee reminder(s)`);
     } catch (err) {
       console.error('[jobs] housekeeping failed', err);
     }

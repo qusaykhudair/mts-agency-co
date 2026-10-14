@@ -18,11 +18,16 @@
       <%- link('seller-home', '/seller', 'fa-solid fa-gauge-high', 'نظرة عامة') %>
       <%- link('seller-orders', '/seller/orders', 'fa-solid fa-receipt', 'الطلبات', counts.pendingOrders, true) %>
       <%- link('seller-products', '/seller/products', 'fa-solid fa-boxes-stacked', 'المنتجات') %>
+      <% if (!isAdmin) { %>
+        <%- link('seller-earnings', '/seller/earnings', 'fa-solid fa-chart-line', 'أرباحي وحساباتي') %>
+        <%- link('seller-subscription', '/seller/subscription', 'fa-solid fa-calendar-check', 'اشتراك البائع', locals.sellerFee && ['grace', 'overdue', 'locked'].includes(sellerFee.status) ? 1 : 0, true) %>
+      <% } %>
       <% if (isAdmin) { %>
         <div class="sb-label">الوكالة</div>
         <%- link('admin-service-requests', '/seller/service-requests', 'fa-solid fa-inbox', 'طلبات الخدمات', counts.services, true) %>
         <%- link('admin-services', '/seller/services', 'fa-solid fa-briefcase', 'الخدمات') %>
         <div class="sb-label">الإدارة</div>
+        <%- link('admin-accounts', '/seller/accounts', 'fa-solid fa-scale-balanced', 'الحسابات', counts.pendingFees, true) %>
         <%- link('admin-users', '/seller/users', 'fa-solid fa-users', 'المستخدمون') %>
         <%- link('admin-apps', '/seller/applications', 'fa-solid fa-store', 'طلبات البائعين', counts.pendingApps, true) %>
         <%- link('admin-platforms', '/seller/platforms', 'fa-solid fa-shapes', 'المنصات') %>
@@ -45,7 +50,7 @@
       <%- link('acc-services', '/account/services', 'fa-solid fa-briefcase', 'طلبات الخدمات') %>
       <%- link('acc-notifs', '/account/notifications', 'fa-solid fa-bell', 'الإشعارات', counts.unread, true) %>
       <%- link('acc-profile', '/account/profile', 'fa-solid fa-user-gear', 'الملف الشخصي') %>
-      <% if (user && user.role === 'buyer') { %><%- link('acc-seller', '/account/become-seller', 'fa-solid fa-store', 'أصبح بائعا') %><% } %>
+      <% if (user && user.role === 'buyer' && sellerSignupOpen) { %><%- link('acc-seller', '/account/become-seller', 'fa-solid fa-store', 'أصبح بائعا') %><% } %>
       <% if (isStaff || isProvider) { %>
         <div class="sb-label">العمل</div>
         <% if (isStaff) { %><%- link('', '/seller', 'fa-solid fa-gauge-high', isAdmin ? 'لوحة الإدارة' : 'لوحة البائع', counts.pendingOrders, true) %><% } %>
@@ -94,7 +99,7 @@
       <span><b>الدعم عبر واتساب</b><small>نرد عليك بأسرع وقت</small></span>
     </a>
     <% } %>
-    <% if (navMode === 'store' && !isStaff && !isProvider) { %>
+    <% if (navMode === 'store' && !isStaff && !isProvider && sellerSignupOpen) { %>
       <a class="sb-card" href="/account/become-seller">
         <span class="ic"><i class="fa-solid fa-store"></i></span>
         <span><b>أصبح بائعا</b><small>اعرض اشتراكاتك على المتجر</small></span>

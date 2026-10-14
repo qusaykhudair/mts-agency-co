@@ -1,0 +1,30 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>مبيعات البائعين</h1><p>كل عملية بيع مع سعرها الأصلي وربحها، وعمولة MTS، وما يستحقه البائع منها.</p></div>
+</div>
+
+<%- include('_nav') %>
+<%- include('_period', { exportBase: '/seller/accounts/export', exportSeller: seller ? seller.id : null, keep: { seller: seller ? seller.id : '' } }) %>
+
+<form class="filters mt-16" method="get">
+  <% Object.entries({ ...period.params, cur: cur.code }).forEach(([k, v]) => { %><input type="hidden" name="<%= k %>" value="<%= v %>"><% }) %>
+  <select class="select" name="seller" data-autosubmit-field aria-label="البائع">
+    <option value="">كل البائعين</option>
+    <% sellerOptions.forEach((o) => { %><option value="<%= o.id %>"<%= seller && seller.id === o.id ? ' selected' : '' %>><%= o.label %></option><% }) %>
+  </select>
+</form>
+
+<div class="stats">
+  <div class="stat"><span class="ic"><i class="fa-solid fa-sack-dollar"></i></span><div><small>المبيعات</small><b><%- amt(totals.gross) %></b><span class="delta"><%= totals.sales_count %> عملية بيع</span></div></div>
+  <div class="stat success"><span class="ic"><i class="fa-solid fa-percent"></i></span><div><small>عمولة MTS</small><b><%- amt(totals.commission) %></b><span class="delta"><%= commissionLabel %></span></div></div>
+  <div class="stat info"><span class="ic"><i class="fa-solid fa-store"></i></span><div><small>مستحقات البائعين</small><b><%- amt(totals.seller_net) %></b></div></div>
+  <div class="stat"><span class="ic"><i class="fa-solid fa-coins"></i></span><div><small>ربح البائعين قبل العمولة</small><b><%- amt(totals.gross_with_cost - totals.cost) %></b><span class="delta"><%= totals.unknown_cost ? `${totals.unknown_cost} طلب بدون سعر أصلي` : 'سعر البيع ناقص السعر الأصلي' %></span></div></div>
+</div>
+
+<section class="card mt-16">
+  <%- include('_sales', { rows: sales, showSeller: !seller }) %>
+</section>
+<%- include('../partials/pagination', { pg }) %>
+
+<%- include('../partials/bottom') %>

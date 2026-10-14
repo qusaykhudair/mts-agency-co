@@ -163,7 +163,8 @@ function locals(req, res, next) {
       const qs = q.toString();
       return req.path + (qs ? '?' + qs : '');
     },
-    counts: { unread: 0, pendingOrders: 0, pendingApps: 0, services: 0 },
+    counts: { unread: 0, pendingOrders: 0, pendingApps: 0, services: 0, pendingFees: 0 },
+    sellerSignupOpen: settings.sellerApplicationsOpen(),
     // Admins are warned when uploads and the database would not survive a redeploy.
     storageWarning: isAdmin(user) && config.ephemeralStorage,
   });
@@ -172,6 +173,8 @@ function locals(req, res, next) {
     if (isAdmin(user)) {
       res.locals.counts.pendingOrders = get("SELECT COUNT(*) AS n FROM orders WHERE status = 'under_review'").n;
       res.locals.counts.pendingApps = get("SELECT COUNT(*) AS n FROM seller_applications WHERE status = 'pending'").n;
+      // Seller fee receipts waiting for the admin.
+      res.locals.counts.pendingFees = get("SELECT COUNT(*) AS n FROM seller_fees WHERE status = 'pending'").n;
       // New service requests waiting for someone to pick them up.
       res.locals.counts.services = get("SELECT COUNT(*) AS n FROM service_requests WHERE status = 'pending'").n;
     } else if (isProvider(user)) {

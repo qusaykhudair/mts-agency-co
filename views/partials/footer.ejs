@@ -33,7 +33,7 @@
           <li><a href="/">MTS Agency</a></li>
           <li><a href="/services">خدماتنا</a></li>
           <li><a href="/services/request">اطلب خدمة</a></li>
-          <li><a href="/account/become-seller">أصبح بائعا</a></li>
+          <% if (locals.sellerSignupOpen) { %><li><a href="/account/become-seller">أصبح بائعا</a></li><% } %>
           <li><a href="<%= waLink(storeWa, 'مرحبا MTS Agency') %>" target="_blank" rel="noopener">تواصل معنا</a></li>
         </ul>
       </div>

@@ -7,9 +7,10 @@ const orders = require('../lib/orders');
 const { notify } = require('../lib/notify');
 const { hashPassword, endAllSessions } = require('../lib/auth');
 const { fromInternational } = require('../lib/phone');
-const { slugify, parseJson, ROLES } = require('../lib/format');
+const { slugify, parseJson, ROLES, fmtDate, zonedLocal, zonedLocalToUtc } = require('../lib/format');
 const services = require('../lib/services');
 const emailVerify = require('../lib/email-verify');
+const fees = require('../lib/seller-fees');
 const { mountRequestRoutes } = require('./team');
 const { imageUpload, publicUrl, removePublic, discard } = require('../lib/uploads');
 const { str, clean, cleanText, lines, int, bool, color, icon, isEmail, pick } = require('../lib/util');
@@ -460,6 +461,8 @@ router.post('/users/:id/role', (req, res) => {
   }
   const storeName = clean(req.body.store_name, 60) || u.store_name || null;
   run('UPDATE users SET role = ?, store_name = ? WHERE id = ?', role, storeName, u.id);
+  // Sellers owe the monthly fee from the day they become sellers; other roles never do.
+  fees.sync(u.id);
   if (role !== u.role) {
     const granted = {
       admin: ['مدير المتجر', 'يمكنك الآن إدارة المتجر وطلبات الخدمات بالكامل.', '/seller'],
@@ -514,14 +517,37 @@ router.post('/users/:id/whatsapp', (req, res) => {
    Seller applications
    ===================================================================== */
 router.get('/applications', (req, res) => {
+  const s = settings.getAll();
   res.render('seller/applications', {
     active: 'admin-apps',
     pageTitle: 'طلبات الانضمام كبائع',
+    signup: {
+      open: settings.sellerApplicationsOpen(),
+      switchedOn: s.seller_applications_open === '1',
+      untilLocal: s.seller_applications_until ? zonedLocal(s.seller_applications_until) : '',
+      until: s.seller_applications_until,
+      note: s.seller_applications_note,
+    },
     items: all(
       `SELECT a.*, u.name, u.email, u.wa_e164, u.role, u.created_at AS joined_at FROM seller_applications a JOIN users u ON u.id = a.user_id
        ORDER BY CASE a.status WHEN 'pending' THEN 0 ELSE 1 END, a.id DESC LIMIT 200`,
     ),
   });
+});
+
+// Open or close "become a seller", with an optional closing time and a message for the closed page.
+router.post('/applications/window', (req, res) => {
+  let until = '';
+  const local = clean(req.body.until, 20);
+  if (local) {
+    const d = zonedLocalToUtc(local);
+    if (!d) return res.reply({ ok: false, errors: { until: 'تاريخ غير صالح' } });
+    if (d.getTime() <= Date.now()) return res.reply({ ok: false, errors: { until: 'اختر وقتا قادما، أو اترك الحقل فارغا' } });
+    until = d.toISOString().replace('T', ' ').slice(0, 19);
+  }
+  const open = bool(req.body.open);
+  settings.set({ seller_applications_open: open ? '1' : '0', seller_applications_until: open ? until : '', seller_applications_note: clean(req.body.note, 200) });
+  res.reply({ ok: true, message: open ? 'فتحنا التسجيل كبائع' : 'أغلقنا التسجيل كبائع', reload: true });
 });
 
 router.post('/applications/:id/:decision', (req, res) => {
@@ -535,9 +561,20 @@ router.post('/applications/:id/:decision', (req, res) => {
     run("UPDATE seller_applications SET status = ?, admin_note = ?, reviewed_at = datetime('now') WHERE id = ?", approve ? 'approved' : 'rejected', note, a.id);
     if (approve) run("UPDATE users SET role = CASE WHEN role = 'admin' THEN 'admin' ELSE 'seller' END, store_name = ? WHERE id = ?", a.store_name, a.user_id);
   });
+  // A new seller owes the monthly fee from today; the approval message tells them, so the hourly
+  // reminder does not repeat it.
+  let feeText = '';
+  if (approve) {
+    fees.sync(a.user_id);
+    const st = fees.state(get('SELECT * FROM users WHERE id = ?', a.user_id));
+    if (st.applies) {
+      feeText = st.config.enforce ? ` اشتراك البائع ${st.config.label} شهريا، ادفعه قبل ${fmtDate(st.dueAt)} من صفحة اشتراك البائع.` : ` اشتراك البائع ${st.config.label} شهريا، وتدفعه من صفحة اشتراك البائع.`;
+      run('UPDATE users SET fee_notice = fee_paid_until || ? WHERE id = ?', '#due', a.user_id);
+    }
+  }
   notify(a.user_id, {
     title: approve ? 'وافقنا على طلبك كبائع' : 'لم تتم الموافقة على طلب البائع',
-    body: approve ? `متجرك «${a.store_name}» جاهز، ابدأ بإضافة منتجاتك من لوحة البائع.` : note || 'يمكنك تعديل بياناتك وإعادة التقديم لاحقا.',
+    body: approve ? `متجرك «${a.store_name}» جاهز، ابدأ بإضافة منتجاتك من لوحة البائع.${feeText}` : note || 'يمكنك تعديل بياناتك وإعادة التقديم لاحقا.',
     link: approve ? '/seller' : '/account/become-seller',
     icon: approve ? 'fa-solid fa-store' : 'fa-solid fa-circle-xmark',
     tone: approve ? 'success' : 'danger',

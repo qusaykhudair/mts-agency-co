@@ -357,6 +357,75 @@ const MIGRATIONS = [
   );
   CREATE INDEX idx_email_codes_user ON email_codes(user_id, created_at);
   `,
+  // v7: seller accounts. Plans get the seller's original (cost) price; every order keeps the commission
+  // split it was sold under; refunds are recorded; sellers pay a monthly fee and receive payouts.
+  // Seller orders from before this version get the default 20% commission on the sale price, and paid
+  // orders that were later cancelled count as refunds.
+  `
+  ALTER TABLE product_plans ADD COLUMN cost_price INTEGER;
+
+  ALTER TABLE orders ADD COLUMN unit_cost INTEGER;
+  ALTER TABLE orders ADD COLUMN commission_rate REAL;
+  ALTER TABLE orders ADD COLUMN commission_basis TEXT;
+  ALTER TABLE orders ADD COLUMN commission INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE orders ADD COLUMN seller_net INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE orders ADD COLUMN refunded_at TEXT;
+  ALTER TABLE orders ADD COLUMN refund_reason TEXT;
+  ALTER TABLE orders ADD COLUMN refunded_by INTEGER REFERENCES users(id);
+  UPDATE orders SET commission_rate = 20, commission_basis = 'sale', commission = CAST(ROUND(total * 0.2) AS INTEGER),
+                    seller_net = total - CAST(ROUND(total * 0.2) AS INTEGER)
+    WHERE seller_id IN (SELECT id FROM users WHERE role = 'seller');
+  UPDATE orders SET refunded_at = COALESCE(cancelled_at, updated_at) WHERE status = 'cancelled' AND paid_at IS NOT NULL;
+  CREATE INDEX idx_orders_paid ON orders(paid_at);
+
+  ALTER TABLE users ADD COLUMN fee_paid_until TEXT;
+  ALTER TABLE users ADD COLUMN fee_due_at TEXT;
+  ALTER TABLE users ADD COLUMN fee_notice TEXT;
+  UPDATE users SET fee_paid_until = datetime('now') WHERE role = 'seller';
+
+  CREATE TABLE seller_fees (
+    id                  INTEGER PRIMARY KEY AUTOINCREMENT,
+    seller_id           INTEGER NOT NULL REFERENCES users(id),
+    months              INTEGER NOT NULL DEFAULT 1 CHECK (months BETWEEN 1 AND 12),
+    amount              INTEGER NOT NULL DEFAULT 0,
+    currency            TEXT NOT NULL,
+    base_amount         INTEGER NOT NULL DEFAULT 0,
+    base_currency       TEXT NOT NULL,
+    method              TEXT NOT NULL CHECK (method IN ('transfer', 'cash', 'balance', 'waived')),
+    payment_method_id   INTEGER REFERENCES payment_methods(id) ON DELETE SET NULL,
+    payment_method_name TEXT,
+    sender_name         TEXT,
+    sender_account      TEXT,
+    receipt_file        TEXT,
+    receipt_mime        TEXT,
+    status              TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'void')),
+    period_from         TEXT,
+    period_to           TEXT,
+    note                TEXT,
+    reject_reason       TEXT,
+    created_by          INTEGER REFERENCES users(id),
+    reviewed_by         INTEGER REFERENCES users(id),
+    created_at          TEXT NOT NULL DEFAULT (datetime('now')),
+    reviewed_at         TEXT
+  );
+  CREATE INDEX idx_seller_fees_seller ON seller_fees(seller_id, id);
+  CREATE INDEX idx_seller_fees_status ON seller_fees(status, id);
+
+  CREATE TABLE seller_payouts (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    seller_id     INTEGER NOT NULL REFERENCES users(id),
+    amount        INTEGER NOT NULL CHECK (amount > 0),
+    currency      TEXT NOT NULL,
+    base_amount   INTEGER NOT NULL,
+    base_currency TEXT NOT NULL,
+    method        TEXT,
+    reference     TEXT,
+    note          TEXT,
+    created_by    INTEGER REFERENCES users(id),
+    created_at    TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX idx_seller_payouts_seller ON seller_payouts(seller_id, id);
+  `,
 ];
 
 function migrate() {

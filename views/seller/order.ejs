@@ -7,8 +7,14 @@
     processing: ['تم تأكيد الدفع، جهز الاشتراك', 'أدخل بيانات الاشتراك في نموذج التسليم ليصل للعميل فورا مع إشعار.'],
     delivered: ['تم التسليم، بانتظار تأكيد العميل', 'يكتمل الطلب تلقائيا بعد ' + settings.auto_complete_days + ' أيام إن لم يبلغ العميل عن مشكلة. يمكنك تعديل البيانات عند الحاجة.'],
     completed: ['الطلب مكتمل', 'تم تسليم الاشتراك وتأكيد الاستلام. يمكنك تحديث البيانات عند الاستبدال خلال فترة الضمان.'],
-    cancelled: ['الطلب ملغي', 'تم إلغاء هذا الطلب.'],
+    cancelled: order.refunded_at
+      ? ['ألغي الطلب واسترجع المبلغ', `سجلنا استرجاع المبلغ ${fmtDateTime(order.refunded_at)}${order.refund_reason ? '. السبب: ' + order.refund_reason : ''}. لا يحسب في المبيعات ولا في مستحقات البائع.`]
+      : ['الطلب ملغي', 'تم إلغاء هذا الطلب.'],
   }[order.status];
+  const statusKey = order.refunded_at ? 'refunded' : order.status;
+  const isSellerSale = order.commission_rate !== null && order.commission_rate !== undefined;
+  const orderCost = order.unit_cost === null || order.unit_cost === undefined ? null : order.unit_cost * order.quantity;
+  const inOrderCur = (v) => moneyIn(v, order.base_currency);
   const canDeliver = ['processing', 'delivered', 'completed'].includes(order.status) || (order.status === 'under_review' && canReview);
   const isLatin = (v) => /^[\x00-\x7F]+$/.test(String(v || ''));
   const methodDetails = method ? (function () { try { return JSON.parse(method.details || '[]'); } catch (e) { return []; } })() : [];
@@ -28,7 +34,7 @@
 <div class="page-head">
   <div class="flex gap-12 flex-wrap">
     <h1>الطلب <span class="text-brand"><%= order.code %></span></h1>
-    <%- include('../partials/status-badge', { status: order.status }) %>
+    <%- include('../partials/status-badge', { status: statusKey }) %>
   </div>
   <div class="actions">
     <% if (order.buyer_whatsapp) { %>
@@ -55,8 +61,8 @@
         </div>
         <% if (order.product_slug) { %><a class="btn btn-ghost btn-sm" href="/store/product/<%= order.product_slug %>" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> المنتج</a><% } %>
       </div>
-      <div class="status-banner <%= st.tone %>">
-        <span class="ic"><i class="<%= st.icon %>"></i></span>
+      <div class="status-banner <%= ORDER_STATUS[statusKey].tone %>">
+        <span class="ic"><i class="<%= ORDER_STATUS[statusKey].icon %>"></i></span>
         <div><b><%= staffBanner[0] %></b><p><%= staffBanner[1] %><% if (order.status === 'payment_rejected' && order.reject_reason) { %>. سبب الرفض: <%= order.reject_reason %><% } %></p></div>
       </div>
       <%- include('../partials/order-stepper', { order }) %>
@@ -214,7 +220,24 @@
       </div>
     </section>
 
-    <% if (order.status === 'delivered' || ['under_review', 'payment_rejected', 'processing'].includes(order.status)) { %>
+    <section class="card card-body">
+      <h3 class="form-section-title" style="margin-bottom:12px"><i class="fa-solid fa-scale-balanced"></i> التقسيم المالي</h3>
+      <div class="kv">
+        <div class="kv-row"><span>سعر البيع</span><span><b><%- inOrderCur(order.total) %></b></span></div>
+        <div class="kv-row"><span>السعر الأصلي</span><span><%- orderCost === null ? '<span class="muted">غير محدد</span>' : inOrderCur(orderCost) %></span></div>
+        <% if (orderCost !== null) { %><div class="kv-row"><span>الربح</span><span><%- inOrderCur(order.total - orderCost) %></span></div><% } %>
+        <% if (isSellerSale) { %>
+        <div class="kv-row"><span>عمولة MTS (<%= rateLabel(order.commission_rate, order.commission_basis || 'sale') %>)</span><span class="text-brand bold"><%- inOrderCur(order.commission) %></span></div>
+        <div class="kv-row"><span><%= isAdmin ? 'مستحقات البائع' : 'مستحقاتك' %></span><span><b><%- inOrderCur(order.seller_net) %></b></span></div>
+        <% if (orderCost !== null) { %><div class="kv-row"><span><%= isAdmin ? 'صافي ربح البائع' : 'صافي ربحك' %></span><span class="<%= order.seller_net - orderCost < 0 ? 'text-danger' : '' %>"><%- inOrderCur(order.seller_net - orderCost) %></span></div><% } %>
+        <% } else { %>
+        <div class="kv-row"><span>البائع</span><span>MTS نفسها، بدون عمولة</span></div>
+        <% } %>
+      </div>
+      <% if (order.refunded_at) { %><p class="help mt-8 text-danger">مسترجع، فلا يحسب في الأرباح.</p><% } else if (isSellerSale && !['processing', 'delivered', 'completed'].includes(order.status)) { %><p class="help mt-8">تحسب الأرباح بعد تأكيد الدفع.</p><% } %>
+    </section>
+
+    <% if (order.status === 'delivered' || ['under_review', 'payment_rejected', 'processing'].includes(order.status) || canRefund) { %>
     <section class="card card-body stack-sm">
       <h3 class="form-section-title"><i class="fa-solid fa-sliders"></i> إجراءات</h3>
       <% if (order.status === 'delivered') { %>
@@ -222,9 +245,14 @@
         <button class="btn btn-soft btn-block" type="submit"><i class="fa-solid fa-flag-checkered"></i> تعليم كمكتمل</button>
       </form>
       <% } %>
-      <% if (['under_review', 'payment_rejected', 'processing'].includes(order.status)) { %>
-      <form method="post" action="/seller/orders/<%= order.code %>/cancel" data-ajax data-confirm="سيتم إلغاء الطلب وإبلاغ العميل." data-confirm-title="إلغاء الطلب" data-confirm-danger data-prompt="سبب الإلغاء (سيظهر للعميل)" data-prompt-name="reason">
+      <% if (['under_review', 'payment_rejected'].includes(order.status) || (order.status === 'processing' && !canRefund)) { %>
+      <form method="post" action="/seller/orders/<%= order.code %>/cancel" data-ajax data-confirm="<%= order.status === 'processing' ? 'الدفع مؤكد، فإلغاء الطلب يعني إعادة المبلغ للعميل، وتعيده إدارة المتجر. متابعة؟' : 'سيتم إلغاء الطلب وإبلاغ العميل.' %>" data-confirm-title="إلغاء الطلب" data-confirm-danger data-prompt="سبب الإلغاء (سيظهر للعميل)" data-prompt-name="reason">
         <button class="btn btn-danger-soft btn-block" type="submit"><i class="fa-solid fa-ban"></i> إلغاء الطلب</button>
+      </form>
+      <% } %>
+      <% if (canRefund) { %>
+      <form method="post" action="/seller/orders/<%= order.code %>/refund" data-ajax data-confirm="نلغي الطلب ونسجل أنك أعدت <%= orderPayText(order) %> للعميل، ولا يحسب في أرباح البائع. أعد المبلغ للعميل إن لم تفعل بعد." data-confirm-title="استرجاع المبلغ" data-confirm-danger data-prompt="سبب الاسترجاع (يظهر للعميل والبائع)" data-prompt-name="reason">
+        <button class="btn btn-danger-soft btn-block" type="submit"><i class="fa-solid fa-rotate-left"></i> إلغاء واسترجاع المبلغ</button>
       </form>
       <% } %>
     </section>

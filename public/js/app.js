@@ -323,6 +323,8 @@
     }
   });
   $$('form[data-autosubmit] select, select[data-autosubmit-field]').forEach((s) => on(s, 'change', () => s.form.submit()));
+  // Date pickers submit once a full date is chosen (typing a year digit by digit fires "change" with a partial value).
+  $$('form[data-autosubmit] input[type="date"]').forEach((d) => on(d, 'change', () => /^\d{4}-\d{2}-\d{2}$/.test(d.value) && d.form.submit()));
 
   /* ---------- Horizontal carousels ---------- */
   $$('[data-hscroll]').forEach((wrap) => {

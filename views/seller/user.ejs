@@ -15,7 +15,10 @@
           <p class="muted small" dir="ltr" style="text-align:right"><%= u.email %></p>
           <p class="muted small">عضو منذ <%= fmtDate(u.created_at) %><% if (u.last_login_at) { %> · آخر دخول <%= timeAgo(u.last_login_at) %><% } %></p>
         </div>
-        <% if (u.wa_e164) { %><a class="btn btn-whatsapp" href="<%= waLink(u.wa_e164, 'مرحبا ' + u.name.split(' ')[0] + '، معك فريق ' + settings.store_name + '.') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> <bdi dir="ltr"><%= displayWhatsapp(u.wa_e164) %></bdi></a><% } %>
+        <div class="flex gap-8 flex-wrap">
+          <% if (u.role === 'seller') { %><a class="btn btn-soft" href="/seller/accounts/sellers/<%= u.id %>"><i class="fa-solid fa-scale-balanced"></i> حسابات البائع</a><% } %>
+          <% if (u.wa_e164) { %><a class="btn btn-whatsapp" href="<%= waLink(u.wa_e164, 'مرحبا ' + u.name.split(' ')[0] + '، معك فريق ' + settings.store_name + '.') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> <bdi dir="ltr"><%= displayWhatsapp(u.wa_e164) %></bdi></a><% } %>
+        </div>
       </div>
       <div class="stats mt-16">
         <div class="stat"><span class="ic"><i class="fa-solid fa-bag-shopping"></i></span><div><small>الطلبات</small><b><%= stats.n %></b></div></div>

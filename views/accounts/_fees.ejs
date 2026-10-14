@@ -1,0 +1,36 @@
+<%
+  // Seller fee payments. `latest` (admin only) maps seller id -> the approved payment that can be cancelled.
+  const latestMap = locals.latest || null;
+  const amountOf = (f) => (f.method === 'waived' ? '<span class="muted">بدون مبلغ</span>' : moneyIn(f.amount, f.currency));
+%>
+<% if (rows.length) { %>
+<div class="table-wrap">
+  <table class="table responsive acc-table">
+    <thead><tr><th>التاريخ</th><% if (locals.showSeller) { %><th>البائع</th><% } %><th>المدة</th><th>المبلغ</th><th>الطريقة</th><th>الفترة المدفوعة</th><th>الحالة</th><% if (latestMap) { %><th></th><% } %></tr></thead>
+    <tbody>
+      <% rows.forEach((f) => { const st = feeStatus[f.status] || { label: f.status, tone: 'muted' }; %>
+      <tr>
+        <td class="t-first"><b><%= fmtDateTime(f.created_at) %></b><% if (f.reviewer_name) { %><small class="muted" style="display:block">راجعه <%= f.reviewer_name %></small><% } %></td>
+        <% if (locals.showSeller) { %><td data-label="البائع"><a class="link" href="/seller/accounts/sellers/<%= f.seller_id %>?tab=fees"><%= f.seller_store || f.seller_name %></a></td><% } %>
+        <td data-label="المدة"><%= monthsText(f.months) %></td>
+        <td data-label="المبلغ" class="nowrap"><b><%- amountOf(f) %></b></td>
+        <td data-label="الطريقة"><%= f.payment_method_name || feeMethods[f.method] || f.method %><% if (f.receipt_file) { %><br><a class="link small" href="/files/fee-receipts/<%= f.receipt_file %>" target="_blank" rel="noopener">الإيصال</a><% } %></td>
+        <td data-label="الفترة المدفوعة" class="nowrap"><small><%= f.period_from ? `${fmtDate(f.period_from)} - ${fmtDate(f.period_to)}` : '-' %></small></td>
+        <td data-label="الحالة"><span class="badge badge-<%= st.tone %>"><%= st.label %></span><% if (f.reject_reason) { %><br><small class="muted"><%= f.reject_reason %></small><% } %></td>
+        <% if (latestMap) { %>
+        <td><div class="t-actions">
+          <% if (f.status === 'approved' && latestMap[f.seller_id] && latestMap[f.seller_id].id === f.id) { %>
+          <form method="post" action="/seller/accounts/fees/<%= f.id %>/void" data-ajax data-confirm="إلغاء هذه الدفعة؟ يرجع تاريخ اشتراك البائع إلى <%= f.period_from ? fmtDate(f.period_from) : 'ما كان عليه' %>." data-confirm-danger>
+            <button class="btn btn-ghost btn-sm" type="submit"><i class="fa-solid fa-rotate-left"></i> إلغاء</button>
+          </form>
+          <% } %>
+        </div></td>
+        <% } %>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } else { %>
+<div class="empty" style="padding:34px 12px"><span class="ic"><i class="fa-solid fa-calendar-check"></i></span><h3>لا توجد دفعات بعد</h3><p>تظهر هنا دفعات اشتراك البائع الشهري.</p></div>
+<% } %>

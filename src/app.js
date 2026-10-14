@@ -63,7 +63,9 @@ function createApp() {
   app.use('/account', require('./routes/account'));
   app.use('/provider', require('./routes/provider'));
   app.use('/seller', require('./routes/seller'));
+  app.use('/seller', require('./routes/seller-accounts'));
   app.use('/seller', require('./routes/admin'));
+  app.use('/seller', require('./routes/accounts'));
   app.use('/api', require('./routes/api'));
   app.use('/files', require('./routes/files'));
 

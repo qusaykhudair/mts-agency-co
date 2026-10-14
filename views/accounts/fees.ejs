@@ -1,0 +1,100 @@
+<%- include('../partials/top') %>
+<%
+  const feeBadge = (f) => {
+    const map = { active: ['badge-success', 'مدفوع'], soon: ['badge-warning', 'ينتهي قريبا'], grace: ['badge-warning', 'متأخر (في المهلة)'], overdue: ['badge-danger', 'متأخر'], locked: ['badge-danger', 'موقوف لعدم الدفع'], free: ['badge-muted', 'مجاني'] };
+    const [cls, label] = map[f.status] || ['badge-muted', f.status];
+    return `<span class="badge ${cls}">${esc(label)}</span>`;
+  };
+  // Only the latest approved payment of a seller can be cancelled (the paid date steps back to its start).
+  const latest = {};
+  history.filter((f) => f.status === 'approved').forEach((f) => {
+    const cur = latest[f.seller_id];
+    if (!cur || String(f.period_to) > String(cur.period_to) || (f.period_to === cur.period_to && f.id > cur.id)) latest[f.seller_id] = f;
+  });
+  const amountOf = (f) => (f.method === 'waived' ? '<span class="muted">بدون مبلغ</span>' : moneyIn(f.amount, f.currency));
+%>
+
+<div class="page-head">
+  <div><h1>اشتراكات البائعين</h1><p>كل بائع يدفع <%= feeConfig.label %> شهريا. راجع الإيصالات، وسجل الدفعات التي تصلك بطرق أخرى.</p></div>
+  <div class="actions"><a class="btn btn-ghost" href="/seller/accounts/settings"><i class="fa-solid fa-sliders"></i> قيمة الاشتراك والمهلة</a></div>
+</div>
+
+<%- include('_nav') %>
+
+<div class="alert <%= feeConfig.enforce ? 'alert-brand' : 'alert-warning' %> mb-16">
+  <i class="fa-solid fa-circle-info"></i>
+  <div>
+    <% if (feeConfig.amount <= 0) { %>
+      الاشتراك الشهري ملغى الآن (القيمة 0)، فلا يطلب من البائعين أي دفع.
+    <% } else if (feeConfig.enforce) { %>
+      بعد انتهاء الشهر المدفوع يمنح البائع <%= feeConfig.graceDays %> أيام، ثم نوقف لوحة البائع ونخفي منتجاته من المتجر حتى يدفع.
+    <% } else { %>
+      الإيقاف التلقائي متوقف: البائع المتأخر يرى تنبيها فقط، ولا نوقف لوحته.
+    <% } %>
+  </div>
+</div>
+
+<% if (pending.length) { %>
+<h2 class="section-title">إيصالات بانتظار المراجعة <span class="badge badge-warning"><%= pending.length %></span></h2>
+<div class="grid-2 mb-16">
+  <% pending.forEach((f) => { %>
+  <section class="card">
+    <div class="card-head">
+      <div><b style="display:block"><%= f.seller_store || f.seller_name %></b><small class="muted"><%= monthsText(f.months) %> · <%= fmtDateTime(f.created_at) %></small></div>
+      <span class="badge badge-warning">بانتظار المراجعة</span>
+    </div>
+    <div class="card-body stack-sm">
+      <div class="kv">
+        <div class="kv-row"><span>المبلغ</span><span><b><%- amountOf(f) %></b></span></div>
+        <div class="kv-row"><span>الحساب المحول إليه</span><span><%= f.payment_method_name %></span></div>
+        <div class="kv-row"><span>اسم المحول</span><span><%= f.sender_name %></span></div>
+        <div class="kv-row"><span>الحساب المحول منه</span><span dir="ltr"><%= f.sender_account %></span></div>
+        <% if (f.note) { %><div class="kv-row"><span>ملاحظة البائع</span><span><%= f.note %></span></div><% } %>
+      </div>
+      <% if (f.receipt_file) { %><a class="btn btn-ghost btn-sm" href="/files/fee-receipts/<%= f.receipt_file %>" target="_blank" rel="noopener" style="justify-self:start"><i class="fa-solid fa-file-image"></i> عرض الإيصال</a><% } %>
+    </div>
+    <div class="card-foot flex gap-8 flex-wrap">
+      <form method="post" action="/seller/accounts/fees/<%= f.id %>/approve" data-ajax data-confirm="هل وصل المبلغ إلى الحساب؟ سنمدد اشتراك البائع مدة <%= monthsText(f.months) %>." data-confirm-title="تأكيد الدفع">
+        <button class="btn btn-success btn-sm" type="submit"><i class="fa-solid fa-check"></i> تأكيد الدفع</button>
+      </form>
+      <form method="post" action="/seller/accounts/fees/<%= f.id %>/reject" data-ajax data-confirm="رفض هذا الإيصال؟" data-confirm-danger data-prompt="سبب الرفض (يظهر للبائع)" data-prompt-name="reason">
+        <button class="btn btn-danger-soft btn-sm" type="submit"><i class="fa-solid fa-xmark"></i> رفض</button>
+      </form>
+      <a class="btn btn-ghost btn-sm" href="/seller/accounts/sellers/<%= f.seller_id %>?tab=fees">حساب البائع</a>
+    </div>
+  </section>
+  <% }) %>
+</div>
+<% } %>
+
+<section class="card mb-16">
+  <div class="card-head"><h2><i class="fa-solid fa-users"></i> حالة اشتراك كل بائع</h2></div>
+  <% if (sellers.length) { %>
+  <div class="table-wrap">
+    <table class="table responsive acc-table">
+      <thead><tr><th>البائع</th><th>الحالة</th><th>مدفوع حتى</th><th>يوقف في</th><th>رصيده المستحق</th><th></th></tr></thead>
+      <tbody>
+        <% sellers.forEach((u) => { %>
+        <tr>
+          <td class="t-first"><b><%= u.store_name || u.name %></b><small class="muted" style="display:block"><%= u.name %></small></td>
+          <td data-label="الحالة"><%- feeBadge(u.fee) %><% if (u.fee.pending) { %> <span class="badge badge-warning">إيصال بانتظار المراجعة</span><% } %></td>
+          <td data-label="مدفوع حتى" class="nowrap"><%= u.fee.paidUntil ? fmtDate(u.fee.paidUntil) : '-' %></td>
+          <td data-label="يوقف في" class="nowrap"><%= u.fee.dueAt ? fmtDateTime(u.fee.dueAt) : 'لا يوقف' %></td>
+          <td data-label="رصيده المستحق" class="nowrap"><%- amtBase(u.balance.due) %></td>
+          <td><div class="t-actions"><a class="btn btn-soft btn-sm" href="/seller/accounts/sellers/<%= u.id %>?tab=fees"><i class="fa-solid fa-plus"></i> سجل دفعة</a></div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else { %>
+  <div class="empty"><span class="ic"><i class="fa-solid fa-store"></i></span><h3>لا يوجد بائعون بعد</h3><p>عند الموافقة على طلب بائع يبدأ اشتراكه الشهري من يوم الموافقة.</p></div>
+  <% } %>
+</section>
+
+<section class="card">
+  <div class="card-head"><h2><i class="fa-solid fa-clock-rotate-left"></i> سجل الدفعات</h2></div>
+  <%- include('_fees', { rows: history, showSeller: true, latest }) %>
+</section>
+
+<%- include('../partials/bottom') %>

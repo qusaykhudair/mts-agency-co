@@ -1,0 +1,61 @@
+<%
+  // Seller sales with the full split. `rows` from lib/accounts.sales(); `showSeller` adds the seller column;
+  // `refunds` switches to the refunds layout.
+  const showSeller = !!locals.showSeller;
+  const isRefunds = !!locals.refunds;
+  const dash = '<span class="muted">-</span>';
+  const opt = (v) => (v === null || v === undefined ? dash : amt(v));
+  // On the seller's own page the columns speak to them.
+  const L = locals.you ? { net: 'مستحقاتك', profit: 'صافي ربحك' } : { net: 'مستحقات البائع', profit: 'صافي ربح البائع' };
+%>
+<% if (rows.length) { %>
+<div class="table-wrap">
+  <table class="table responsive acc-table">
+    <thead>
+      <tr>
+        <th>الطلب</th>
+        <% if (showSeller) { %><th>البائع</th><% } %>
+        <% if (isRefunds) { %>
+          <th>تاريخ الاسترجاع</th><th>المبلغ المسترجع</th><th>السبب</th>
+        <% } else { %>
+          <th>سعر البيع</th><th>السعر الأصلي</th><th>الربح</th><th>عمولة MTS</th><th><%= L.net %></th><th><%= L.profit %></th><th>الحالة</th>
+        <% } %>
+      </tr>
+    </thead>
+    <tbody>
+      <% rows.forEach((r) => { %>
+      <tr>
+        <td class="t-first">
+          <div class="t-main">
+            <div>
+              <b><%= r.product_title %></b>
+              <small><a class="code" href="/seller/orders/<%= r.code %>"><%= r.code %></a> · <%= r.plan_name %><%= r.quantity > 1 ? ' × ' + r.quantity : '' %> · <%= fmtDateTime(r.paid_at) %></small>
+            </div>
+          </div>
+        </td>
+        <% if (showSeller) { %><td data-label="البائع"><a class="link" href="/seller/accounts/sellers/<%= r.seller_id %>"><%= r.seller_store || r.seller_name %></a></td><% } %>
+        <% if (isRefunds) { %>
+          <td data-label="تاريخ الاسترجاع" class="nowrap"><small><%= fmtDateTime(r.refunded_at) %></small></td>
+          <td data-label="المبلغ المسترجع" class="nowrap"><b><%- amt(r.total) %></b></td>
+          <td data-label="السبب"><small><%= r.refund_reason || '-' %></small></td>
+        <% } else { %>
+          <td data-label="سعر البيع" class="nowrap"><b><%- amt(r.total) %></b></td>
+          <td data-label="السعر الأصلي" class="nowrap"><%- opt(r.cost) %></td>
+          <td data-label="الربح" class="nowrap"><%- opt(r.profit) %></td>
+          <td data-label="عمولة MTS" class="nowrap"><span class="text-brand bold"><%- amt(r.commission) %></span><br><small class="muted"><%= rateLabel(r.commission_rate, r.commission_basis || 'sale') %></small></td>
+          <td data-label="<%= L.net %>" class="nowrap"><b><%- amt(r.seller_net) %></b></td>
+          <td data-label="<%= L.profit %>" class="nowrap"><% if (r.seller_profit === null) { %><%- dash %><% } else { %><span class="<%= r.seller_profit < 0 ? 'text-danger' : '' %>"><%- amt(r.seller_profit) %></span><% } %></td>
+          <td data-label="الحالة"><%- include('../partials/status-badge', { status: r.status_key }) %></td>
+        <% } %>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } else { %>
+<div class="empty" style="padding:34px 12px">
+  <span class="ic"><i class="fa-solid <%= isRefunds ? 'fa-rotate-left' : 'fa-receipt' %>"></i></span>
+  <h3><%= isRefunds ? 'لا توجد مسترجعات في هذه الفترة' : 'لا توجد مبيعات في هذه الفترة' %></h3>
+  <p><%= isRefunds ? 'تظهر هنا الطلبات المدفوعة التي ألغيت وأعيد مبلغها.' : 'تظهر هنا الطلبات بعد تأكيد الدفع، مع عمولة MTS ومستحقات البائع.' %></p>
+</div>
+<% } %>

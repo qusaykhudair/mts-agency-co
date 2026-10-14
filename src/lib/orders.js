@@ -7,6 +7,7 @@ const money = require('./money');
 const settings = require('./settings');
 const { parseJson } = require('./format');
 const { RECEIPTS_DIR } = require('./uploads');
+const accounts = require('./accounts');
 
 // An order total (alias "o") expressed in the *current* base currency, even if the base changed since.
 const TOTAL_IN_BASE_SQL = `(o.total / COALESCE((SELECT c.rate FROM currencies c WHERE c.code = o.base_currency AND c.is_base = 0), 1))`;
@@ -77,11 +78,16 @@ function create({ user, product, plan, quantity, method, senderName, senderAccou
     const reserved = reserveStock(plan.id, quantity);
     const total = plan.price * quantity;
     const payMajor = money.convert(total, payCurrency);
+    // The commission split is fixed when the order is placed, so later changes to the rate never touch it.
+    const owner = get('SELECT role FROM users WHERE id = ?', product.seller_id);
+    const unitCost = plan.cost_price === null || plan.cost_price === undefined ? null : plan.cost_price;
+    const parts = accounts.split({ total, unitCost, quantity, ownerRole: owner && owner.role });
     const info = run(
       `INSERT INTO orders (user_id, seller_id, product_id, plan_id, product_title, plan_name, platform_name, duration_days,
          quantity, unit_price, total, base_currency, pay_currency, pay_rate, pay_amount, payment_method_id, payment_method_name,
-         sender_name, sender_account, receipt_file, receipt_mime, buyer_input_label, buyer_input, buyer_note, stock_reserved)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         sender_name, sender_account, receipt_file, receipt_mime, buyer_input_label, buyer_input, buyer_note, stock_reserved,
+         unit_cost, commission_rate, commission_basis, commission, seller_net)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       user.id,
       product.seller_id,
       product.id,
@@ -107,6 +113,11 @@ function create({ user, product, plan, quantity, method, senderName, senderAccou
       buyerInput || null,
       buyerNote || null,
       reserved,
+      unitCost,
+      parts.rate,
+      parts.basis,
+      parts.commission,
+      parts.sellerNet,
     );
     const id = Number(info.lastInsertRowid);
     const code = `MTS-${10000 + id}`;
@@ -295,25 +306,45 @@ function complete(order, actor, { auto = false } = {}) {
   }
 }
 
+// A paid order that is cancelled becomes a refund: it leaves the sales, and the seller earns nothing on it.
+function markRefunded(order, actor, reason) {
+  run(`UPDATE orders SET refunded_at = datetime('now'), refund_reason = ?, refunded_by = ? WHERE id = ?`, reason || null, actor ? actor.id : null, order.id);
+  if (order.product_id) run('UPDATE products SET sales_count = MAX(0, sales_count - ?) WHERE id = ?', order.quantity, order.product_id);
+}
+
 function cancel(order, actor, reason) {
   if (!['under_review', 'payment_rejected', 'processing'].includes(order.status)) {
     throw new OrderError('لا يمكن إلغاء هذا الطلب في حالته الحالية');
   }
+  const paid = !!order.paid_at;
   tx(() => {
     run(`UPDATE orders SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`, order.id);
     releaseStock(order);
-    // A paid order that gets cancelled no longer counts as a sale.
-    if (order.paid_at && order.product_id) {
-      run('UPDATE products SET sales_count = MAX(0, sales_count - ?) WHERE id = ?', order.quantity, order.product_id);
-    }
-    addEvent(order.id, actor.id, 'cancelled', reason || null);
+    if (paid) markRefunded(order, actor, reason);
+    addEvent(order.id, actor.id, paid ? 'refunded' : 'cancelled', reason || null);
   });
+  // The money sits in the store's accounts, so the admins are the ones who send it back.
+  if (paid && actor.role !== 'admin') {
+    notifyStaff(
+      null,
+      {
+        title: `أعد مبلغ الطلب ${order.code} للعميل`,
+        body: `${actor.id === order.user_id ? 'ألغاه العميل' : 'ألغاه البائع'} بعد الدفع: ${payLabel(order)} عبر ${order.payment_method_name}${reason ? `. السبب: ${reason}` : ''}`,
+        link: orderLink(order, true),
+        icon: 'fa-solid fa-rotate-left',
+        tone: 'danger',
+      },
+      { exclude: actor.id },
+    );
+  }
   if (actor.id !== order.user_id) {
     notify(order.user_id, {
       title: `تم إلغاء طلبك ${order.code}`,
-      body: reason || 'تواصل معنا عبر واتساب لأي استفسار.',
+      body: paid
+        ? `${reason ? `${reason}. ` : ''}سنعيد لك المبلغ الذي دفعته، وإذا لم يصلك تواصل معنا عبر واتساب.`
+        : reason || 'تواصل معنا عبر واتساب لأي استفسار.',
       link: orderLink(order),
-      icon: 'fa-solid fa-ban',
+      icon: paid ? 'fa-solid fa-rotate-left' : 'fa-solid fa-ban',
       tone: 'danger',
     });
   } else {
@@ -328,6 +359,34 @@ function cancel(order, actor, reason) {
       },
       { exclude: actor.id },
     );
+  }
+}
+
+/** Admin only: send the money of a paid order back to the buyer, at any point after payment. */
+function refund(order, actor, reason) {
+  if (!['processing', 'delivered', 'completed'].includes(order.status)) throw new OrderError('يمكن استرجاع مبلغ الطلبات المدفوعة فقط');
+  if (order.status === 'processing') return cancel(order, actor, reason);
+  tx(() => {
+    // The subscription was already handed over, so its stock is not put back on sale.
+    run(`UPDATE orders SET status = 'cancelled', cancelled_at = datetime('now'), updated_at = datetime('now') WHERE id = ?`, order.id);
+    markRefunded(order, actor, reason);
+    addEvent(order.id, actor.id, 'refunded', reason || null);
+  });
+  notify(order.user_id, {
+    title: `ألغينا طلبك ${order.code} واسترجعنا المبلغ`,
+    body: reason || 'إذا لم يصلك المبلغ تواصل معنا عبر واتساب.',
+    link: orderLink(order),
+    icon: 'fa-solid fa-rotate-left',
+    tone: 'danger',
+  });
+  if (order.seller_id && order.seller_id !== actor.id) {
+    notify(order.seller_id, {
+      title: `استرجعنا مبلغ الطلب ${order.code}`,
+      body: `لن يحسب في أرباحك. ${reason || ''}`.trim(),
+      link: orderLink(order, true),
+      icon: 'fa-solid fa-rotate-left',
+      tone: 'danger',
+    });
   }
 }
 
@@ -367,6 +426,7 @@ module.exports = {
   deliver,
   complete,
   cancel,
+  refund,
   addNote,
   autoComplete,
   isExpired,

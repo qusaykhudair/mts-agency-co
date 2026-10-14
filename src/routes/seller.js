@@ -6,6 +6,8 @@ const orders = require('../lib/orders');
 const catalog = require('../lib/catalog');
 const money = require('../lib/money');
 const settings = require('../lib/settings');
+const accounts = require('../lib/accounts');
+const fees = require('../lib/seller-fees');
 const { DELIVERY_METHODS, slugify, isoDay, zonedLocalToUtc, zonedLocal } = require('../lib/format');
 const { imageUpload, publicUrl, removePublic, discard } = require('../lib/uploads');
 const { str, clean, cleanText, lines, int, bool, pick } = require('../lib/util');
@@ -17,6 +19,19 @@ router.use(requireStaff, (req, res, next) => {
   res.locals.nav = 'seller';
   res.locals.noindex = true;
   next();
+});
+
+// A seller whose monthly fee is overdue past the grace days only keeps the page where they pay it.
+const FEE_EXEMPT = /^\/subscription(\/|$)/;
+router.use((req, res, next) => {
+  const fee = fees.state(req.user);
+  res.locals.sellerFee = fee.applies ? fee : null;
+  if (!fee.locked || FEE_EXEMPT.test(req.path)) return next();
+  if (req.method === 'GET') return res.redirect('/seller/subscription');
+  const err = new Error('لوحة البائع موقوفة حتى تدفع الاشتراك الشهري');
+  err.status = 402;
+  err.expose = true;
+  next(err);
 });
 
 const isAdminUser = (user) => user.role === 'admin';
@@ -225,6 +240,8 @@ router.get('/orders/:code', (req, res) => {
     ),
     customerScoped: !isAdminUser(req.user),
     canReview: canReviewPayment(req.user),
+    canRefund: isAdminUser(req.user) && ['processing', 'delivered', 'completed'].includes(order.status),
+    rateLabel: accounts.rateLabel,
     waTemplates,
     rejectReasons: ['المبلغ المحول غير مطابق للمبلغ المطلوب', 'صورة الإيصال غير واضحة', 'لم يصل التحويل إلى الحساب بعد', 'بيانات المحول لا تطابق الإيصال', 'الإيصال مستخدم في طلب سابق'],
   });
@@ -292,6 +309,16 @@ router.post('/orders/:code/cancel', (req, res) => {
   res.reply({ ok: true, message: 'تم إلغاء الطلب وإبلاغ العميل', reload: true });
 });
 
+// Only the admins hold the store's money, so only they send it back.
+router.post('/orders/:code/refund', (req, res) => {
+  const order = managedOrder(req);
+  if (!isAdminUser(req.user)) return res.reply({ ok: false, status: 403, message: 'استرجاع المبالغ من صلاحيات إدارة المتجر' });
+  const reason = cleanText(req.body.reason, 400);
+  if (reason.length < 3) return res.reply({ ok: false, errors: { reason: 'اكتب سبب الاسترجاع ليظهر للعميل' } });
+  orders.refund(order, req.user, reason);
+  res.reply({ ok: true, message: 'ألغينا الطلب وسجلنا استرجاع المبلغ', reload: true });
+});
+
 router.post('/orders/:code/note', (req, res) => {
   const order = managedOrder(req);
   const text = cleanText(req.body.note, 1000);
@@ -356,6 +383,9 @@ function productFormData(req, product) {
     offerLocal: product && product.offer_ends_at ? zonedLocal(product.offer_ends_at) : '',
     baseCurrency: money.base(),
     deliveryMethods: DELIVERY_METHODS,
+    // The price split preview: sellers' products pay the MTS commission, the admin's own do not.
+    ownerRole: product ? (get('SELECT role FROM users WHERE id = ?', product.seller_id) || {}).role : req.user.role,
+    commission: { rate: accounts.commissionRate(), basis: accounts.commissionBasis(), label: accounts.rateLabel() },
   };
 }
 
@@ -387,21 +417,41 @@ function parsePlans(body) {
   const plans = raw
     .filter(Boolean)
     .map((p, i) => {
-      const price = money.parseMajorToMinor(str(p.price));
+      const name = clean(p.name, 60);
+      const label = name || i + 1;
+      // The seller enters the original price and their profit; the sale price is their sum. A plan
+      // sent without both (older plans, API clients) keeps the plain price field.
+      const costRaw = str(p.cost_price).trim();
+      const profitRaw = str(p.profit).trim();
+      let cost = null;
+      let price;
+      if (costRaw !== '' || profitRaw !== '') {
+        cost = money.parseMajorToMinor(costRaw);
+        const profit = money.parseMajorToMinor(profitRaw);
+        if (cost === null) errors.push(`اكتب السعر الأصلي للباقة «${label}»`);
+        else if (Number.isNaN(cost)) errors.push(`السعر الأصلي للباقة «${label}» غير صالح`);
+        if (profit === null) errors.push(`اكتب ربحك في الباقة «${label}»`);
+        else if (Number.isNaN(profit)) errors.push(`الربح في الباقة «${label}» غير صالح`);
+        price = Number.isInteger(cost) && Number.isInteger(profit) ? cost + profit : NaN;
+      } else {
+        price = money.parseMajorToMinor(str(p.price));
+        if (price === null) errors.push(`اكتب السعر الأصلي وربحك للباقة «${label}»`);
+      }
       const old = str(p.old_price).trim() === '' ? null : money.parseMajorToMinor(str(p.old_price));
       const stockRaw = str(p.stock).trim();
       const plan = {
         id: int(p.id, { fallback: null }),
-        name: clean(p.name, 60),
+        name,
         duration_days: str(p.duration_days).trim() === '' ? null : int(p.duration_days, { min: 1, max: 3650, fallback: null }),
         price,
+        cost_price: Number.isInteger(cost) ? cost : null,
         old_price: old,
         stock: stockRaw === '' ? null : int(stockRaw, { min: 0, max: 1000000, fallback: null }),
         is_active: bool(p.is_active) ? 1 : 0,
         sort_order: i + 1,
       };
       if (!plan.name) errors.push(`اسم الباقة رقم ${i + 1} مطلوب`);
-      if (price === null || Number.isNaN(price)) errors.push(`سعر الباقة «${plan.name || i + 1}» غير صالح`);
+      if (Number.isNaN(price) && costRaw === '' && profitRaw === '') errors.push(`سعر الباقة «${label}» غير صالح`);
       if (Number.isNaN(old)) errors.push(`السعر قبل الخصم للباقة «${plan.name || i + 1}» غير صالح`);
       if (old !== null && !Number.isNaN(old) && price !== null && old <= price) plan.old_price = null;
       return plan;
@@ -496,10 +546,10 @@ function saveProduct(req, res, existing) {
     for (const p of plans) {
       const owned = p.id ? get('SELECT id FROM product_plans WHERE id = ? AND product_id = ?', p.id, productId) : null;
       if (owned) {
-        run('UPDATE product_plans SET name = ?, duration_days = ?, price = ?, old_price = ?, stock = ?, is_active = ?, sort_order = ? WHERE id = ?', p.name, p.duration_days, p.price, p.old_price, p.stock, p.is_active, p.sort_order, owned.id);
+        run('UPDATE product_plans SET name = ?, duration_days = ?, price = ?, cost_price = ?, old_price = ?, stock = ?, is_active = ?, sort_order = ? WHERE id = ?', p.name, p.duration_days, p.price, p.cost_price, p.old_price, p.stock, p.is_active, p.sort_order, owned.id);
         keep.add(owned.id);
       } else {
-        keep.add(Number(run('INSERT INTO product_plans (product_id, name, duration_days, price, old_price, stock, is_active, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)', productId, p.name, p.duration_days, p.price, p.old_price, p.stock, p.is_active, p.sort_order).lastInsertRowid));
+        keep.add(Number(run('INSERT INTO product_plans (product_id, name, duration_days, price, cost_price, old_price, stock, is_active, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)', productId, p.name, p.duration_days, p.price, p.cost_price, p.old_price, p.stock, p.is_active, p.sort_order).lastInsertRowid));
       }
     }
     // Plans removed from the form: delete unless orders still reference them (then just hide).

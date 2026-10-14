@@ -102,6 +102,9 @@ before(async () => {
   settings.load();
   money.load();
   server = createApp().listen(0);
+  // Some tests block the event loop for seconds (child processes); a short keep-alive would let the
+  // server drop the client's pooled connection right as it is reused (ECONNRESET).
+  server.keepAliveTimeout = 120000;
   await new Promise((r) => server.once('listening', r));
   base = `http://127.0.0.1:${server.address().port}`;
   product = get("SELECT * FROM products WHERE slug = 'chatgpt-plus'");
@@ -1299,7 +1302,7 @@ test('migrating a v2 database keeps users, sessions and orders and adds the prov
     }));`;
   const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db') };
   const out = execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' });
-  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()), { version: 6, users: 2, sessions: 1, orders: 7, notifications: 1, fk: 0, fkEnforced: true, verified: true });
+  assert.deepEqual(JSON.parse(out.trim().split('\n').pop()), { version: require('../src/db').MIGRATIONS.length, users: 2, sessions: 1, orders: 7, notifications: 1, fk: 0, fkEnforced: true, verified: true });
 });
 
 test('migration v4 rewrites the default wording but keeps what the admin wrote and every order', () => {
@@ -1345,7 +1348,7 @@ test('migration v4 rewrites the default wording but keeps what the admin wrote a
     }));`;
   const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db'), OLD_HERO: oldHero, OLD_SUMMARY: oldSummary };
   const out = JSON.parse(execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' }).trim().split('\n').pop());
-  assert.equal(out.version, 6);
+  assert.equal(out.version, require('../src/db').MIGRATIONS.length);
   // Untouched defaults take the new wording.
   assert.equal(out.hero, SETTINGS.hero_subtitle.to);
   assert.equal(out.web, SERVICES['web-development'].summary.to);
@@ -1388,7 +1391,362 @@ test('migration v5 rewrites sample product copy that was never edited, and only 
     }));`;
   const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db'), OLD_FIELDS: JSON.stringify(seeded) };
   const out = JSON.parse(execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' }).trim().split('\n').pop());
-  assert.equal(out.version, 6);
+  assert.equal(out.version, require('../src/db').MIGRATIONS.length);
   assert.deepEqual(out.chat, Object.fromEntries(Object.entries(PRODUCTS['chatgpt-plus']).map(([col, v]) => [col, v.to])));
   assert.deepEqual(out.canva, { short_description: 'وصف كتبه المدير', description: 'وصف كامل كتبه المدير', features: '["ميزة كتبها المدير"]', region_note: 'ملاحظة المدير' });
+});
+
+/* ---------------------------------------------------------------------
+   Seller accounts: commission, refunds, payouts, the monthly fee, exports
+   --------------------------------------------------------------------- */
+const accounts = require('../src/lib/accounts');
+const sellerFees = require('../src/lib/seller-fees');
+
+// Reads the files of a .xlsx (ZIP) made by src/lib/xlsx.js.
+function unzip(buf) {
+  const zlib = require('zlib');
+  const files = {};
+  let at = 0;
+  while (buf.readUInt32LE(at) === 0x04034b50) {
+    const size = buf.readUInt32LE(at + 18);
+    const nameLen = buf.readUInt16LE(at + 26);
+    const extra = buf.readUInt16LE(at + 28);
+    const name = buf.toString('utf8', at + 30, at + 30 + nameLen);
+    const start = at + 30 + nameLen + extra;
+    files[name] = zlib.inflateRawSync(buf.subarray(start, start + size)).toString('utf8');
+    at = start + size;
+  }
+  return files;
+}
+
+async function makeSeller(email, store) {
+  const c = await newBuyer(email);
+  const res = await c.post('/account/become-seller', { store_name: store, about: 'أبيع اشتراكات التصميم والذكاء الاصطناعي منذ سنتين.' });
+  assert.equal(res.body.ok, true, JSON.stringify(res.body));
+  const app = get('SELECT id FROM seller_applications WHERE store_name = ?', store);
+  assert.equal((await admin.post(`/seller/applications/${app.id}/approve`, {})).body.ok, true);
+  return { client: c, id: userId(email) };
+}
+
+async function addPlanProduct(client, title, plan) {
+  const fd = new FormData();
+  Object.entries({ title, category_id: get("SELECT id FROM categories WHERE slug = 'ai'").id, delivery_method: 'code', is_active: '1', 'plans[0][name]': 'شهر', 'plans[0][is_active]': '1', ...plan }).forEach(([k, v]) => fd.append(k, String(v)));
+  const res = await client.post('/seller/products', fd);
+  return { res, product: get('SELECT * FROM products WHERE title = ?', title) };
+}
+
+async function buyAndComplete(customer, product) {
+  const pl = get('SELECT * FROM product_plans WHERE product_id = ?', product.id);
+  const placed = await customer.post('/store/checkout', receiptForm({ product_id: product.id, plan_id: pl.id, quantity: 1, payment_method_id: bankMethod.id, sender_name: 'Paying Customer', sender_account: '0599111222', buyer_input: 'me@gmail.com', agree: 1 }));
+  assert.equal(placed.body.ok, true, JSON.stringify(placed.body));
+  const code = codeOf(placed);
+  assert.equal((await admin.post(`/seller/orders/${code}/approve`, {})).body.ok, true);
+  assert.equal((await admin.post(`/seller/orders/${code}/deliver`, { 'fields[0][label]': 'كود', 'fields[0][value]': 'ABC-1' })).body.ok, true);
+  assert.equal((await admin.post(`/seller/orders/${code}/complete`, {})).body.ok, true);
+  return code;
+}
+
+let acctSeller;
+let acctProduct;
+let acctCustomer;
+let acctCode;
+
+test('sellers price plans as original price + profit, and the form rejects half of the pair', async () => {
+  acctSeller = await makeSeller('acct-seller@test.local', 'متجر الحسابات');
+  const bad = await addPlanProduct(acctSeller.client, 'Accounts Half Price', { 'plans[0][cost_price]': '10' });
+  assert.equal(bad.res.body.ok, false);
+  assert.match(bad.res.body.message, /ربحك/);
+
+  const { res, product } = await addPlanProduct(acctSeller.client, 'Accounts Test Product', { 'plans[0][cost_price]': '10', 'plans[0][profit]': '2.5' });
+  assert.equal(res.body.ok, true, JSON.stringify(res.body));
+  acctProduct = product;
+  const pl = get('SELECT price, cost_price FROM product_plans WHERE product_id = ?', product.id);
+  assert.deepEqual({ ...pl }, { price: 1250, cost_price: 1000 });
+  const form = await (await acctSeller.client.get(`/seller/products/${product.id}/edit`)).text();
+  assert.ok(form.includes('data-plan-calc') && form.includes('value="10"') && form.includes('value="2.50"'), 'the form shows the original price and the profit');
+});
+
+test('every seller sale records the MTS commission; MTS products have none', async () => {
+  acctCustomer = await newBuyer('acct-customer@test.local');
+  acctCode = await buyAndComplete(acctCustomer, acctProduct);
+  const o = get('SELECT * FROM orders WHERE code = ?', acctCode);
+  assert.equal(o.commission_rate, 20);
+  assert.equal(o.commission_basis, 'sale');
+  assert.equal(o.unit_cost, 1000);
+  assert.equal(o.commission, 250);
+  assert.equal(o.seller_net, 1000);
+
+  // The admin's own product: no commission.
+  const own = await buyAndComplete(acctCustomer, product);
+  const mine = get('SELECT commission_rate, commission, seller_net FROM orders WHERE code = ?', own);
+  assert.deepEqual({ ...mine }, { commission_rate: null, commission: 0, seller_net: 0 });
+
+  // Changing the rate and basis affects new orders only.
+  settings.set({ commission_rate: '10', commission_basis: 'profit' });
+  try {
+    assert.deepEqual(accounts.split({ total: 1250, unitCost: 1000, quantity: 1, ownerRole: 'seller' }), { rate: 10, basis: 'profit', commission: 25, sellerNet: 1225 });
+    // Without an original price the commission falls back to the sale price.
+    assert.equal(accounts.split({ total: 1250, unitCost: null, quantity: 1, ownerRole: 'seller' }).commission, 125);
+    assert.equal(get('SELECT commission FROM orders WHERE code = ?', acctCode).commission, 250);
+  } finally {
+    settings.set({ commission_rate: '20', commission_basis: 'sale' });
+  }
+
+  const bal = accounts.balance(acctSeller.id);
+  assert.equal(bal.available, 1000);
+  assert.equal(bal.due, 1000);
+  const t = accounts.totals({ period: accounts.period({ period: 'day' }), sellerId: acctSeller.id });
+  assert.equal(t.sales_count, 1);
+  assert.equal(t.gross, 1250);
+  assert.equal(t.commission, 250);
+  assert.equal(t.seller_net, 1000);
+});
+
+test('admin and seller account pages render with the split and currency', async () => {
+  for (const url of ['/seller/accounts', '/seller/accounts?period=week', '/seller/accounts?period=range&from=2026-01-01&to=2026-12-31&cur=ILS', '/seller/accounts/sales', `/seller/accounts/sales?seller=${acctSeller.id}`, '/seller/accounts/refunds', '/seller/accounts/payouts', '/seller/accounts/fees', '/seller/accounts/settings', ...['sales', 'products', 'refunds', 'payouts', 'fees'].map((t) => `/seller/accounts/sellers/${acctSeller.id}?tab=${t}`)]) {
+    assert.equal((await admin.get(url)).status, 200, url);
+  }
+  const summary = await (await admin.get('/seller/accounts?period=day')).text();
+  assert.ok(summary.includes('متجر الحسابات') && summary.includes('عمولة MTS'));
+  for (const url of ['/seller/earnings', '/seller/earnings?tab=products', '/seller/earnings?tab=refunds', '/seller/earnings?tab=payouts', '/seller/earnings?tab=fees', '/seller/subscription']) {
+    assert.equal((await acctSeller.client.get(url)).status, 200, url);
+  }
+  const mine = await (await acctSeller.client.get('/seller/earnings?period=day')).text();
+  assert.ok(mine.includes(acctCode) && mine.includes('مستحقاتك'));
+  // In shekels the amounts are converted and labelled.
+  const ils = await (await acctSeller.client.get('/seller/earnings?period=day&cur=ILS')).text();
+  assert.ok(ils.includes('₪'));
+  // Sellers never see the admin accounts.
+  assert.equal((await acctSeller.client.get('/seller/accounts')).status, 403);
+  assert.equal((await acctSeller.client.get(`/seller/accounts/export`)).status, 403);
+  const order = await (await acctSeller.client.get(`/seller/orders/${acctCode}`)).text();
+  assert.ok(order.includes('التقسيم المالي') && order.includes('عمولة MTS'));
+});
+
+test('exports come as Excel and CSV with every sale and the split', async () => {
+  const res = await admin.get(`/seller/accounts/export?period=day&seller=${acctSeller.id}`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get('content-type'), /spreadsheetml/);
+  assert.match(res.headers.get('content-disposition'), /\.xlsx/);
+  const files = unzip(Buffer.from(await res.arrayBuffer()));
+  for (const part of ['[Content_Types].xml', '_rels/.rels', 'xl/workbook.xml', 'xl/styles.xml', 'xl/worksheets/sheet1.xml', 'xl/worksheets/sheet2.xml']) assert.ok(files[part], part);
+  assert.ok(files['xl/workbook.xml'].includes('المبيعات'));
+  const sales = files['xl/worksheets/sheet2.xml'];
+  assert.ok(sales.includes(acctCode) && sales.includes('rightToLeft="1"'));
+  assert.ok(sales.includes('<v>12.5</v>') && sales.includes('<v>2.5</v>') && sales.includes('<v>10</v>'), 'price, commission and seller share');
+  assert.equal((sales.match(/<row /g) || []).length, (sales.match(/<\/row>/g) || []).length);
+
+  const raw = Buffer.from(await (await acctSeller.client.get('/seller/earnings/export?period=day&format=csv&cur=USD')).arrayBuffer());
+  assert.deepEqual([...raw.subarray(0, 3)], [0xef, 0xbb, 0xbf], 'UTF-8 BOM for Excel');
+  const csv = raw.toString('utf8');
+  assert.ok(csv.includes(acctCode) && csv.includes('عمولة MTS (USD)'));
+  // A seller's export only holds their own sales.
+  const other = await (await buyer.get('/seller/earnings/export?period=all&format=csv')).text();
+  assert.ok(!other.includes(acctCode));
+});
+
+test('payouts lower what MTS owes the seller and can be undone', async () => {
+  const res = await admin.post(`/seller/accounts/sellers/${acctSeller.id}/payouts`, { amount: '4', currency: 'USD', method: 'فودافون كاش', reference: 'TX-1' });
+  assert.equal(res.body.ok, true, JSON.stringify(res.body));
+  assert.equal(accounts.balance(acctSeller.id).due, 600);
+  assert.ok(notified(acctSeller.id, 'حولنا لك'));
+  const payout = get('SELECT * FROM seller_payouts WHERE seller_id = ?', acctSeller.id);
+  assert.equal((await admin.post(`/seller/accounts/payouts/${payout.id}/delete`, {})).body.ok, true);
+  assert.equal(accounts.balance(acctSeller.id).due, 1000);
+  assert.equal((await admin.post(`/seller/accounts/sellers/${acctSeller.id}/payouts`, { amount: '0', currency: 'USD' })).body.ok, false);
+});
+
+test('refunds take the sale out of the seller earnings', async () => {
+  const code = await buyAndComplete(acctCustomer, acctProduct);
+  assert.equal(accounts.balance(acctSeller.id).due, 2000);
+  // Sellers cannot refund; admins can, even after completion.
+  assert.equal((await acctSeller.client.post(`/seller/orders/${code}/refund`, { reason: 'test' })).status, 403);
+  const res = await admin.post(`/seller/orders/${code}/refund`, { reason: 'الحساب توقف عن العمل' });
+  assert.equal(res.body.ok, true, JSON.stringify(res.body));
+  const o = get('SELECT status, refunded_at, refund_reason FROM orders WHERE code = ?', code);
+  assert.equal(o.status, 'cancelled');
+  assert.ok(o.refunded_at);
+  assert.equal(accounts.balance(acctSeller.id).due, 1000);
+  assert.ok(notified(userId('acct-customer@test.local'), 'استرجعنا المبلغ'));
+  const refunds = await (await admin.get('/seller/accounts/refunds?period=day')).text();
+  assert.ok(refunds.includes(code) && refunds.includes('الحساب توقف عن العمل'));
+  assert.equal(accounts.totals({ period: accounts.period({ period: 'day' }), sellerId: acctSeller.id }).refunds.n, 1);
+
+  // A seller cancelling a paid order also makes it a refund, and the admins are told to return the money.
+  const pl = get('SELECT * FROM product_plans WHERE product_id = ?', acctProduct.id);
+  const placed = await acctCustomer.post('/store/checkout', receiptForm({ product_id: acctProduct.id, plan_id: pl.id, quantity: 1, payment_method_id: bankMethod.id, sender_name: 'Paying Customer', sender_account: '0599111222', agree: 1 }));
+  const code2 = codeOf(placed);
+  assert.equal((await admin.post(`/seller/orders/${code2}/approve`, {})).body.ok, true);
+  assert.equal((await acctSeller.client.post(`/seller/orders/${code2}/cancel`, { reason: 'نفد المخزون' })).body.ok, true);
+  assert.ok(get('SELECT refunded_at FROM orders WHERE code = ?', code2).refunded_at);
+  assert.ok(notified(userId('admin@test.local'), `أعد مبلغ الطلب ${code2}`));
+  const page = await (await acctCustomer.get(`/account/orders/${code2}`)).text();
+  assert.ok(page.includes('مسترجع'));
+});
+
+test('an unpaid seller fee closes the dashboard and hides the products until it is paid', async () => {
+  const seller = get('SELECT * FROM users WHERE id = ?', acctSeller.id);
+  // Approval starts the fee: due in the grace days.
+  assert.ok(seller.fee_paid_until && seller.fee_due_at);
+  assert.equal(sellerFees.state(seller).status, 'grace');
+  const slug = acctProduct.slug;
+  assert.equal((await stranger.get('/store/product/' + slug)).status, 200);
+
+  // Ten days later nothing was paid.
+  run("UPDATE users SET fee_paid_until = datetime('now', '-10 days') WHERE id = ?", acctSeller.id);
+  sellerFees.sync(acctSeller.id);
+  const locked = await acctSeller.client.get('/seller/products');
+  assert.equal(locked.status, 302);
+  assert.equal(locked.headers.get('location'), '/seller/subscription');
+  assert.equal((await acctSeller.client.get('/seller/subscription')).status, 200);
+  assert.equal((await acctSeller.client.post(`/seller/products/${acctProduct.id}/toggle`, {})).status, 402);
+  assert.equal((await stranger.get('/store/product/' + slug)).status, 404);
+
+  // The seller sends a transfer receipt; the admin confirms it.
+  const fd = receiptForm({ months: 1, payment_method_id: walletMethod.id, sender_name: 'Seller Payer', sender_account: '01011223344' });
+  const sent = await acctSeller.client.post('/seller/subscription', fd);
+  assert.equal(sent.body.ok, true, JSON.stringify(sent.body));
+  const fee = get("SELECT * FROM seller_fees WHERE seller_id = ? AND status = 'pending'", acctSeller.id);
+  assert.equal(fee.currency, 'EGP');
+  assert.equal(fee.base_amount, 500);
+  assert.equal((await acctSeller.client.post('/seller/subscription', receiptForm({ months: 1, payment_method_id: walletMethod.id, sender_name: 'Seller Payer', sender_account: '01011223344' }))).body.ok, false, 'one pending receipt at a time');
+  // The receipt is private to the seller and the admins.
+  assert.equal((await admin.get(`/files/fee-receipts/${fee.receipt_file}`)).status, 200);
+  assert.equal((await acctSeller.client.get(`/files/fee-receipts/${fee.receipt_file}`)).status, 200);
+  assert.equal((await acctCustomer.get(`/files/fee-receipts/${fee.receipt_file}`)).status, 404);
+
+  assert.equal((await admin.post(`/seller/accounts/fees/${fee.id}/approve`, {})).body.ok, true);
+  const after = get('SELECT * FROM users WHERE id = ?', acctSeller.id);
+  assert.equal(sellerFees.state(after).status, 'active');
+  assert.ok(new Date(after.fee_paid_until.replace(' ', 'T') + 'Z') > new Date(Date.now() + 25 * 86400000));
+  assert.equal((await acctSeller.client.get('/seller/products')).status, 200);
+  assert.equal((await stranger.get('/store/product/' + slug)).status, 200);
+  assert.ok(notified(acctSeller.id, 'أكدنا دفع اشتراكك'));
+});
+
+test('the fee can be paid from the balance, recorded, waived and cancelled', async () => {
+  const before = get('SELECT fee_paid_until FROM users WHERE id = ?', acctSeller.id).fee_paid_until;
+  // Paying from the balance needs enough earnings: 10 owed, 5 per month.
+  assert.equal((await acctSeller.client.post('/seller/subscription/balance', { months: 3 })).body.ok, false);
+  const paid = await acctSeller.client.post('/seller/subscription/balance', { months: 2 });
+  assert.equal(paid.body.ok, true, JSON.stringify(paid.body));
+  assert.equal(accounts.balance(acctSeller.id).due, 0);
+  const afterBalance = get('SELECT fee_paid_until FROM users WHERE id = ?', acctSeller.id).fee_paid_until;
+  assert.ok(afterBalance > before);
+
+  // The admin records a cash payment and a free month.
+  assert.equal((await admin.post(`/seller/accounts/sellers/${acctSeller.id}/fees`, { months: 1, method: 'cash', amount: '5', currency: 'USD' })).body.ok, true);
+  assert.equal((await admin.post(`/seller/accounts/sellers/${acctSeller.id}/fees`, { months: 1, method: 'waived' })).body.ok, true);
+  assert.equal((await admin.post(`/seller/accounts/sellers/${acctSeller.id}/fees`, { months: 1, method: 'balance' })).body.ok, false, 'no balance left');
+  // Only the latest payment can be cancelled, and the paid date steps back.
+  const fees = all("SELECT * FROM seller_fees WHERE seller_id = ? AND status = 'approved' ORDER BY id", acctSeller.id);
+  const last = fees[fees.length - 1];
+  assert.equal((await admin.post(`/seller/accounts/fees/${fees[0].id}/void`, {})).body.ok, false);
+  assert.equal((await admin.post(`/seller/accounts/fees/${last.id}/void`, {})).body.ok, true);
+  assert.equal(get('SELECT fee_paid_until FROM users WHERE id = ?', acctSeller.id).fee_paid_until, last.period_from);
+  const t = accounts.totals({ period: accounts.period({ period: 'day' }) });
+  assert.ok(t.fees.amount >= 1500, 'balance and cash payments count as collected fees');
+});
+
+test('fee reminders go out once per stage, and enforcement can be switched off', async () => {
+  run("UPDATE users SET fee_paid_until = datetime('now', '+2 days'), fee_notice = NULL WHERE id = ?", acctSeller.id);
+  sellerFees.sync(acctSeller.id);
+  const count = () => get('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND link = ?', acctSeller.id, '/seller/subscription').n;
+  const n0 = count();
+  sellerFees.remind();
+  assert.equal(count(), n0 + 1);
+  sellerFees.remind();
+  assert.equal(count(), n0 + 1, 'no repeat for the same stage');
+
+  run("UPDATE users SET fee_paid_until = datetime('now', '-30 days') WHERE id = ?", acctSeller.id);
+  settings.set({ seller_fee_enforce: '0' });
+  sellerFees.sync();
+  try {
+    assert.equal(get('SELECT fee_due_at FROM users WHERE id = ?', acctSeller.id).fee_due_at, null);
+    assert.equal((await acctSeller.client.get('/seller/products')).status, 200);
+    assert.equal(sellerFees.state(get('SELECT * FROM users WHERE id = ?', acctSeller.id)).status, 'overdue');
+  } finally {
+    settings.set({ seller_fee_enforce: '1' });
+    run("UPDATE users SET fee_paid_until = datetime('now', '+30 days') WHERE id = ?", acctSeller.id);
+    sellerFees.sync();
+  }
+  // Saving the settings page validates and re-syncs.
+  const bad = await admin.post('/seller/accounts/settings', { commission_rate: '150', seller_fee_amount: '5', seller_fee_currency: 'USD', seller_fee_grace_days: '3', seller_fee_enforce: '1' });
+  assert.equal(bad.body.ok, false);
+  const ok = await admin.post('/seller/accounts/settings', { commission_rate: '20', commission_basis: 'sale', seller_fee_amount: '5', seller_fee_currency: 'USD', seller_fee_grace_days: '3', seller_fee_enforce: '1' });
+  assert.equal(ok.body.ok, true, JSON.stringify(ok.body));
+});
+
+test('admins open and close "become a seller", with an optional closing time', async () => {
+  const c = await newBuyer('late-seller@test.local');
+  assert.equal((await admin.post('/seller/applications/window', { note: 'نفتح التسجيل أول كل شهر' })).body.ok, true);
+  try {
+    const page = await (await c.get('/account/become-seller')).text();
+    assert.ok(page.includes('نفتح التسجيل أول كل شهر') && !page.includes('action="/account/become-seller"'));
+    const store = await (await c.get('/store')).text();
+    assert.ok(!store.includes('href="/account/become-seller"'), 'links are hidden while closed');
+    const res = await c.post('/account/become-seller', { store_name: 'متجر متأخر', about: 'أبيع اشتراكات الألعاب منذ ثلاث سنوات تقريبا.' });
+    assert.equal(res.body.ok, false);
+
+    assert.equal((await admin.post('/seller/applications/window', { open: '1', until: '2020-01-01T10:00' })).body.ok, false, 'a closing time in the past is refused');
+    assert.equal((await admin.post('/seller/applications/window', { open: '1', until: '2099-01-01T10:00' })).body.ok, true);
+    assert.equal(settings.sellerApplicationsOpen(), true);
+    assert.equal(settings.sellerApplicationsOpen(new Date('2099-02-01T00:00:00Z')), false, 'closes by itself after the time');
+    assert.equal((await c.post('/account/become-seller', { store_name: 'متجر متأخر', about: 'أبيع اشتراكات الألعاب منذ ثلاث سنوات تقريبا.' })).body.ok, true);
+  } finally {
+    settings.set({ seller_applications_open: '1', seller_applications_until: '', seller_applications_note: '' });
+  }
+});
+
+test('report periods follow the store calendar: weeks start on Saturday', () => {
+  const w = accounts.period({ period: 'week', date: '2026-10-14' });
+  assert.equal(w.fromDay, '2026-10-10');
+  assert.equal(w.lastDay, '2026-10-16');
+  const m = accounts.period({ period: 'month', date: '2026-02-11' });
+  assert.equal(m.fromDay, '2026-02-01');
+  assert.equal(m.lastDay, '2026-02-28');
+  assert.equal(m.prev, '2026-01-01');
+  const r = accounts.period({ period: 'range', from: '2026-03-10', to: '2026-03-01' });
+  assert.deepEqual([r.fromDay, r.lastDay], ['2026-03-01', '2026-03-10']);
+  assert.equal(accounts.period({ period: 'all' }).from, null);
+  assert.equal(accounts.period({ period: 'day', date: 'bad' }).anchor, require('../src/lib/format').isoDay(new Date()));
+  // Cairo midnight is 21:00 or 22:00 UTC the day before.
+  assert.match(accounts.period({ period: 'day', date: '2026-10-14' }).from, /^2026-10-13 2[12]:00:00$/);
+});
+
+test('migration v7 gives earlier seller sales the 20% split and marks paid cancellations as refunds', () => {
+  const { execFileSync } = require('child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mts-v6-'));
+  const code = `
+    const { DatabaseSync } = require('node:sqlite');
+    const { MIGRATIONS } = require('./src/db');
+    const old = new DatabaseSync(process.env.OLD_DB);
+    old.exec(MIGRATIONS[0]); old.exec(MIGRATIONS[1]); old.exec(MIGRATIONS[2].sql); old.exec(MIGRATIONS[5]); old.exec('PRAGMA user_version = 6');
+    old.exec("INSERT INTO users (id, name, email, role) VALUES (1, 'A', 'a@test.local', 'admin'), (2, 'S', 's@test.local', 'seller'), (3, 'B', 'b@test.local', 'buyer')");
+    const ins = old.prepare("INSERT INTO orders (code, user_id, seller_id, product_title, plan_name, unit_price, total, base_currency, pay_currency, pay_rate, pay_amount, payment_method_name, sender_name, sender_account, status, paid_at, cancelled_at) VALUES (?, 3, ?, 'P', 'Plan', ?, ?, 'USD', 'USD', 1, ?, 'Bank', 'S', '1', ?, ?, ?)");
+    ins.run('MTS-1', 2, 1000, 1000, 1000, 'completed', '2026-01-01 10:00:00', null);
+    ins.run('MTS-2', 1, 500, 500, 500, 'completed', '2026-01-01 10:00:00', null);
+    ins.run('MTS-3', 2, 300, 300, 300, 'cancelled', '2026-01-01 10:00:00', '2026-01-02 10:00:00');
+    ins.run('MTS-4', 2, 300, 300, 300, 'cancelled', null, '2026-01-02 10:00:00');
+    old.close();
+    const db = require('./src/db');
+    db.migrate();
+    const o = (c) => db.get('SELECT commission_rate, commission, seller_net, refunded_at FROM orders WHERE code = ?', c);
+    console.log(JSON.stringify({
+      version: db.get('PRAGMA user_version').user_version,
+      seller: o('MTS-1'), mts: o('MTS-2'), refunded: o('MTS-3'), unpaid: o('MTS-4'),
+      feeStart: !!db.get('SELECT fee_paid_until FROM users WHERE id = 2').fee_paid_until,
+      buyerFee: db.get('SELECT fee_paid_until FROM users WHERE id = 3').fee_paid_until,
+      fk: db.all('PRAGMA foreign_key_check').length,
+    }));`;
+  const env = { ...process.env, DATA_DIR: dir, DB_FILE: path.join(dir, 'store.db'), OLD_DB: path.join(dir, 'store.db') };
+  const out = JSON.parse(execFileSync(process.execPath, ['--disable-warning=ExperimentalWarning', '-e', code], { cwd: path.join(__dirname, '..'), env, encoding: 'utf8' }).trim().split('\n').pop());
+  assert.equal(out.version, require('../src/db').MIGRATIONS.length);
+  assert.deepEqual(out.seller, { commission_rate: 20, commission: 200, seller_net: 800, refunded_at: null });
+  assert.deepEqual(out.mts, { commission_rate: null, commission: 0, seller_net: 0, refunded_at: null });
+  assert.equal(out.refunded.refunded_at, '2026-01-02 10:00:00');
+  assert.equal(out.unpaid.refunded_at, null);
+  assert.equal(out.feeStart, true);
+  assert.equal(out.buyerFee, null);
+  assert.equal(out.fk, 0);
 });

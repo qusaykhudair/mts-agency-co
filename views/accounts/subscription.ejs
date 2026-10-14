@@ -1,0 +1,142 @@
+<%- include('../partials/top') %>
+<%
+  const isLatin = (v) => /^[\x00-\x7F]+$/.test(String(v));
+  const c = feeConfig;
+  const canUseBalance = balance.due >= c.baseMinor && c.baseMinor > 0;
+%>
+
+<div class="page-head">
+  <div><h1>اشتراك البائع</h1><p>كل بائع يدفع <%= c.label %> شهريا، فتبقى لوحته مفتوحة ومنتجاته ظاهرة في المتجر.</p></div>
+  <% if (!fee.locked) { %><div class="actions"><a class="btn btn-ghost" href="/seller/earnings"><i class="fa-solid fa-chart-line"></i> أرباحي</a></div><% } %>
+</div>
+
+<% if (!fee.applies) { %>
+  <section class="card"><div class="empty"><span class="ic" style="background:var(--success-bg);color:var(--success)"><i class="fa-solid fa-circle-check"></i></span><h3>لا يوجد اشتراك مطلوب الآن</h3><p>البيع في المتجر بدون اشتراك شهري حاليا.</p></div></section>
+<% } else { %>
+
+<% if (fee.locked) { %>
+<div class="status-banner danger mb-16">
+  <span class="ic"><i class="fa-solid fa-lock"></i></span>
+  <div><b>لوحة البائع موقوفة</b><p>انتهى اشتراكك في <%= fmtDate(fee.paidUntil) %> ولم يصلنا الدفع، فأخفينا منتجاتك من المتجر. ادفع الاشتراك هنا، وعندما نؤكده تعود لوحتك ومنتجاتك كما كانت.</p></div>
+</div>
+<% } else if (fee.status === 'grace' || fee.status === 'overdue') { %>
+<div class="status-banner warning mb-16">
+  <span class="ic"><i class="fa-solid fa-hourglass-half"></i></span>
+  <div><b><%= fee.status === 'grace' ? 'اشتراكك غير مدفوع' : 'اشتراكك متأخر' %></b><p><%= fee.dueAt ? `ادفعه قبل ${fmtDateTime(fee.dueAt)}، وإلا نوقف لوحة البائع ونخفي منتجاتك حتى الدفع.` : 'ادفعه من هنا ليبقى حسابك منتظما.' %></p></div>
+</div>
+<% } else { %>
+<div class="status-banner <%= fee.status === 'soon' ? 'warning' : 'success' %> mb-16">
+  <span class="ic"><i class="fa-solid <%= fee.status === 'soon' ? 'fa-calendar-day' : 'fa-circle-check' %>"></i></span>
+  <div><b>اشتراكك مدفوع حتى <%= fmtDate(fee.paidUntil) %></b><p><%= fee.status === 'soon' ? `باقي ${daysText(fee.daysLeft)}. يمكنك التجديد الآن، وتضاف المدة الجديدة بعد تاريخ الانتهاء.` : 'يمكنك الدفع مقدما لأكثر من شهر، وتضاف المدة بعد تاريخ الانتهاء.' %></p></div>
+</div>
+<% } %>
+
+<div class="dash-grid" style="margin-top:0">
+  <div class="stack">
+    <% if (fee.pending) { %>
+    <section class="card card-body">
+      <div class="alert alert-brand" style="margin:0">
+        <i class="fa-solid fa-hourglass-half"></i>
+        <div><b>إيصالك بانتظار المراجعة</b><%= monthsText(fee.pending.months) %>، <%- moneyIn(fee.pending.amount, fee.pending.currency) %> عبر <%= fee.pending.payment_method_name %>، أرسلته <%= timeAgo(fee.pending.created_at) %>. نبلغك عندما نؤكده.</div>
+      </div>
+    </section>
+    <% } else { %>
+    <form class="card co-block" method="post" action="/seller/subscription" enctype="multipart/form-data" data-ajax novalidate data-fee-pay>
+      <h2 class="co-title"><span class="n">1</span> المدة وطريقة الدفع</h2>
+      <div class="field" style="max-width:260px">
+        <label class="label" for="months">عدد الأشهر</label>
+        <select class="select" id="months" name="months" data-fee-months>
+          <% monthChoices.forEach((m) => { %><option value="<%= m %>"><%= monthsText(m) %></option><% }) %>
+        </select>
+        <span class="field-error"></span>
+      </div>
+      <% if (!methods.length) { %>
+        <div class="alert alert-warning"><i class="fa-solid fa-triangle-exclamation"></i><div>لا توجد طرق دفع مفعلة الآن. راسلنا على واتساب لندفع الاشتراك بطريقة أخرى.</div></div>
+      <% } %>
+      <div class="field">
+        <div class="pm-grid" role="radiogroup" aria-label="طرق الدفع">
+          <% methods.forEach((m) => { const amounts = m.amounts; %>
+          <label class="pm-card">
+            <input type="radio" name="payment_method_id" value="<%= m.id %>" data-pm-radio data-sender-label="<%= m.sender_account_label %>">
+            <span class="pm-icon" style="--pm:<%= m.color %>"><% if (m.logo_url) { %><img src="<%= m.logo_url %>" alt=""><% } else { %><i class="<%= m.icon %>"></i><% } %></span>
+            <span class="pm-text"><b><%= m.name %></b><small><%= m.subtitle %></small></span>
+            <span class="pm-amount" data-fee-amounts="<%= JSON.stringify(amounts) %>" data-symbol="<%= m.currency.symbol %>"><%- moneyMajor(amounts[1], m.currency.code) %></span>
+            <i class="pm-check fa-solid fa-check"></i>
+          </label>
+          <% }) %>
+        </div>
+        <span class="field-error"></span>
+      </div>
+      <% methods.forEach((m) => { %>
+      <div class="pm-details" data-pm-details="<%= m.id %>" hidden>
+        <div class="copy-list">
+          <% m.details.forEach((d) => { %>
+          <div class="copy-row">
+            <span class="k"><%= d.label %></span>
+            <span class="v<%= isLatin(d.value) ? ' ltr' : '' %>"<%= isLatin(d.value) ? ' dir=ltr' : '' %>><%= d.value %></span>
+            <% if (d.copy) { %><button class="copy-btn" type="button" data-copy="<%= d.value %>"><i class="fa-regular fa-copy"></i> نسخ</button><% } %>
+          </div>
+          <% }) %>
+        </div>
+      </div>
+      <% }) %>
+
+      <h2 class="co-title mt-16"><span class="n">2</span> بيانات التحويل والإيصال</h2>
+      <div class="form-grid cols-2">
+        <div class="field">
+          <label class="label" for="sender_name">اسم صاحب الحساب <span class="req">*</span></label>
+          <input class="input" id="sender_name" name="sender_name" value="<%= user.name %>" maxlength="100">
+          <span class="field-error"></span>
+        </div>
+        <div class="field">
+          <label class="label" for="sender_account" data-sender-label-target>الحساب المحول منه <span class="req">*</span></label>
+          <input class="input" id="sender_account" name="sender_account" maxlength="60" dir="ltr">
+          <span class="field-error"></span>
+        </div>
+        <div class="field span-2">
+          <label class="label" for="receipt">صورة الإيصال <span class="req">*</span></label>
+          <input class="input" id="receipt" type="file" name="receipt" accept="image/*,application/pdf" style="padding-top:10px">
+          <span class="help">صورة أو PDF حتى 8MB، يظهر فيها المبلغ والتاريخ.</span>
+          <span class="field-error"></span>
+        </div>
+        <div class="field span-2"><label class="label" for="note">ملاحظة <span class="opt">(اختياري)</span></label><input class="input" id="note" name="note" maxlength="300"></div>
+      </div>
+      <button class="btn btn-primary btn-lg" type="submit" style="justify-self:start"><i class="fa-solid fa-paper-plane"></i> إرسال الإيصال</button>
+    </form>
+    <% } %>
+  </div>
+
+  <div class="stack">
+    <section class="card card-body stack-sm">
+      <h3 class="form-section-title"><i class="fa-solid fa-wallet"></i> الدفع من رصيدك</h3>
+      <p class="small text-2">رصيدك المستحق لدينا الآن: <b><%- amtBase(Math.max(0, balance.due)) %></b></p>
+      <% if (canUseBalance && !fee.pending) { %>
+      <form class="stack-sm" method="post" action="/seller/subscription/balance" data-ajax data-confirm="نخصم الاشتراك من رصيدك المستحق ونفعله مباشرة. متابعة؟" data-confirm-title="الدفع من الرصيد">
+        <select class="select" name="months" aria-label="عدد الأشهر">
+          <% monthChoices.filter((m) => c.baseMinor * m <= balance.due).forEach((m) => { %><option value="<%= m %>"><%= monthsText(m) %> (<%- amtBase(c.baseMinor * m) %>)</option><% }) %>
+        </select>
+        <button class="btn btn-success btn-block" type="submit"><i class="fa-solid fa-bolt"></i> ادفع من رصيدي</button>
+      </form>
+      <% } else { %>
+      <p class="help">عندما يغطي رصيدك قيمة الاشتراك (<%= c.label %>) تستطيع الدفع منه مباشرة بدون تحويل.</p>
+      <% } %>
+    </section>
+    <section class="card card-body">
+      <h3 class="form-section-title" style="margin-bottom:10px"><i class="fa-solid fa-circle-question"></i> كيف يعمل الاشتراك</h3>
+      <ul class="feature-list">
+        <li><i class="fa-solid fa-check"></i><span>تدفع <%= c.label %> عن كل شهر، ويمكنك الدفع مقدما حتى سنة.</span></li>
+        <li><i class="fa-solid fa-check"></i><span>إذا انتهى الشهر بدون دفع تحصل على <%= c.graceDays %> أيام إضافية.</span></li>
+        <% if (c.enforce) { %><li><i class="fa-solid fa-check"></i><span>بعد المهلة نوقف لوحة البائع ونخفي منتجاتك، وتعود فور تأكيد الدفع.</span></li><% } %>
+      </ul>
+    </section>
+  </div>
+</div>
+
+<section class="card mt-16">
+  <div class="card-head"><h2><i class="fa-solid fa-clock-rotate-left"></i> دفعاتك</h2></div>
+  <%- include('_fees', { rows: history }) %>
+</section>
+
+<% } %>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/accounts.js'] }) %>

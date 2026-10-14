@@ -1,0 +1,28 @@
+<% if (rows.length) { %>
+<div class="table-wrap">
+  <table class="table responsive acc-table">
+    <thead><tr><th>التاريخ</th><% if (locals.showSeller) { %><th>البائع</th><% } %><th>المبلغ المحول</th><th>بعملة العرض</th><th>الطريقة</th><th>ملاحظة</th><% if (locals.canDelete) { %><th></th><% } %></tr></thead>
+    <tbody>
+      <% rows.forEach((p) => { %>
+      <tr>
+        <td class="t-first"><b><%= fmtDateTime(p.created_at) %></b><% if (p.admin_name) { %><small class="muted" style="display:block">سجله <%= p.admin_name %></small><% } %></td>
+        <% if (locals.showSeller) { %><td data-label="البائع"><a class="link" href="/seller/accounts/sellers/<%= p.seller_id %>?tab=payouts"><%= p.seller_store || p.seller_name %></a></td><% } %>
+        <td data-label="المبلغ المحول" class="nowrap"><b><%- moneyIn(p.amount, p.currency) %></b></td>
+        <td data-label="بعملة العرض" class="nowrap"><%- amt(p.base_now) %></td>
+        <td data-label="الطريقة"><%= p.method || '-' %><% if (p.reference) { %><br><small class="muted" dir="ltr"><%= p.reference %></small><% } %></td>
+        <td data-label="ملاحظة"><small><%= p.note || '-' %></small></td>
+        <% if (locals.canDelete) { %>
+        <td><div class="t-actions">
+          <form method="post" action="/seller/accounts/payouts/<%= p.id %>/delete" data-ajax data-confirm="حذف هذا التحويل من السجل؟ يرجع المبلغ إلى رصيد البائع المستحق." data-confirm-danger>
+            <button class="btn btn-ghost btn-icon btn-sm" type="submit" aria-label="حذف التحويل"><i class="fa-solid fa-trash-can"></i></button>
+          </form>
+        </div></td>
+        <% } %>
+      </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+<% } else { %>
+<div class="empty" style="padding:34px 12px"><span class="ic"><i class="fa-solid fa-money-bill-transfer"></i></span><h3>لا توجد تحويلات</h3><p>عندما نحول للبائع جزءا من أرباحه يظهر هنا.</p></div>
+<% } %>

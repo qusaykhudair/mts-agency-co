@@ -7,8 +7,11 @@
     processing: ['تم تأكيد الدفع', 'نجهز اشتراكك الآن، ويصلك إشعار عندما تصبح البيانات جاهزة.'],
     delivered: ['اشتراكك جاهز', 'بيانات الاشتراك تحت هذه الرسالة. جربها، وإذا عملت معك اضغط «تأكيد الاستلام».'],
     completed: ['الطلب مكتمل', 'شكرا لثقتك بنا! نتمنى لك تجربة رائعة مع اشتراكك.'],
-    cancelled: ['تم إلغاء الطلب', 'تم إلغاء هذا الطلب. للاستفسار تواصل معنا عبر واتساب.'],
+    cancelled: order.refunded_at
+      ? ['ألغي الطلب واسترجع المبلغ', (order.refund_reason ? 'السبب: ' + order.refund_reason + '. ' : '') + 'إذا لم يصلك المبلغ تواصل معنا عبر واتساب.']
+      : ['تم إلغاء الطلب', 'تم إلغاء هذا الطلب. للاستفسار تواصل معنا عبر واتساب.'],
   }[order.status];
+  const statusKey = order.refunded_at ? 'refunded' : order.status;
   const waMsg = `مرحبا MTS Store، بخصوص طلبي رقم ${order.code} (${order.product_title}، ${order.plan_name}).`;
   const waNotify = `مرحبا MTS Store\nطلبت ${order.product_title} (${order.plan_name})\nرقم الطلب: ${order.code}\nالمبلغ: ${orderPayText(order)} عبر ${order.payment_method_name}\nوأرفقت إيصال التحويل في الطلب.`;
 %>
@@ -42,10 +45,10 @@
           <b><%= order.product_title %> (<%= order.plan_name %>)<%= order.quantity > 1 ? ' × ' + order.quantity : '' %></b>
           <small>طلب رقم <span class="bold text-brand"><%= order.code %></span> · <%= fmtDateTime(order.created_at) %></small>
         </div>
-        <%- include('../partials/status-badge', { status: order.status }) %>
+        <%- include('../partials/status-badge', { status: statusKey }) %>
       </div>
-      <div class="status-banner <%= st.tone %>">
-        <span class="ic"><i class="<%= st.icon %>"></i></span>
+      <div class="status-banner <%= ORDER_STATUS[statusKey].tone %>">
+        <span class="ic"><i class="<%= ORDER_STATUS[statusKey].icon %>"></i></span>
         <div><b><%= banner[0] %></b><p><%= banner[1] %></p></div>
       </div>
       <%- include('../partials/order-stepper', { order }) %>

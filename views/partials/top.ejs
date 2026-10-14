@@ -17,4 +17,15 @@
   <% } %>
   <%- include('topbar', { navMode }) %>
   <main class="main" id="main">
+  <% if (navMode === 'seller' && locals.sellerFee && ['soon', 'grace', 'overdue'].includes(sellerFee.status) && path !== '/seller/subscription') { %>
+    <div class="alert <%= sellerFee.status === 'soon' ? 'alert-warning' : 'alert-danger' %> mb-16 fee-banner">
+      <i class="fa-solid fa-calendar-check"></i>
+      <div class="grow">
+        <% if (sellerFee.pending) { %><b>إيصال اشتراكك بانتظار المراجعة</b>نبلغك عندما نؤكده.
+        <% } else if (sellerFee.status === 'soon') { %><b>اشتراكك كبائع ينتهي <%= fmtDate(sellerFee.paidUntil) %></b>جدده الآن ليبقى متجرك ظاهرا.
+        <% } else { %><b>اشتراك البائع غير مدفوع</b><%= sellerFee.dueAt ? `ادفعه قبل ${fmtDateTime(sellerFee.dueAt)}، وإلا نوقف لوحتك ونخفي منتجاتك حتى الدفع.` : 'ادفعه ليبقى حسابك منتظما.' %><% } %>
+      </div>
+      <% if (!sellerFee.pending) { %><a class="btn btn-sm <%= sellerFee.status === 'soon' ? 'btn-soft' : 'btn-danger' %>" href="/seller/subscription">ادفع الآن</a><% } %>
+    </div>
+  <% } %>
 <% } %>

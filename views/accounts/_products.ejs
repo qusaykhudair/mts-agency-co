@@ -1,0 +1,49 @@
+<%
+  // A seller's products and how each plan's price splits. `items` from lib/accounts.products().
+  const dash = '<span class="muted">-</span>';
+  const opt = (v) => (v === null || v === undefined ? dash : amt(v));
+  const L = locals.you ? { net: 'يصلك', profit: 'صافي ربحك' } : { net: 'يصل للبائع', profit: 'صافي ربح البائع' };
+%>
+<% if (items.length) { %>
+<div class="stack">
+  <% items.forEach((p) => { %>
+  <section class="card">
+    <div class="card-head">
+      <div class="flex gap-12" style="min-width:0">
+        <%- include('../partials/mini-cover', { o: p }) %>
+        <div style="min-width:0"><b class="ellipsis" style="display:block"><%= p.title %></b><small class="muted"><%= p.sales_count %> عملية بيع<%= p.platform_name ? ' · ' + p.platform_name : '' %></small></div>
+      </div>
+      <div class="flex gap-8">
+        <span class="badge <%= p.is_active ? 'badge-success' : 'badge-muted' %>"><%= p.is_active ? 'معروض' : 'مخفي' %></span>
+        <% if (locals.canEdit) { %><a class="btn btn-ghost btn-sm" href="/seller/products/<%= p.id %>/edit"><i class="fa-solid fa-pen"></i> تعديل</a><% } %>
+      </div>
+    </div>
+    <% if (p.plans.length) { %>
+    <div class="table-wrap">
+      <table class="table responsive acc-table">
+        <thead><tr><th>الباقة</th><th>السعر الأصلي</th><th>الربح</th><th>سعر البيع</th><th>عمولة MTS</th><th><%= L.net %></th><th><%= L.profit %></th><th>المخزون</th></tr></thead>
+        <tbody>
+          <% p.plans.forEach((pl) => { %>
+          <tr<%= pl.is_active ? '' : ' class="is-muted"' %>>
+            <td class="t-first"><b><%= pl.name %></b><% if (!pl.is_active) { %> <span class="badge badge-muted">موقوفة</span><% } %><% if (pl.cost_price === null) { %><br><small class="muted">لم يحدد السعر الأصلي بعد</small><% } %></td>
+            <td data-label="السعر الأصلي" class="nowrap"><%- opt(pl.cost_price) %></td>
+            <td data-label="الربح" class="nowrap"><%- opt(pl.profit) %></td>
+            <td data-label="سعر البيع" class="nowrap"><b><%- amt(pl.price) %></b><% if (pl.old_price && pl.old_price > pl.price) { %><br><small class="muted"><s><%- amt(pl.old_price) %></s></small><% } %></td>
+            <td data-label="عمولة MTS" class="nowrap"><span class="text-brand bold"><%- amt(pl.commission) %></span></td>
+            <td data-label="<%= L.net %>" class="nowrap"><b><%- amt(pl.seller_net) %></b></td>
+            <td data-label="<%= L.profit %>" class="nowrap"><% if (pl.seller_profit === null) { %><%- dash %><% } else { %><span class="<%= pl.seller_profit < 0 ? 'text-danger' : '' %>"><%- amt(pl.seller_profit) %></span><% } %></td>
+            <td data-label="المخزون"><%= pl.stock === null ? 'غير محدود' : pl.stock %></td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+    <div class="card-body"><p class="muted small">لا توجد باقات لهذا المنتج.</p></div>
+    <% } %>
+  </section>
+  <% }) %>
+</div>
+<% } else { %>
+<section class="card"><div class="empty" style="padding:34px 12px"><span class="ic"><i class="fa-solid fa-boxes-stacked"></i></span><h3>لا توجد منتجات</h3><p>تظهر هنا المنتجات وباقاتها مع تقسيم سعر كل باقة.</p></div></section>
+<% } %>

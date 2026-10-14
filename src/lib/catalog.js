@@ -21,8 +21,10 @@ const PRODUCT_SELECT = `
   LEFT JOIN categories c ON c.id = p.category_id`;
 
 // Products are public when active, in a visible platform/category, sold by an active seller and
-// with at least one active plan.
-const SELLER_OK = `AND EXISTS (SELECT 1 FROM users su WHERE su.id = p.seller_id AND su.is_blocked = 0 AND su.role IN ('seller', 'admin'))`;
+// with at least one active plan. A seller whose monthly fee is overdue past the grace days
+// (fee_due_at reached, see lib/seller-fees) is hidden until they pay.
+const SELLER_OK = `AND EXISTS (SELECT 1 FROM users su WHERE su.id = p.seller_id AND su.is_blocked = 0 AND su.role IN ('seller', 'admin')
+  AND (su.fee_due_at IS NULL OR su.fee_due_at > datetime('now')))`;
 
 const PUBLIC_FILTER = `p.is_active = 1
   AND (pl.id IS NULL OR pl.is_active = 1)

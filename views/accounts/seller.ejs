@@ -1,0 +1,139 @@
+<%- include('../partials/top') %>
+<%
+  const name = seller.store_name || seller.name;
+  const tabs = [
+    ['sales', 'المبيعات', 'fa-solid fa-receipt'],
+    ['products', 'المنتجات والأسعار', 'fa-solid fa-boxes-stacked'],
+    ['refunds', 'المسترجعات', 'fa-solid fa-rotate-left'],
+    ['payouts', admin ? 'التحويلات للبائع' : 'التحويلات إليك', 'fa-solid fa-money-bill-transfer'],
+    ['fees', 'الاشتراك الشهري', 'fa-solid fa-calendar-check'],
+  ];
+  const tabUrl = (k) => `${base}?${new URLSearchParams({ ...period.params, cur: cur.code, tab: k })}`;
+  const feeMap = { active: ['success', 'مدفوع'], soon: ['warning', 'ينتهي قريبا'], grace: ['warning', 'متأخر (في المهلة)'], overdue: ['danger', 'متأخر'], locked: ['danger', 'موقوف لعدم الدفع'], free: ['muted', 'مجاني'] };
+  const feeTag = fee.applies ? feeMap[fee.status] || ['muted', fee.status] : null;
+  const you = !admin;
+%>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <% if (admin) { %><a href="/seller">لوحة الإدارة</a><i class="fa-solid fa-chevron-left"></i><a href="/seller/accounts">الحسابات</a><i class="fa-solid fa-chevron-left"></i><span><%= name %></span>
+  <% } else { %><a href="/seller">لوحة البائع</a><i class="fa-solid fa-chevron-left"></i><span>أرباحي وحساباتي</span><% } %>
+</nav>
+
+<div class="page-head">
+  <div>
+    <h1><%= admin ? name : 'أرباحي وحساباتي' %><% if (feeTag) { %> <span class="badge badge-<%= feeTag[0] %>" style="vertical-align:middle;font-size:12px"><%= feeTag[1] %></span><% } %></h1>
+    <p><%= admin ? `${seller.name} · بائع منذ ${fmtDate(seller.created_at)}` : `عمولة MTS ${commissionLabel}، والباقي لك.` %></p>
+  </div>
+  <div class="actions">
+    <% if (admin) { %>
+      <% if (seller.wa_e164) { %><a class="btn btn-whatsapp" href="<%= waLink(seller.wa_e164) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> مراسلة</a><% } %>
+      <a class="btn btn-ghost" href="/seller/users/<%= seller.id %>"><i class="fa-solid fa-id-badge"></i> ملف المستخدم</a>
+    <% } else { %>
+      <a class="btn btn-soft" href="/seller/subscription"><i class="fa-solid fa-calendar-check"></i> اشتراك البائع</a>
+    <% } %>
+  </div>
+</div>
+
+<%- include('_period', { exportBase, exportSeller: admin ? seller.id : null, keep: { tab } }) %>
+
+<div class="stats mt-16">
+  <div class="stat"><span class="ic"><i class="fa-solid fa-sack-dollar"></i></span><div><small><%= you ? 'مبيعاتك' : 'المبيعات' %></small><b><%- amt(totals.gross) %></b><span class="delta"><%= totals.sales_count %> عملية بيع</span></div></div>
+  <div class="stat success"><span class="ic"><i class="fa-solid fa-percent"></i></span><div><small>عمولة MTS</small><b><%- amt(totals.commission) %></b><span class="delta"><%= commissionLabel %></span></div></div>
+  <div class="stat info"><span class="ic"><i class="fa-solid fa-store"></i></span><div><small><%= you ? 'حصتك من المبيعات' : 'حصة البائع' %></small><b><%- amt(totals.seller_net) %></b><span class="delta"><%= totals.unknown_cost < totals.sales_count ? `ربح قبل العمولة ${amtText(totals.gross_with_cost - totals.cost)}` : 'بعد خصم العمولة' %></span></div></div>
+  <div class="stat warning"><span class="ic"><i class="fa-solid fa-hand-holding-dollar"></i></span><div><small><%= you ? 'رصيدك المستحق الآن' : 'المستحق له الآن' %></small><b class="<%= balance.due < 0 ? 'text-danger' : '' %>"><%- amt(balance.due) %></b><span class="delta">قيد الانتظار <%- amtText(balance.pending) %></span></div></div>
+</div>
+
+<section class="card mt-16">
+  <div class="card-body acc-kv">
+    <div><small>من طلبات مكتملة</small><b><%- amt(balance.available) %></b><span class="muted small">تدخل الرصيد عند اكتمال الطلب</span></div>
+    <div><small><%= you ? 'حولنا لك حتى الآن' : 'حولنا له حتى الآن' %></small><b><%- amt(balance.paid_out) %></b></div>
+    <div><small>اشتراكات خصمت من الرصيد</small><b><%- amt(balance.fee_deducted) %></b></div>
+    <div><small>المسترجعات في الفترة</small><b><%- amt(totals.refunds.amount) %></b><span class="muted small"><%= totals.refunds.n %> طلب</span></div>
+  </div>
+  <% if (balance.due < 0) { %><div class="card-foot"><small class="text-danger"><i class="fa-solid fa-circle-info"></i> الرصيد بالسالب لأن طلبات حول مبلغها ثم استرجعت، ويخصم الفرق من الأرباح القادمة.</small></div><% } %>
+</section>
+
+<nav class="tabs mt-16" aria-label="أقسام الحساب">
+  <% tabs.forEach(([k, label, icon]) => { %><a class="tab<%= tab === k ? ' is-active' : '' %>" href="<%= tabUrl(k) %>"><i class="<%= icon %>"></i> <%= label %></a><% }) %>
+</nav>
+
+<% if (tab === 'sales') { %>
+  <section class="card"><%- include('_sales', { rows: sales, you }) %></section>
+  <%- include('../partials/pagination', { pg }) %>
+<% } else if (tab === 'products') { %>
+  <p class="help mb-16">الأسعار الحالية لكل باقة، وكيف يقسم سعر البيع بين MTS و<%= you ? 'بينك' : 'البائع' %>.</p>
+  <%- include('_products', { items: products, you, canEdit: true }) %>
+<% } else if (tab === 'refunds') { %>
+  <section class="card"><%- include('_sales', { rows: refunds, refunds: true, you }) %></section>
+<% } else if (tab === 'payouts') { %>
+  <% if (admin) { %>
+  <section class="card mb-16">
+    <div class="card-head"><h2><i class="fa-solid fa-money-bill-transfer"></i> سجل تحويلا للبائع</h2><span class="muted small">المستحق له الآن: <%- moneyBase(Math.max(0, balance.due)) %></span></div>
+    <form class="card-body form-grid cols-2" method="post" action="/seller/accounts/sellers/<%= seller.id %>/payouts" data-ajax novalidate>
+      <div class="field">
+        <label class="label" for="po_amount">المبلغ المحول <span class="req">*</span></label>
+        <input class="input" id="po_amount" name="amount" inputmode="decimal" dir="ltr" value="<%= balance.due > 0 ? (Math.floor(balance.due) / 100).toFixed(2) : '' %>">
+        <span class="field-error"></span>
+      </div>
+      <div class="field">
+        <label class="label" for="po_currency">العملة <span class="req">*</span></label>
+        <select class="select" id="po_currency" name="currency">
+          <% currenciesAll.forEach((c) => { %><option value="<%= c.code %>"<%= c.is_base ? ' selected' : '' %>><%= c.name %> (<%= c.symbol %>)</option><% }) %>
+        </select>
+        <span class="help">نحسبه بسعر الصرف الحالي إن لم يكن بـ<%= baseCurrency.name %>.</span>
+      </div>
+      <div class="field"><label class="label" for="po_method">طريقة التحويل</label><input class="input" id="po_method" name="method" maxlength="60" placeholder="مثال: فودافون كاش" list="poMethods"><datalist id="poMethods"><option value="بنك فلسطين"><option value="جوال باي"><option value="بال باي"><option value="فودافون كاش"><option value="نقدا"></datalist></div>
+      <div class="field"><label class="label" for="po_ref">رقم العملية</label><input class="input" id="po_ref" name="reference" maxlength="80" dir="ltr"></div>
+      <div class="field span-2"><label class="label" for="po_note">ملاحظة</label><input class="input" id="po_note" name="note" maxlength="300"></div>
+      <button class="btn btn-success" type="submit" style="justify-self:start"><i class="fa-solid fa-check"></i> تسجيل التحويل</button>
+    </form>
+  </section>
+  <% } %>
+  <section class="card"><%- include('_payouts', { rows: payouts, canDelete: admin }) %></section>
+<% } else if (tab === 'fees') { %>
+  <section class="card mb-16">
+    <div class="card-body acc-kv">
+      <div><small>الاشتراك الشهري</small><b><%= feeConfig.label %></b></div>
+      <div><small>مدفوع حتى</small><b><%= fee.paidUntil ? fmtDate(fee.paidUntil) : '-' %></b></div>
+      <div><small>توقف اللوحة في</small><b><%= fee.dueAt ? fmtDateTime(fee.dueAt) : 'لا توقف' %></b></div>
+      <% if (fee.pending) { %><div><small>إيصال بانتظار المراجعة</small><b><%= monthsText(fee.pending.months) %></b><% if (admin) { %><a class="link small" href="/seller/accounts/fees">مراجعته</a><% } %></div><% } %>
+    </div>
+  </section>
+  <% if (admin) { %>
+  <section class="card mb-16">
+    <div class="card-head"><h2><i class="fa-solid fa-plus"></i> سجل دفعة اشتراك</h2></div>
+    <form class="card-body form-grid cols-2" method="post" action="/seller/accounts/sellers/<%= seller.id %>/fees" data-ajax novalidate data-fee-form>
+      <div class="field">
+        <label class="label" for="fee_months">المدة <span class="req">*</span></label>
+        <select class="select" id="fee_months" name="months">
+          <% [1, 2, 3, 6, 12].forEach((m) => { %><option value="<%= m %>"><%= monthsText(m) %></option><% }) %>
+        </select>
+        <span class="field-error"></span>
+      </div>
+      <div class="field">
+        <label class="label" for="fee_method">الطريقة <span class="req">*</span></label>
+        <select class="select" id="fee_method" name="method" data-fee-method>
+          <% Object.entries(feeMethods).forEach(([k, label]) => { %><option value="<%= k %>"><%= label %></option><% }) %>
+        </select>
+      </div>
+      <div class="field" data-fee-amount>
+        <label class="label" for="fee_amount">المبلغ المستلم <span class="req">*</span></label>
+        <input class="input" id="fee_amount" name="amount" inputmode="decimal" dir="ltr" value="<%= feeConfig.amount %>">
+        <span class="field-error"></span>
+      </div>
+      <div class="field" data-fee-amount>
+        <label class="label" for="fee_currency">العملة</label>
+        <select class="select" id="fee_currency" name="currency">
+          <% currenciesAll.forEach((c) => { %><option value="<%= c.code %>"<%= c.code === feeConfig.currency.code ? ' selected' : '' %>><%= c.name %> (<%= c.symbol %>)</option><% }) %>
+        </select>
+      </div>
+      <div class="field span-2"><label class="label" for="fee_note">ملاحظة</label><input class="input" id="fee_note" name="note" maxlength="300"></div>
+      <p class="help span-2">«خصم من رصيد البائع» يأخذ <%= feeConfig.label %> عن كل شهر من مستحقاته. «إعفاء» يضيف المدة بدون مبلغ.</p>
+      <button class="btn btn-success" type="submit" style="justify-self:start"><i class="fa-solid fa-check"></i> تسجيل الدفعة</button>
+    </form>
+  </section>
+  <% } %>
+  <section class="card"><%- include('_fees', { rows: feeList, latest: admin ? (() => { const m = {}; const a = feeList.filter((f) => f.status === 'approved').sort((x, y) => String(y.period_to).localeCompare(String(x.period_to)) || y.id - x.id)[0]; if (a) m[a.seller_id] = a; return m; })() : null }) %></section>
+<% } %>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/accounts.js'] }) %>

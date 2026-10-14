@@ -10,6 +10,8 @@ const ORDER_STATUS = {
   delivered: { label: 'تم تسليم بيانات الاشتراك', short: 'تم التسليم', tone: 'success', icon: 'fa-solid fa-box-open' },
   completed: { label: 'الطلب مكتمل', short: 'مكتمل', tone: 'success', icon: 'fa-solid fa-circle-check' },
   cancelled: { label: 'تم إلغاء الطلب', short: 'ملغي', tone: 'muted', icon: 'fa-solid fa-ban' },
+  // Not a stored status: a cancelled order that had been paid, so the money goes back to the buyer.
+  refunded: { label: 'تم إلغاء الطلب واسترجاع المبلغ', short: 'مسترجع', tone: 'danger', icon: 'fa-solid fa-rotate-left' },
 };
 
 const DELIVERY_METHODS = {
@@ -29,6 +31,7 @@ const EVENT_META = {
   delivery_updated: { label: 'تم تحديث بيانات الاشتراك', icon: 'fa-solid fa-pen-to-square', tone: 'brand' },
   completed: { label: 'اكتمل الطلب', icon: 'fa-solid fa-flag-checkered', tone: 'success' },
   cancelled: { label: 'تم إلغاء الطلب', icon: 'fa-solid fa-ban', tone: 'muted' },
+  refunded: { label: 'تم إلغاء الطلب واسترجاع المبلغ', icon: 'fa-solid fa-rotate-left', tone: 'danger' },
   note: { label: 'ملاحظة داخلية', icon: 'fa-solid fa-note-sticky', tone: 'warning' },
 };
 

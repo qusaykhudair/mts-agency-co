@@ -36,7 +36,7 @@
               <td class="t-first"><div class="t-main"><%- include('../partials/mini-cover', { o }) %><div><b><%= o.product_title %></b><small><span class="code"><%= o.code %></span> · <%= timeAgo(o.created_at) %></small></div></div></td>
               <td data-label="العميل"><%= o.buyer_name %></td>
               <td data-label="المبلغ" class="nowrap"><b><%- orderPay(o) %></b><br><small class="muted"><%= o.payment_method_name %></small></td>
-              <td data-label="الحالة"><%- include('../partials/status-badge', { status: o.status }) %></td>
+              <td data-label="الحالة"><%- include('../partials/status-badge', { status: o.refunded_at ? 'refunded' : o.status }) %></td>
               <td><div class="t-actions"><a class="btn btn-primary btn-sm" href="/seller/orders/<%= o.code %>"><%= o.status === 'under_review' ? 'مراجعة' : 'تسليم' %> <i class="fa-solid fa-arrow-left"></i></a></div></td>
             </tr>
             <% }) %>

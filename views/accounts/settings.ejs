@@ -1,0 +1,73 @@
+<%- include('../partials/top') %>
+<% const ex = example; const exAmt = (v) => moneyBase(v); %>
+
+<div class="page-head">
+  <div><h1>العمولة واشتراك البائعين</h1><p>نسبة MTS من كل عملية بيع، وقيمة الاشتراك الشهري الذي يدفعه كل بائع.</p></div>
+</div>
+
+<%- include('_nav') %>
+
+<form method="post" action="/seller/accounts/settings" data-ajax novalidate>
+  <div class="dash-grid" style="margin-top:0">
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h2><i class="fa-solid fa-percent"></i> عمولة MTS</h2></div>
+        <div class="card-body stack">
+          <div class="field" style="max-width:220px">
+            <label class="label" for="commission_rate">النسبة من كل عملية بيع</label>
+            <div class="input-affix"><input class="input" id="commission_rate" name="commission_rate" inputmode="decimal" dir="ltr" value="<%= s.commission_rate %>"><span>%</span></div>
+            <span class="field-error"></span>
+          </div>
+          <div class="field">
+            <span class="label">تحسب النسبة</span>
+            <div class="stack-sm">
+              <% Object.entries(basis).forEach(([k, b]) => { %>
+              <label class="check"><input type="radio" name="commission_basis" value="<%= k %>"<%= (s.commission_basis === 'profit' ? 'profit' : 'sale') === k ? ' checked' : '' %>> <%= b.long %></label>
+              <% }) %>
+            </div>
+            <span class="help">إذا لم يحدد البائع السعر الأصلي لباقة، تحسب العمولة من سعر البيع.</span>
+          </div>
+          <div class="acc-example">
+            <b>مثال بنسبة <%= ex.rate %>%: السعر الأصلي <%- exAmt(ex.cost) %> + ربح البائع <%- exAmt(ex.total - ex.cost) %> = سعر البيع <%- exAmt(ex.total) %></b>
+            <% [['sale', 'من سعر البيع'], ['profit', 'من الربح فقط']].forEach(([k, label]) => { const r = ex[k]; %>
+            <p<%= ex.current === k ? ' class=is-current' : '' %>><%= label %><%= ex.current === k ? ' (المحفوظ الآن)' : '' %>: عمولة MTS <b class="text-brand"><%- exAmt(r.commission) %></b>، يصل للبائع <b><%- exAmt(r.sellerNet) %></b>، وصافي ربحه <b><%- exAmt(r.sellerNet - ex.cost) %></b>.</p>
+            <% }) %>
+          </div>
+          <p class="help">النسبة الجديدة تطبق على الطلبات القادمة فقط. كل طلب يحتفظ بالعمولة التي بيع بها.</p>
+        </div>
+      </section>
+    </div>
+
+    <div class="stack">
+      <section class="card">
+        <div class="card-head"><h2><i class="fa-solid fa-calendar-check"></i> اشتراك البائع الشهري</h2></div>
+        <div class="card-body form-grid cols-2">
+          <div class="field">
+            <label class="label" for="seller_fee_amount">القيمة الشهرية</label>
+            <input class="input" id="seller_fee_amount" name="seller_fee_amount" inputmode="decimal" dir="ltr" value="<%= s.seller_fee_amount %>">
+            <span class="help">اكتب 0 لإلغاء الاشتراك.</span>
+            <span class="field-error"></span>
+          </div>
+          <div class="field">
+            <label class="label" for="seller_fee_currency">العملة</label>
+            <select class="select" id="seller_fee_currency" name="seller_fee_currency">
+              <% feeCurrencies.forEach((c) => { %><option value="<%= c.code %>"<%= c.code === s.seller_fee_currency ? ' selected' : '' %>><%= c.name %> (<%= c.symbol %>)</option><% }) %>
+            </select>
+            <span class="field-error"></span>
+          </div>
+          <div class="field">
+            <label class="label" for="seller_fee_grace_days">مهلة بعد انتهاء الشهر (أيام)</label>
+            <input class="input" id="seller_fee_grace_days" type="number" lang="en" min="0" max="60" name="seller_fee_grace_days" value="<%= s.seller_fee_grace_days %>">
+          </div>
+          <div class="field span-2">
+            <label class="switch"><input type="checkbox" name="seller_fee_enforce" value="1"<%= s.seller_fee_enforce === '1' ? ' checked' : '' %>><span class="track"></span> إيقاف لوحة البائع المتأخر عن الدفع</label>
+            <span class="help">عند انتهاء المهلة تغلق لوحة البائع وتختفي منتجاته من المتجر، وتبقى له صفحة دفع الاشتراك فقط. تعود كما كانت فور تأكيد الدفع.</span>
+          </div>
+        </div>
+      </section>
+      <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+    </div>
+  </div>
+</form>
+
+<%- include('../partials/bottom') %>

@@ -8,6 +8,8 @@ const { normalizeWhatsapp } = require('../lib/phone');
 const { receiptUpload, serviceFiles, discard, SERVICE_FILE_MB } = require('../lib/uploads');
 const services = require('../lib/services');
 const settings = require('../lib/settings');
+const accounts = require('../lib/accounts');
+const fees = require('../lib/seller-fees');
 const { BUDGETS } = require('../lib/format');
 const { str, clean, cleanText, int, toLatinDigits } = require('../lib/util');
 const { fromSql } = require('../db');
@@ -338,11 +340,18 @@ router.get('/become-seller', (req, res) => {
     active: 'acc-seller',
     pageTitle: 'أصبح بائعا',
     application: get('SELECT * FROM seller_applications WHERE user_id = ? ORDER BY id DESC LIMIT 1', req.user.id),
+    applicationsOpen: settings.sellerApplicationsOpen(),
+    closedNote: settings.get('seller_applications_note'),
+    commissionLabel: accounts.rateLabel(),
+    feeConfig: fees.config(),
   });
 });
 
 router.post('/become-seller', (req, res) => {
   if (req.user.role !== 'buyer') return res.reply({ ok: false, message: 'حسابك يملك صلاحيات البائع بالفعل', redirect: '/seller' });
+  if (!settings.sellerApplicationsOpen()) {
+    return res.reply({ ok: false, message: settings.get('seller_applications_note') || 'استقبال طلبات البائعين متوقف الآن' });
+  }
   if (get("SELECT id FROM seller_applications WHERE user_id = ? AND status = 'pending'", req.user.id)) {
     return res.reply({ ok: false, message: 'لديك طلب قيد المراجعة بالفعل' });
   }

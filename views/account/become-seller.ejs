@@ -19,6 +19,13 @@
         <h3>طلبك قيد المراجعة</h3>
         <p>أرسلت طلب فتح متجر «<%= application.store_name %>» بتاريخ <%= fmtDate(application.created_at) %>. سنراجعه ونبلغك بالنتيجة عبر الإشعارات وواتساب.</p>
       </div>
+    <% } else if (!applicationsOpen) { %>
+      <div class="empty">
+        <span class="ic" style="background:var(--surface-3);color:var(--text-3)"><i class="fa-solid fa-door-closed"></i></span>
+        <h3>استقبال طلبات البائعين متوقف الآن</h3>
+        <p><%= closedNote || 'نفتح التسجيل كبائع في أوقات محددة. تابعنا أو راسلنا على واتساب لتعرف موعد الفتح القادم.' %></p>
+        <a class="btn btn-whatsapp" href="<%= waLink(storeWa, 'مرحبا MTS Store، أريد أن أعرف متى يفتح التسجيل كبائع') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> راسلنا على واتساب</a>
+      </div>
     <% } else { %>
       <div class="card-head"><h2><i class="fa-solid fa-file-signature"></i> طلب الانضمام كبائع</h2></div>
       <form class="card-body stack" method="post" action="/account/become-seller" data-ajax novalidate>
@@ -47,6 +54,12 @@
       <li><i class="fa-solid fa-check"></i><span>تراجع الإيصال وتسلم الاشتراك من صفحة الطلب نفسها.</span></li>
       <li><i class="fa-solid fa-check"></i><span>يصلك إشعار مع كل طلب جديد، وتراسل العميل على واتساب بضغطة.</span></li>
       <li><i class="fa-solid fa-check"></i><span>ترى مبيعاتك وأرقامك في لوحتك.</span></li>
+    </ul>
+    <h3 class="form-section-title" style="margin:18px 0 12px"><i class="fa-solid fa-receipt"></i> الرسوم</h3>
+    <ul class="feature-list">
+      <li><i class="fa-solid fa-percent"></i><span>عمولة MTS <%= commissionLabel %> في كل عملية بيع، والباقي لك.</span></li>
+      <% if (feeConfig.amount > 0) { %><li><i class="fa-solid fa-calendar-check"></i><span>اشتراك البائع <%= feeConfig.label %> شهريا، يبدأ من يوم الموافقة على طلبك.</span></li><% } %>
+      <li><i class="fa-solid fa-money-bill-transfer"></i><span>نحول لك أرباح الطلبات المكتملة، وترى كل عملية ورصيدك في صفحة أرباحك.</span></li>
     </ul>
   </section>
 </div>

@@ -4,6 +4,31 @@
   <div><h1>طلبات الانضمام كبائع</h1><p>عند الموافقة يحصل المستخدم على لوحة بائع لإدارة منتجاته وطلباتها.</p></div>
 </div>
 
+<section class="card mb-16 apps-window">
+  <div class="card-head">
+    <h2><i class="fa-solid <%= signup.open ? 'fa-door-open' : 'fa-door-closed' %>"></i> التسجيل كبائع</h2>
+    <span class="badge <%= signup.open ? 'badge-success' : 'badge-muted' %>"><%= signup.open ? 'مفتوح' : 'مغلق' %></span>
+  </div>
+  <form class="card-body form-grid cols-2" method="post" action="/seller/applications/window" data-ajax novalidate>
+    <div class="field span-2">
+      <label class="switch"><input type="checkbox" name="open" value="1"<%= signup.switchedOn ? ' checked' : '' %>><span class="track"></span> استقبال طلبات جديدة</label>
+      <span class="help">عند الإغلاق تختفي روابط «أصبح بائعا» من الموقع، ومن يفتح الصفحة يرى الرسالة التي تكتبها هنا. الطلبات المرسلة قبل الإغلاق تبقى للمراجعة.</span>
+      <% if (signup.switchedOn && !signup.open && signup.until) { %><span class="help text-danger">أغلق تلقائيا في <%= fmtDateTime(signup.until) %>. شغله من جديد واختر وقتا آخر أو اترك الوقت فارغا.</span><% } %>
+    </div>
+    <div class="field">
+      <label class="label" for="win_until">يغلق تلقائيا في <span class="opt">(اختياري)</span></label>
+      <input class="input" id="win_until" type="datetime-local" name="until" value="<%= signup.open ? signup.untilLocal : '' %>">
+      <span class="help">مثلا: افتحه أسبوعا ثم يغلق وحده.</span>
+      <span class="field-error"></span>
+    </div>
+    <div class="field">
+      <label class="label" for="win_note">رسالة وقت الإغلاق <span class="opt">(اختياري)</span></label>
+      <input class="input" id="win_note" name="note" maxlength="200" value="<%= signup.note %>" placeholder="مثال: نفتح التسجيل أول كل شهر">
+    </div>
+    <button class="btn btn-primary" type="submit" style="justify-self:start"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
+  </form>
+</section>
+
 <% if (items.length) { %>
 <div class="grid-2">
   <% items.forEach((a) => { %>

@@ -1,0 +1,67 @@
+<%- include('../partials/top') %>
+<%
+  const feeBadge = (f) => {
+    if (!f || !f.applies) return '<span class="badge badge-muted">بدون اشتراك</span>';
+    const map = { active: ['badge-success', 'مدفوع'], soon: ['badge-warning', 'ينتهي قريبا'], grace: ['badge-warning', 'متأخر (مهلة)'], overdue: ['badge-danger', 'متأخر'], locked: ['badge-danger', 'موقوف لعدم الدفع'], free: ['badge-muted', 'مجاني'] };
+    const [cls, label] = map[f.status] || ['badge-muted', f.status];
+    return `<span class="badge ${cls}">${esc(label)}</span>`;
+  };
+%>
+
+<div class="page-head">
+  <div><h1>الحسابات</h1><p>عمولة MTS من كل عملية بيع، وأرباح كل بائع ومستحقاته، واشتراكات البائعين الشهرية.</p></div>
+</div>
+
+<%- include('_nav') %>
+<%- include('_period', { exportBase: '/seller/accounts/export' }) %>
+
+<div class="stats mt-16">
+  <div class="stat"><span class="ic"><i class="fa-solid fa-sack-dollar"></i></span><div><small>مبيعات البائعين</small><b><%- amt(totals.gross) %></b><span class="delta"><%= totals.sales_count %> عملية بيع</span></div></div>
+  <div class="stat success"><span class="ic"><i class="fa-solid fa-percent"></i></span><div><small>عمولة MTS</small><b><%- amt(totals.commission) %></b><span class="delta"><%= commissionLabel %></span></div></div>
+  <div class="stat info"><span class="ic"><i class="fa-solid fa-store"></i></span><div><small>حصة البائعين</small><b><%- amt(totals.seller_net) %></b><span class="delta">بعد خصم العمولة</span></div></div>
+  <div class="stat warning"><span class="ic"><i class="fa-solid fa-hand-holding-dollar"></i></span><div><small>المستحق للبائعين الآن</small><b><%- amt(owed) %></b><span class="delta">وقيد الانتظار <%- amtText(pending) %></span></div></div>
+</div>
+
+<section class="card mt-16">
+  <div class="card-body acc-kv">
+    <div><small>المسترجعات</small><b><%- amt(totals.refunds.amount) %></b><span class="muted small"><%= totals.refunds.n %> طلب</span></div>
+    <div><small>اشتراكات البائعين المحصلة</small><b><%- amt(totals.fees.amount) %></b><span class="muted small"><%= totals.fees.n %> دفعة</span></div>
+    <div><small>حولنا للبائعين</small><b><%- amt(totals.payouts.amount) %></b><span class="muted small"><%= totals.payouts.n %> تحويل</span></div>
+    <div><small>إيراد MTS من البائعين</small><b class="text-brand"><%- amt(totals.commission + totals.fees.amount) %></b><span class="muted small">العمولة والاشتراكات</span></div>
+    <% if (totals.direct) { %><div><small>مبيعات منتجات MTS</small><b><%- amt(totals.direct.amount) %></b><span class="muted small"><%= totals.direct.n %> طلب، بدون عمولة</span></div><% } %>
+  </div>
+</section>
+
+<section class="card mt-16">
+  <div class="card-head"><h2><i class="fa-solid fa-users"></i> البائعون</h2><span class="muted small"><%= period.label %></span></div>
+  <% if (sellers.length) { %>
+  <div class="table-wrap">
+    <table class="table responsive acc-table">
+      <thead><tr><th>البائع</th><th>المبيعات</th><th>عمولة MTS</th><th>حصة البائع</th><th>المسترجعات</th><th>المستحق له الآن</th><th>الاشتراك</th><th></th></tr></thead>
+      <tbody>
+        <% sellers.forEach((u) => { %>
+        <tr>
+          <td class="t-first">
+            <div class="t-main">
+              <span class="avatar"><%= initials(u.store_name || u.name) %></span>
+              <div><b><%= u.store_name || u.name %></b><small><%= u.name %> · <%= u.active_products %> منتج معروض<% if (u.role !== 'seller') { %> · <span class="badge badge-muted">لم يعد بائعا</span><% } %></small></div>
+            </div>
+          </td>
+          <td data-label="المبيعات" class="nowrap"><b><%- amt(u.period.gross) %></b><br><small class="muted"><%= u.period.sales_count %> عملية</small></td>
+          <td data-label="عمولة MTS" class="nowrap"><span class="text-brand bold"><%- amt(u.period.commission) %></span></td>
+          <td data-label="حصة البائع" class="nowrap"><%- amt(u.period.seller_net) %></td>
+          <td data-label="المسترجعات" class="nowrap"><%- u.refunds.n ? amt(u.refunds.amount) + `<br><small class="muted">${u.refunds.n} طلب</small>` : '<span class="muted">-</span>' %></td>
+          <td data-label="المستحق له الآن" class="nowrap"><b class="<%= u.balance.due < 0 ? 'text-danger' : '' %>"><%- amt(u.balance.due) %></b><% if (u.balance.pending) { %><br><small class="muted">قيد الانتظار <%- amtText(u.balance.pending) %></small><% } %></td>
+          <td data-label="الاشتراك"><%- feeBadge(u.fee) %><% if (u.fee && ['active', 'soon'].includes(u.fee.status)) { %><br><small class="muted">حتى <%= fmtDate(u.fee.paidUntil) %></small><% } else if (u.fee && u.fee.status === 'grace' && u.fee.dueAt) { %><br><small class="muted">يوقف <%= fmtDate(u.fee.dueAt) %></small><% } %></td>
+          <td><div class="t-actions"><a class="btn btn-soft btn-sm" href="/seller/accounts/sellers/<%= u.id %>?<%= new URLSearchParams({ ...period.params, cur: cur.code }) %>">الحساب <i class="fa-solid fa-arrow-left"></i></a></div></td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else { %>
+  <div class="empty"><span class="ic"><i class="fa-solid fa-store"></i></span><h3>لا يوجد بائعون بعد</h3><p>عند الموافقة على طلبات البائعين تظهر حساباتهم هنا.</p></div>
+  <% } %>
+</section>
+
+<%- include('../partials/bottom') %>

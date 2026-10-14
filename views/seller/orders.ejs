@@ -41,7 +41,7 @@
           </td>
           <td data-label="طريقة الدفع"><span class="small"><%= o.payment_method_name %></span><br><small class="muted" dir="ltr"><%= o.sender_account %></small></td>
           <td data-label="المبلغ" class="nowrap"><b><%- orderPay(o) %></b></td>
-          <td data-label="الحالة"><%- include('../partials/status-badge', { status: o.status }) %></td>
+          <td data-label="الحالة"><%- include('../partials/status-badge', { status: o.refunded_at ? 'refunded' : o.status }) %></td>
           <td data-label="التاريخ" class="nowrap"><small><%= fmtDate(o.created_at) %><br><span class="muted"><%= timeAgo(o.created_at) %></span></small></td>
           <td><div class="t-actions"><a class="btn <%= o.status === 'under_review' ? 'btn-primary' : 'btn-soft' %> btn-sm" href="/seller/orders/<%= o.code %>"><%= o.status === 'under_review' ? 'مراجعة' : o.status === 'processing' ? 'تسليم' : 'عرض' %></a></div></td>
         </tr>

@@ -1,0 +1,24 @@
+<%- include('../partials/top') %>
+<% const sum = refunds.reduce((s, r) => s + r.total, 0); %>
+
+<div class="page-head">
+  <div><h1>المسترجعات</h1><p>طلبات دفعها العملاء ثم ألغيت وأعيد مبلغها. لا تحسب في المبيعات ولا في مستحقات البائع.</p></div>
+</div>
+
+<%- include('_nav') %>
+<%- include('_period', { exportBase: '/seller/accounts/export', exportSeller: seller ? seller.id : null, keep: { seller: seller ? seller.id : '' } }) %>
+
+<form class="filters mt-16" method="get">
+  <% Object.entries({ ...period.params, cur: cur.code }).forEach(([k, v]) => { %><input type="hidden" name="<%= k %>" value="<%= v %>"><% }) %>
+  <select class="select" name="seller" data-autosubmit-field aria-label="البائع">
+    <option value="">كل البائعين</option>
+    <% sellerOptions.forEach((o) => { %><option value="<%= o.id %>"<%= seller && seller.id === o.id ? ' selected' : '' %>><%= o.label %></option><% }) %>
+  </select>
+  <span class="badge badge-danger" style="align-self:center"><%= refunds.length %> طلب · <%- amt(sum) %></span>
+</form>
+
+<section class="card">
+  <%- include('_sales', { rows: refunds, showSeller: !seller, refunds: true }) %>
+</section>
+
+<%- include('../partials/bottom') %>

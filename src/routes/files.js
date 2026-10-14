@@ -27,6 +27,23 @@ router.get('/receipts/:file', requireAuth, (req, res, next) => {
   });
 });
 
+// Seller fee receipts: the admins and the seller who sent them.
+router.get('/fee-receipts/:file', requireAuth, (req, res, next) => {
+  const file = String(req.params.file || '');
+  if (!/^[0-9a-f-]{36}\.(jpg|png|webp|gif|heic|heif|pdf)$/.test(file)) return next();
+  const fee = get('SELECT id, seller_id, receipt_mime FROM seller_fees WHERE receipt_file = ?', file);
+  if (!fee || (req.user.role !== 'admin' && req.user.id !== fee.seller_id)) return next();
+  res.set({
+    'Cache-Control': 'private, max-age=3600',
+    'Content-Disposition': `inline; filename="seller-fee-${fee.id}${path.extname(file)}"`,
+    'X-Content-Type-Options': 'nosniff',
+  });
+  if (fee.receipt_mime) res.type(fee.receipt_mime);
+  res.sendFile(path.join(RECEIPTS_DIR, file), (err) => {
+    if (err && !res.headersSent) next();
+  });
+});
+
 // Service-request attachments: the client, the admins and the provider working on the request.
 router.get('/services/:file', requireAuth, (req, res, next) => {
   const file = String(req.params.file || '');

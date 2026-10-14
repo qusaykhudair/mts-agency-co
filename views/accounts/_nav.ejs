@@ -1,0 +1,5 @@
+<nav class="tabs" aria-label="أقسام الحسابات">
+  <% sections.forEach((s) => { %>
+  <a class="tab<%= s.key === section ? ' is-active' : '' %>" href="<%= s.href %>"><i class="<%= s.icon %>"></i> <%= s.label %><% if (s.key === 'fees' && locals.pendingFees) { %> <span class="n"><%= pendingFees %></span><% } %></a>
+  <% }) %>
+</nav>

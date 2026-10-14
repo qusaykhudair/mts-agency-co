@@ -1,0 +1,54 @@
+<%
+  // Period (daily / weekly / monthly / range / all) and display currency of an accounts page.
+  // `keep`: query values the form must carry along (tab, seller…). `exportBase`: adds the export menu.
+  const kinds = [['day', 'يومي'], ['week', 'أسبوعي'], ['month', 'شهري'], ['range', 'فترة محددة'], ['all', 'الكل']];
+  const keepVals = locals.keep || {};
+  const today = isoDay(new Date());
+  const exportUrl = (format) => {
+    const q = new URLSearchParams({ ...period.params, cur: cur.code });
+    if (locals.exportSeller) q.set('seller', exportSeller);
+    if (format === 'csv') q.set('format', 'csv');
+    return `${exportBase}?${q}`;
+  };
+%>
+<section class="card acc-filter">
+  <div class="acc-filter-top">
+    <nav class="seg" aria-label="الفترة">
+      <% kinds.forEach(([k, label]) => { %>
+      <a class="seg-item<%= period.kind === k ? ' is-active' : '' %>" href="<%= withQuery({ period: k, date: ['day', 'week', 'month'].includes(k) ? period.anchor : null, from: null, to: null }) %>"><%= label %></a>
+      <% }) %>
+    </nav>
+    <% if (locals.exportBase) { %>
+    <div class="dd" data-dd>
+      <button class="btn btn-soft btn-sm" type="button" data-dd-toggle><i class="fa-solid fa-file-arrow-down"></i> تصدير <i class="fa-solid fa-chevron-down" style="font-size:10px"></i></button>
+      <div class="dd-menu" style="min-width:220px">
+        <a class="dd-item" href="<%= exportUrl('xlsx') %>"><i class="fa-solid fa-file-excel"></i> ملف Excel</a>
+        <a class="dd-item" href="<%= exportUrl('csv') %>"><i class="fa-solid fa-file-csv"></i> ملف CSV</a>
+      </div>
+    </div>
+    <% } %>
+  </div>
+  <form class="acc-filter-row" method="get" data-autosubmit>
+    <% Object.entries(keepVals).forEach(([k, v]) => { if (v !== null && v !== undefined && v !== '') { %><input type="hidden" name="<%= k %>" value="<%= v %>"><% } }) %>
+    <input type="hidden" name="period" value="<%= period.kind %>">
+    <% if (['day', 'week', 'month'].includes(period.kind)) { %>
+      <div class="acc-step">
+        <a class="btn btn-ghost btn-icon btn-sm" href="<%= withQuery({ date: period.prev }) %>" aria-label="الفترة السابقة"><i class="fa-solid fa-chevron-right"></i></a>
+        <b class="acc-period-label"><%= period.label %></b>
+        <% if (period.next) { %><a class="btn btn-ghost btn-icon btn-sm" href="<%= withQuery({ date: period.next }) %>" aria-label="الفترة التالية"><i class="fa-solid fa-chevron-left"></i></a><% } else { %><span class="btn btn-ghost btn-icon btn-sm" aria-hidden="true" style="opacity:.35"><i class="fa-solid fa-chevron-left"></i></span><% } %>
+      </div>
+      <label class="acc-field"><span>يوم من الفترة</span><input class="input input-sm" type="date" name="date" value="<%= period.anchor %>" max="<%= today %>"></label>
+    <% } else if (period.kind === 'range') { %>
+      <label class="acc-field"><span>من</span><input class="input input-sm" type="date" name="from" value="<%= period.fromDay %>" max="<%= today %>"></label>
+      <label class="acc-field"><span>إلى</span><input class="input input-sm" type="date" name="to" value="<%= period.lastDay %>" max="<%= today %>"></label>
+    <% } else { %>
+      <b class="acc-period-label">كل الفترات</b>
+    <% } %>
+    <label class="acc-field acc-cur"><span>العملة</span>
+      <select class="select input-sm" name="cur" aria-label="عملة العرض">
+        <% currencies.forEach((c) => { %><option value="<%= c.code %>"<%= c.code === cur.code ? ' selected' : '' %>><%= c.name %> (<%= c.symbol %>)</option><% }) %>
+      </select>
+    </label>
+  </form>
+  <% if (!cur.is_base) { %><p class="help acc-note"><i class="fa-solid fa-circle-info"></i> المبالغ محولة من <%= baseCurrency.name %> (<%= baseCurrency.code %>) بسعر الصرف الحالي، والحسابات مسجلة بـ<%= baseCurrency.name %>.</p><% } %>
+</section>
