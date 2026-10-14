@@ -1750,3 +1750,24 @@ test('migration v7 gives earlier seller sales the 20% split and marks paid cance
   assert.equal(out.buyerFee, null);
   assert.equal(out.fk, 0);
 });
+
+test('filter, tab and page links keep the section prefix (/seller, /store, /account)', async () => {
+  const hrefs = async (client, url) => [...(await (await client.get(url)).text()).matchAll(/href="([^"]+)"/g)].map((m) => m[1].replace(/&amp;/g, '&'));
+  const accounts = await hrefs(admin, '/seller/accounts?period=week&cur=ILS');
+  assert.ok(accounts.includes('/seller/accounts?period=day&cur=ILS&date=' + accounts.find((h) => h.startsWith('/seller/accounts?period=day')).split('date=')[1]));
+  assert.ok(accounts.some((h) => h.startsWith('/seller/accounts?period=month&cur=ILS')));
+  assert.ok(!accounts.some((h) => /^\/accounts\?/.test(h)), 'no link loses /seller');
+  const orders = await hrefs(admin, '/seller/orders');
+  assert.ok(orders.includes('/seller/orders?status=under_review'));
+  assert.ok(!orders.some((h) => /^\/orders\?/.test(h)));
+  assert.ok((await hrefs(admin, '/seller/users')).includes('/seller/users?role=seller'));
+  assert.ok((await hrefs(svcClient, '/account/services')).some((h) => h.startsWith('/account/services?tab=')));
+  // The catalogue has more than one page of products; page links stay under /store.
+  const store = await hrefs(stranger, '/store/products');
+  assert.ok(store.includes('/store/products?page=2'), 'pagination keeps /store');
+  assert.equal((await stranger.get('/store/products?page=2')).status, 200);
+  // Every filter link on the seller account page opens.
+  for (const h of (await hrefs(admin, `/seller/accounts/sellers/${acctSeller.id}`)).filter((x) => x.startsWith(`/seller/accounts/sellers/${acctSeller.id}?`))) {
+    assert.equal((await admin.get(h)).status, 200, h);
+  }
+});

@@ -108,6 +108,12 @@ function paginate(total, page, perPage) {
   return { total, page: current, pages, perPage, offset: (current - 1) * perPage };
 }
 
+// The path of the page being rendered, for its filter and page links. Views render inside the
+// /store, /seller… routers, where req.path has lost the mount prefix, so it comes from the original URL.
+function ownPath(req) {
+  return String(req.originalUrl || req.url || '/').split('?')[0];
+}
+
 function locals(req, res, next) {
   const s = settings.getAll();
   const displayCurrency = money.resolve((req.cookies && req.cookies.mts_cur) || s.default_currency);
@@ -151,7 +157,7 @@ function locals(req, res, next) {
       if (n > 1) q.set('page', n);
       else q.delete('page');
       const qs = q.toString();
-      return req.path + (qs ? '?' + qs : '');
+      return ownPath(req) + (qs ? '?' + qs : '');
     },
     withQuery: (changes) => {
       const q = new URLSearchParams(req.query);
@@ -161,7 +167,7 @@ function locals(req, res, next) {
       }
       q.delete('page');
       const qs = q.toString();
-      return req.path + (qs ? '?' + qs : '');
+      return ownPath(req) + (qs ? '?' + qs : '');
     },
     counts: { unread: 0, pendingOrders: 0, pendingApps: 0, services: 0, pendingFees: 0 },
     sellerSignupOpen: settings.sellerApplicationsOpen(),
