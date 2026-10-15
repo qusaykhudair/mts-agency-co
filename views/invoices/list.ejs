@@ -1,0 +1,126 @@
+<%- include('../partials/top') %>
+<%
+  const cur = (code) => currencyList.find((c) => c.code === code) || { code, symbol: code, name: code };
+  const amt = (minor, code) => `<span class="money"><bdi class="amt" dir="ltr">${esc(sheet.formatNumber(minor))}</bdi> <span class="cur">${esc(cur(code).symbol)}</span></span>`;
+  const STATUS = { paid: ['badge-success', 'مدفوعة'], partial: ['badge-warning', 'مدفوعة جزئيا'], unpaid: ['badge-muted', 'غير مدفوعة'] };
+  const serviceName = (key) => (services.find((s) => s.key === key) || { ar: key }).ar;
+  const filtered = !!(filters.q || filters.service || filters.currency || filters.status || filters.country || filters.period);
+%>
+
+<div class="page-head">
+  <div><h1>الفواتير</h1><p>فواتير العملاء بأرقام متسلسلة لا تتكرر، تطبعها أو تحفظها PDF على صفحة A4 واحدة.</p></div>
+  <div class="actions">
+    <button class="btn btn-ghost" type="button" data-inv-settings-open><i class="fa-solid fa-sliders" aria-hidden="true"></i> إعدادات الفاتورة</button>
+    <a class="btn btn-primary" href="/seller/invoices/new"><i class="fa-solid fa-plus" aria-hidden="true"></i> فاتورة جديدة</a>
+  </div>
+</div>
+
+<form class="card card-body inv-filters" method="get" role="search" aria-label="البحث في الفواتير" data-inv-filters>
+  <div class="field inv-filter-q">
+    <label class="label" for="f-q">بحث</label>
+    <div class="input-wrap"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><input class="input" id="f-q" type="search" name="q" value="<%= filters.q %>" placeholder="الرقم، اسم العميل، طريقة التحويل، الغرض أو الدولة"></div>
+  </div>
+  <div class="field">
+    <label class="label" for="f-service">الخدمة</label>
+    <select class="select" id="f-service" name="service" data-autosubmit-field>
+      <option value="">كل الخدمات</option>
+      <% services.forEach((s) => { %><option value="<%= s.key %>"<%= filters.service === s.key ? ' selected' : '' %>><%= s.ar %></option><% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label class="label" for="f-currency">العملة</label>
+    <select class="select" id="f-currency" name="currency" data-autosubmit-field>
+      <option value="">كل العملات</option>
+      <% currencyList.forEach((c) => { %><option value="<%= c.code %>"<%= filters.currency === c.code ? ' selected' : '' %>><%= c.name %> (<%= c.code %>)</option><% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label class="label" for="f-status">الحالة</label>
+    <select class="select" id="f-status" name="status" data-autosubmit-field>
+      <option value="">كل الحالات</option>
+      <% Object.entries(STATUS).forEach(([k, s]) => { %><option value="<%= k %>"<%= filters.status === k ? ' selected' : '' %>><%= s[1] %></option><% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label class="label" for="f-country">الدولة</label>
+    <select class="select" id="f-country" name="country" data-autosubmit-field>
+      <option value="">كل الدول</option>
+      <% countriesUsed.forEach((c) => { %><option value="<%= c %>"<%= filters.country === c ? ' selected' : '' %>><%= sheet.countryName(c, 'ar') %></option><% }) %>
+    </select>
+  </div>
+  <div class="field">
+    <label class="label" for="f-period">الفترة</label>
+    <select class="select" id="f-period" name="period" data-period-select>
+      <% Object.entries(periods).forEach(([k, label]) => { %><option value="<%= k %>"<%= filters.period === k ? ' selected' : '' %>><%= label %></option><% }) %>
+    </select>
+  </div>
+  <div class="inv-range" data-period-range<%= filters.period === 'range' ? '' : ' hidden' %>>
+    <div class="field"><label class="label" for="f-from">من</label><input class="input" id="f-from" type="date" name="from" value="<%= filters.period === 'range' ? filters.from || '' : '' %>"></div>
+    <div class="field"><label class="label" for="f-to">إلى</label><input class="input" id="f-to" type="date" name="to" value="<%= filters.period === 'range' ? filters.to || '' : '' %>"></div>
+  </div>
+  <div class="inv-filter-actions">
+    <button class="btn btn-soft" type="submit"><i class="fa-solid fa-filter" aria-hidden="true"></i> عرض</button>
+    <% if (filtered) { %><a class="btn btn-ghost" href="/seller/invoices">مسح</a><% } %>
+  </div>
+  <p class="help inv-filter-note">الفترة تحسب بتاريخ التحويل، أو بتاريخ الإصدار إذا لم يكن هناك تحويل.</p>
+</form>
+
+<% if (totals.length) { %>
+<section class="inv-totals" aria-label="الإجماليات حسب العملة">
+  <% totals.forEach((t) => { const c = cur(t.currency); %>
+  <div class="card card-body inv-total-card">
+    <div class="inv-total-head"><b><%= c.name %> <bdi dir="ltr">(<%= c.code %>)</bdi></b><span class="muted small"><%= t.count %> فاتورة</span></div>
+    <dl>
+      <div><dt>الإجمالي</dt><dd><%- amt(t.total, t.currency) %></dd></div>
+      <div><dt>المدفوع</dt><dd><%- amt(t.paid, t.currency) %></dd></div>
+      <div class="<%= t.remaining > 0 ? 'is-due' : '' %>"><dt>المتبقي</dt><dd><%- amt(t.remaining, t.currency) %></dd></div>
+    </dl>
+  </div>
+  <% }) %>
+</section>
+<% } %>
+
+<section class="card mt-16" aria-labelledby="invTableTitle">
+  <div class="card-head"><h2 id="invTableTitle"><i class="fa-solid fa-file-invoice" aria-hidden="true"></i> <%= filtered ? 'نتائج البحث' : 'كل الفواتير' %></h2><span class="muted small"><%= total %> فاتورة</span></div>
+  <% if (items.length) { %>
+  <div class="table-wrap">
+    <table class="table responsive inv-table">
+      <thead><tr><th>الرقم</th><th>العميل</th><th>الدولة</th><th>الإجمالي</th><th>المدفوع</th><th>المتبقي</th><th>الحالة</th><th>الخدمة</th><th>التاريخ</th><th><span class="sr-only">إجراءات</span></th></tr></thead>
+      <tbody>
+        <% items.forEach((inv) => { const st = STATUS[inv.status]; const date = inv.paid_on || inv.issued_on; %>
+        <tr data-inv-row="<%= inv.id %>">
+          <td class="t-first"><a class="code" href="/seller/invoices/<%= inv.id %>"><bdi dir="ltr"><%= inv.number %></bdi></a></td>
+          <td data-label="العميل"><b><bdi><%= inv.client_name %></bdi></b><% if (inv.client_contact) { %><br><small class="muted"><bdi dir="ltr"><%= inv.client_contact %></bdi></small><% } %></td>
+          <td data-label="الدولة"><%= inv.client_country ? sheet.countryName(inv.client_country, 'ar') : '-' %></td>
+          <td data-label="الإجمالي" class="nowrap"><b><%- amt(inv.total, inv.currency) %></b></td>
+          <td data-label="المدفوع" class="nowrap"><%- amt(inv.paid_amount, inv.currency) %></td>
+          <td data-label="المتبقي" class="nowrap"><span class="<%= inv.remaining > 0 ? 'inv-due-text' : 'muted' %>"><%- amt(inv.remaining, inv.currency) %></span></td>
+          <td data-label="الحالة"><span class="badge <%= st[0] %>"><%= st[1] %></span></td>
+          <td data-label="الخدمة"><%= serviceName(inv.service) %></td>
+          <td data-label="التاريخ" class="nowrap"><small><%= sheet.dayLabel(date, 'ar', { weekday: false }) %><br><span class="muted"><%= inv.paid_on ? 'تحويل' : 'إصدار' %></span></small></td>
+          <td>
+            <div class="t-actions inv-row-actions">
+              <a class="btn btn-soft btn-sm" href="/seller/invoices/<%= inv.id %>">فتح<span class="sr-only"> الفاتورة <%= inv.number %></span></a>
+              <a class="btn btn-ghost btn-icon btn-sm" href="/seller/invoices/<%= inv.id %>/print" target="_blank" rel="noopener" aria-label="طباعة الفاتورة <%= inv.number %>" title="طباعة"><i class="fa-solid fa-print" aria-hidden="true"></i></a>
+              <a class="btn btn-ghost btn-icon btn-sm" href="/seller/invoices/new?from=<%= inv.id %>" aria-label="نسخ الفاتورة <%= inv.number %> إلى فاتورة جديدة" title="نسخ"><i class="fa-solid fa-copy" aria-hidden="true"></i></a>
+              <button class="btn btn-ghost btn-icon btn-sm" type="button" data-inv-delete-id="<%= inv.id %>" data-inv-number="<%= inv.number %>" aria-label="حذف الفاتورة <%= inv.number %>" title="حذف"><i class="fa-solid fa-trash-can" aria-hidden="true"></i></button>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <% } else { %>
+  <div class="empty">
+    <span class="ic"><i class="fa-solid fa-file-invoice" aria-hidden="true"></i></span>
+    <h3><%= filtered ? 'لا توجد فواتير مطابقة' : 'لا توجد فواتير بعد' %></h3>
+    <p><%= filtered ? 'جرب كلمة بحث أخرى أو امسح الفلاتر.' : 'أنشئ أول فاتورة، وستظهر هنا مع إجماليات كل عملة.' %></p>
+    <% if (!filtered) { %><a class="btn btn-primary" href="/seller/invoices/new"><i class="fa-solid fa-plus" aria-hidden="true"></i> فاتورة جديدة</a><% } %>
+  </div>
+  <% } %>
+</section>
+<%- include('../partials/pagination', { pg }) %>
+
+<%- include('_settings-dialog') %>
+<%- include('../partials/bottom') %>

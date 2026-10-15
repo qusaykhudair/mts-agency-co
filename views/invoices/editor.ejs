@@ -1,0 +1,195 @@
+<%- include('../partials/top') %>
+<%
+  const d = boot.invoice;
+  const isNew = !d.id;
+  const toMajor = (minor) => (minor === null || minor === undefined ? '' : String(Math.round(minor) / 100));
+  // An input with its label, help and error, wired for screen readers.
+  const describe = (name, help) => [help ? `help-${name}` : '', `err-${name}`].filter(Boolean).join(' ');
+  const curCode = d.currency && d.currency.code;
+%>
+
+<nav class="crumbs" aria-label="مسار التنقل">
+  <a href="/seller">لوحة الإدارة</a><i class="fa-solid fa-chevron-left" aria-hidden="true"></i><a href="/seller/invoices">الفواتير</a><i class="fa-solid fa-chevron-left" aria-hidden="true"></i><span data-inv-crumb><%= isNew ? 'فاتورة جديدة' : d.number %></span>
+</nav>
+
+<div class="page-head inv-page-head">
+  <div>
+    <h1 data-inv-heading><%= isNew ? 'فاتورة جديدة' : 'الفاتورة ' + d.number %></h1>
+    <p data-inv-sub><%= duplicateFrom ? `نسخة من ${duplicateFrom.number}. تحصل على رقم جديد عند الحفظ.` : isNew ? 'يحصل الرقم على التسلسل التالي عند الحفظ.' : 'رقم الفاتورة ثابت لا يتغير عند التعديل.' %></p>
+  </div>
+  <div class="actions inv-actions">
+    <button class="btn btn-primary" type="submit" form="invForm" data-inv-save><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ</button>
+    <button class="btn btn-soft" type="button" data-inv-print><i class="fa-solid fa-print" aria-hidden="true"></i> طباعة / حفظ PDF</button>
+    <a class="btn btn-ghost" href="<%= isNew ? '#' : '/seller/invoices/new?from=' + d.id %>" data-inv-duplicate<%= isNew ? ' hidden' : '' %>><i class="fa-solid fa-copy" aria-hidden="true"></i> تكرار</a>
+    <button class="btn btn-ghost" type="button" data-inv-delete<%= isNew ? ' hidden' : '' %>><i class="fa-solid fa-trash-can" aria-hidden="true"></i> حذف</button>
+    <button class="btn btn-ghost" type="button" data-inv-settings-open><i class="fa-solid fa-sliders" aria-hidden="true"></i> إعدادات الفاتورة</button>
+  </div>
+</div>
+
+<div class="alert alert-danger mb-16" role="alert" data-inv-alert hidden></div>
+
+<div class="inv-editor">
+  <form class="inv-form stack" id="invForm" data-inv-form novalidate aria-label="بيانات الفاتورة">
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-user" aria-hidden="true"></i> العميل</h2></div>
+      <div class="card-body form-grid cols-2">
+        <div class="field span-2">
+          <label class="label" for="client_name">اسم العميل <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="client_name" name="client_name" value="<%= d.client_name || '' %>" maxlength="<%= boot.limits.client_name %>" required aria-required="true" aria-describedby="<%= describe('client_name') %>" list="invClients" autocomplete="off">
+          <datalist id="invClients"><% boot.clients.forEach((c) => { %><option value="<%= c.name %>"></option><% }) %></datalist>
+          <span class="field-error" id="err-client_name"></span>
+        </div>
+        <div class="field">
+          <label class="label" for="client_contact">وسيلة التواصل <span class="opt">(اختياري)</span></label>
+          <input class="input" id="client_contact" name="client_contact" value="<%= d.client_contact || '' %>" maxlength="<%= boot.limits.client_contact %>" dir="ltr" inputmode="email" placeholder="name@example.com / +970599123456" aria-describedby="<%= describe('client_contact', true) %>" autocomplete="off">
+          <span class="help" id="help-client_contact">بريد إلكتروني أو رقم هاتف.</span>
+          <span class="field-error" id="err-client_contact"></span>
+        </div>
+        <div class="field combo" data-combo>
+          <label class="label" id="client_country_label" for="client_country_input">الدولة <span class="opt">(اختياري)</span></label>
+          <div class="combo-box">
+            <input class="input" id="client_country_input" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="client_country_list" aria-describedby="<%= describe('client_country', true) %>" autocomplete="off" spellcheck="false" placeholder="اكتب للبحث: فلسطين أو Egypt" data-combo-input>
+            <button class="combo-clear" type="button" data-combo-clear aria-label="مسح الدولة" hidden><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+          </div>
+          <input type="hidden" name="client_country" value="<%= d.client_country || '' %>" data-combo-value>
+          <ul class="combo-list" id="client_country_list" role="listbox" aria-labelledby="client_country_label" hidden data-combo-list></ul>
+          <span class="help" id="help-client_country">الأكثر استخداما في أول القائمة. البحث بالعربية أو الإنجليزية.</span>
+          <span class="field-error" id="err-client_country"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-coins" aria-hidden="true"></i> المبلغ والدفع</h2></div>
+      <div class="card-body form-grid cols-2">
+        <div class="field">
+          <label class="label" for="total">المبلغ الإجمالي <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="total" name="total" value="<%= toMajor(d.total) %>" inputmode="decimal" dir="ltr" placeholder="1500" required aria-required="true" aria-describedby="<%= describe('total') %>" autocomplete="off">
+          <span class="field-error" id="err-total"></span>
+        </div>
+        <div class="field">
+          <label class="label" for="currency">العملة <span class="req" aria-hidden="true">*</span></label>
+          <select class="select" id="currency" name="currency" required aria-required="true" aria-describedby="<%= describe('currency') %>">
+            <% currencyList.forEach((c) => { %><option value="<%= c.code %>"<%= c.code === curCode ? ' selected' : '' %>><%= c.name %> (<%= c.code %>)</option><% }) %>
+          </select>
+          <span class="field-error" id="err-currency"></span>
+        </div>
+        <div class="field span-2">
+          <label class="label" for="paid">المبلغ المدفوع</label>
+          <div class="inv-paid-row">
+            <input class="input" id="paid" name="paid" value="<%= toMajor(d.paid === null || d.paid === undefined ? d.total : d.paid) %>" inputmode="decimal" dir="ltr" placeholder="0" aria-describedby="<%= describe('paid', true) %>" autocomplete="off">
+            <div class="inv-quick" role="group" aria-label="اختيار سريع للمدفوع">
+              <button class="chip" type="button" data-paid-full aria-pressed="false">مدفوعة بالكامل</button>
+              <button class="chip" type="button" data-paid-none>غير مدفوعة بعد</button>
+            </div>
+          </div>
+          <span class="help" id="help-paid">من 0 إلى المبلغ الإجمالي. عند اختيار «مدفوعة بالكامل» يتبع المدفوع أي تعديل على الإجمالي.</span>
+          <span class="field-error" id="err-paid"></span>
+        </div>
+        <div class="span-2 inv-balance" aria-live="polite" data-inv-balance></div>
+      </div>
+    </section>
+
+    <section class="card" data-inv-transfer>
+      <div class="card-head"><h2><i class="fa-solid fa-money-bill-transfer" aria-hidden="true"></i> التحويل</h2><span class="muted small" data-transfer-hint></span></div>
+      <div class="card-body form-grid cols-2">
+        <div class="field">
+          <label class="label" for="method">طريقة التحويل <span class="req" aria-hidden="true" data-req-paid>*</span></label>
+          <input class="input" id="method" name="method" value="<%= d.method || '' %>" maxlength="<%= boot.limits.method %>" list="invMethods" aria-describedby="<%= describe('method') %>" autocomplete="off" placeholder="مثل InstaPay أو تحويل بنكي">
+          <datalist id="invMethods"><% boot.methods.forEach((m) => { %><option value="<%= m %>"></option><% }) %></datalist>
+          <span class="field-error" id="err-method"></span>
+        </div>
+        <div class="field">
+          <label class="label" for="paid_on">تاريخ التحويل <span class="req" aria-hidden="true" data-req-paid>*</span></label>
+          <input class="input" id="paid_on" name="paid_on" type="date" value="<%= d.paid_on || '' %>" aria-describedby="<%= describe('paid_on', true) %>">
+          <span class="help" id="help-paid_on" data-paid-on-day aria-live="polite"></span>
+          <span class="field-error" id="err-paid_on"></span>
+        </div>
+        <div class="field" data-due-field>
+          <label class="label" for="due_on">موعد سداد المتبقي <span class="opt">(اختياري)</span></label>
+          <input class="input" id="due_on" name="due_on" type="date" value="<%= d.due_on || '' %>" aria-describedby="<%= describe('due_on') %>">
+          <span class="field-error" id="err-due_on"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-briefcase" aria-hidden="true"></i> الخدمة والغرض</h2></div>
+      <div class="card-body stack">
+        <fieldset class="field inv-svc-field" aria-describedby="err-service">
+          <legend class="label">نوع الخدمة <span class="req" aria-hidden="true">*</span></legend>
+          <div class="inv-svc-cards">
+            <% services.forEach((s) => { %>
+            <label class="inv-svc-card">
+              <input type="radio" name="service" value="<%= s.key %>"<%= d.service === s.key ? ' checked' : '' %> required>
+              <span class="inv-svc-tick" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
+              <span><%= s.ar %></span>
+            </label>
+            <% }) %>
+          </div>
+          <span class="field-error" id="err-service"></span>
+        </fieldset>
+        <div class="field">
+          <label class="label" for="purpose">الغرض من التحويل أو وصف الخدمة</label>
+          <textarea class="textarea" id="purpose" name="purpose" rows="4" maxlength="<%= boot.limits.purpose %>" aria-describedby="<%= describe('purpose', true) %>"><%= d.purpose || '' %></textarea>
+          <span class="help inv-count" id="help-purpose" data-count-for="purpose"></span>
+          <span class="field-error" id="err-purpose"></span>
+        </div>
+        <div class="field">
+          <label class="label" for="note">ملاحظة على هذه الفاتورة <span class="opt">(اختياري)</span></label>
+          <textarea class="textarea" id="note" name="note" rows="2" maxlength="<%= boot.limits.note %>" aria-describedby="<%= describe('note', true) %>"><%= d.note || '' %></textarea>
+          <span class="help inv-count" id="help-note" data-count-for="note"></span>
+          <span class="field-error" id="err-note"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-file-lines" aria-hidden="true"></i> الإصدار</h2></div>
+      <div class="card-body form-grid cols-2">
+        <div class="field">
+          <label class="label" for="issued_on">تاريخ الإصدار <span class="req" aria-hidden="true">*</span></label>
+          <input class="input" id="issued_on" name="issued_on" type="date" value="<%= d.issued_on || boot.today %>" required aria-required="true" aria-describedby="<%= describe('issued_on') %>">
+          <span class="field-error" id="err-issued_on"></span>
+        </div>
+        <fieldset class="field" aria-describedby="err-lang">
+          <legend class="label">لغة الفاتورة</legend>
+          <div class="inv-seg">
+            <label><input type="radio" name="lang" value="ar"<%= d.lang !== 'en' ? ' checked' : '' %>> <span>العربية</span></label>
+            <label><input type="radio" name="lang" value="en"<%= d.lang === 'en' ? ' checked' : '' %>> <span lang="en">English</span></label>
+          </div>
+          <span class="field-error" id="err-lang"></span>
+        </fieldset>
+        <% if (projects.length) { %>
+        <div class="field span-2">
+          <label class="label" for="project_id">ربط بمشروع <span class="opt">(اختياري)</span></label>
+          <select class="select" id="project_id" name="project_id" aria-describedby="<%= describe('project_id') %>" data-project-select>
+            <option value="">بدون مشروع</option>
+            <% projects.forEach((p) => { %><option value="<%= p.id %>" data-client="<%= p.client_name %>"<%= d.project_id === p.id ? ' selected' : '' %>><%= p.code %> · <%= p.title %> · <%= p.client_name %></option><% }) %>
+          </select>
+          <span class="field-error" id="err-project_id"></span>
+        </div>
+        <% } %>
+      </div>
+    </section>
+
+    <button class="btn btn-primary btn-lg btn-block inv-save-bottom" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ الفاتورة</button>
+  </form>
+
+  <section class="inv-preview-col" aria-labelledby="invPreviewTitle">
+    <div class="inv-preview-head">
+      <h2 id="invPreviewTitle">المعاينة كما تطبع</h2>
+      <span class="badge badge-muted">A4</span>
+    </div>
+    <div class="alert alert-warning inv-overflow" role="status" data-inv-overflow hidden>
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      <div>النص أطول من صفحة واحدة، وجزء منه لن يظهر في الطباعة. اختصر الغرض أو الملاحظة أو النص الختامي.</div>
+    </div>
+    <div class="inv-preview-frame" data-inv-frame><%- sheetHtml %></div>
+  </section>
+</div>
+
+<script type="application/json" id="invBoot"><%- JSON.stringify(boot).replace(/</g, '\\u003c') %></script>
+<%- include('_settings-dialog') %>
+<%- include('../partials/bottom') %>

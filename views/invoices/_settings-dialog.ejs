@@ -1,0 +1,42 @@
+<%
+  // Invoice settings window: what prints on every invoice. `invSettings` holds the current values.
+  const sv = invSettings;
+  const field = (name, label, opts = {}) => {
+    const id = 'invs-' + name;
+    const err = 'invs-err-' + name;
+    const help = opts.help ? `<span class="help" id="${id}-help">${esc(opts.help)}</span>` : '';
+    const described = [opts.help ? id + '-help' : '', err].filter(Boolean).join(' ');
+    const attrs = `id="${id}" name="${name}" aria-describedby="${described}"${opts.max ? ` maxlength="${opts.max}"` : ''}${opts.dir ? ` dir="${opts.dir}"` : ''}${opts.placeholder ? ` placeholder="${esc(opts.placeholder)}"` : ''}${opts.required ? ' required aria-required="true"' : ''}${opts.type ? ` type="${opts.type}"` : ''}${opts.inputmode ? ` inputmode="${opts.inputmode}"` : ''}`;
+    const control = opts.textarea
+      ? `<textarea class="textarea" rows="2" ${attrs}>${esc(sv[name] || '')}</textarea>`
+      : `<input class="input" ${attrs} value="${esc(sv[name] || '')}" autocomplete="off">`;
+    return `<div class="field${opts.wide ? ' span-2' : ''}"><label class="label" for="${id}">${esc(label)}${opts.required ? ' <span class="req" aria-hidden="true">*</span>' : ''}</label>${control}${help}<span class="field-error" id="${err}"></span></div>`;
+  };
+%>
+<dialog class="modal wide inv-settings" id="invSettings" aria-labelledby="invSettingsTitle">
+  <form class="inv-settings-form" data-inv-settings-form novalidate>
+    <div class="modal-head">
+      <h3 id="invSettingsTitle"><i class="fa-solid fa-sliders" style="color:var(--brand)" aria-hidden="true"></i> إعدادات الفاتورة</h3>
+      <button class="icon-btn" type="button" data-dialog-close aria-label="إغلاق"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <div class="modal-body">
+      <p class="help mb-16">تطبق على كل الفواتير، وتظهر في المعاينة أثناء الكتابة. تحفظ عندما تضغط «حفظ الإعدادات».</p>
+      <div class="form-grid cols-2">
+        <%- field('name', 'الاسم في رأس الفاتورة', { max: 60, required: true }) %>
+        <%- field('prefix', 'بادئة رقم الفاتورة', { max: 6, dir: 'ltr', help: 'مثل MTS، فتصير الأرقام MTS-2026-0001. تطبق على الفواتير الجديدة فقط.' }) %>
+        <%- field('tagline_ar', 'السطر الوصفي تحت الاسم (عربي)', { max: 120 }) %>
+        <%- field('tagline_en', 'السطر الوصفي تحت الاسم (إنجليزي)', { max: 120, dir: 'ltr' }) %>
+        <%- field('footer_ar', 'النص الختامي أسفل الفاتورة (عربي)', { max: 300, textarea: true }) %>
+        <%- field('footer_en', 'النص الختامي أسفل الفاتورة (إنجليزي)', { max: 300, textarea: true, dir: 'ltr' }) %>
+        <%- field('email', 'البريد الإلكتروني', { max: 254, dir: 'ltr', type: 'email', placeholder: 'name@example.com' }) %>
+        <%- field('whatsapp', 'رقم واتساب', { max: 20, dir: 'ltr', inputmode: 'tel', placeholder: '+201093525956', help: 'بالصيغة الدولية: + ثم رمز الدولة، بدون صفر في البداية.' }) %>
+        <%- field('website', 'الموقع الإلكتروني', { max: 200, dir: 'ltr', placeholder: 'example.com', wide: true, help: 'يكفي العنوان بدون https://' }) %>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-primary" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ الإعدادات</button>
+      <button class="btn btn-ghost" type="button" data-dialog-close>إلغاء</button>
+    </div>
+  </form>
+</dialog>
+<script type="application/json" id="invSettingsData"><%- JSON.stringify(sv).replace(/</g, '\\u003c') %></script>

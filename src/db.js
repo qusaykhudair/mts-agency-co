@@ -426,6 +426,45 @@ const MIGRATIONS = [
   );
   CREATE INDEX idx_seller_payouts_seller ON seller_payouts(seller_id, id);
   `,
+  // v8: invoices. Numbers come from a per-year counter that only ever goes up, so a number is never
+  // reused, even after its invoice is deleted. Amounts are minor units of the invoice's own currency.
+  // A NULL "paid" (invoices written before the field existed) counts as paid in full.
+  `
+  CREATE TABLE invoice_counters (
+    year INTEGER PRIMARY KEY,
+    seq  INTEGER NOT NULL
+  );
+
+  CREATE TABLE invoices (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    number         TEXT NOT NULL,
+    year           INTEGER NOT NULL,
+    seq            INTEGER NOT NULL,
+    client_name    TEXT NOT NULL,
+    client_contact TEXT,
+    client_country TEXT,
+    currency       TEXT NOT NULL,
+    total          INTEGER NOT NULL CHECK (total > 0),
+    paid           INTEGER CHECK (paid IS NULL OR (paid >= 0 AND paid <= total)),
+    method         TEXT,
+    paid_on        TEXT,
+    due_on         TEXT,
+    purpose        TEXT,
+    service        TEXT NOT NULL,
+    note           TEXT,
+    issued_on      TEXT NOT NULL,
+    lang           TEXT NOT NULL DEFAULT 'ar' CHECK (lang IN ('ar', 'en')),
+    project_id     INTEGER REFERENCES service_requests(id) ON DELETE SET NULL,
+    search_text    TEXT NOT NULL DEFAULT '',
+    created_by     INTEGER REFERENCES users(id),
+    created_at     TEXT NOT NULL DEFAULT (datetime('now')),
+    updated_at     TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (year, seq)
+  );
+  CREATE UNIQUE INDEX idx_invoices_number ON invoices(number);
+  CREATE INDEX idx_invoices_issued ON invoices(issued_on, id);
+  CREATE INDEX idx_invoices_project ON invoices(project_id);
+  `,
 ];
 
 function migrate() {

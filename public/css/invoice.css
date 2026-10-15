@@ -1,0 +1,796 @@
+/* =====================================================================
+   Invoices: the printed A4 sheet (fixed colours, the same in the light and dark dashboard),
+   print rules, and the editor / list screens.
+   ===================================================================== */
+
+/* ---------- The sheet ---------- */
+.inv-sheet {
+  --inv-navy: #0a1442;
+  --inv-brand: #2f6bff;
+  --inv-brand-50: #f1f5ff;
+  --inv-brand-100: #dce6ff;
+  --inv-ink: #0b1230;
+  --inv-ink-2: #4b5568;
+  --inv-ink-3: #7c8599;
+  --inv-line: #e4e8f1;
+  --inv-due: #8a5a12;
+  --inv-due-bg: #fdf5e6;
+  /* Tiers tighten the type when long text needs the room (see MTSInvoice.fit). */
+  --f: 1;
+  --g: 1;
+  position: relative;
+  box-sizing: border-box;
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto;
+  overflow: hidden;
+  padding: calc(15mm * var(--g)) 16mm calc(12mm * var(--g));
+  display: flex;
+  flex-direction: column;
+  gap: calc(6mm * var(--g));
+  background: #fff;
+  color: var(--inv-ink);
+  color-scheme: light;
+  font-family: 'IBM Plex Sans Arabic', 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-size: calc(10.5pt * var(--f));
+  font-weight: 400;
+  line-height: 1.55;
+  text-align: start;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.inv-sheet.inv-fit-2 {
+  --f: 0.92;
+  --g: 0.74;
+}
+.inv-sheet.inv-fit-3 {
+  --f: 0.84;
+  --g: 0.55;
+}
+.inv-sheet::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3mm;
+  background: linear-gradient(90deg, var(--inv-brand), var(--inv-navy));
+}
+.inv-sheet *,
+.inv-sheet *::before,
+.inv-sheet *::after {
+  box-sizing: border-box;
+}
+/* Low-specificity reset (the dashboard styles headings and lists); component rules below win. */
+.inv-sheet :where(h1, h2, p, dl, dt, dd, ul, li) {
+  margin: 0;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: normal;
+}
+.inv-sheet :where(ul) {
+  list-style: none;
+}
+.inv-sheet bdi,
+.inv-sheet .inv-num {
+  unicode-bidi: isolate;
+}
+.inv-sheet .inv-num {
+  font-variant-numeric: tabular-nums;
+}
+.inv-label {
+  display: block;
+  margin-bottom: 1.6mm;
+  font-size: calc(8.6pt * var(--f));
+  font-weight: 700;
+  color: var(--inv-brand);
+  letter-spacing: 0.02em;
+}
+.inv-pending {
+  color: var(--inv-ink-3);
+  font-weight: 500;
+}
+.inv-k {
+  color: var(--inv-ink-3);
+  font-weight: 600;
+}
+
+/* Header: brand on the start side, title and number on the end side. */
+.inv-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8mm;
+  padding-top: 2mm;
+}
+.inv-brand {
+  display: flex;
+  align-items: center;
+  gap: 4mm;
+  min-width: 0;
+}
+.inv-logo {
+  display: block;
+  width: 30mm;
+  height: auto;
+  flex-shrink: 0;
+}
+.inv-brand-name {
+  font-size: calc(16pt * var(--f));
+  font-weight: 700;
+  color: var(--inv-navy);
+  line-height: 1.25;
+}
+.inv-brand-tag {
+  margin-top: 0.8mm;
+  font-size: calc(9pt * var(--f));
+  color: var(--inv-ink-2);
+  max-width: 82mm;
+}
+.inv-title {
+  text-align: end;
+  flex-shrink: 0;
+}
+.inv-title h1 {
+  font-size: calc(24pt * var(--f));
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--inv-navy);
+}
+.inv-meta {
+  margin-top: 2mm;
+  display: grid;
+  gap: 0.8mm;
+  font-size: calc(9pt * var(--f));
+}
+.inv-meta div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2.5mm;
+}
+.inv-meta dt {
+  color: var(--inv-ink-3);
+}
+.inv-meta dd {
+  font-weight: 700;
+  color: var(--inv-ink);
+}
+
+/* Billed to, and the status stamp. */
+.inv-party {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8mm;
+  padding: calc(4mm * var(--g)) 0;
+  border-top: 0.3mm solid var(--inv-line);
+  border-bottom: 0.3mm solid var(--inv-line);
+}
+.inv-to {
+  min-width: 0;
+}
+.inv-client {
+  font-size: calc(14pt * var(--f));
+  font-weight: 700;
+  color: var(--inv-navy);
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+.inv-sub {
+  margin-top: 0.8mm;
+  color: var(--inv-ink-2);
+  font-size: calc(9.6pt * var(--f));
+  overflow-wrap: anywhere;
+}
+.inv-dot {
+  color: var(--inv-ink-3);
+}
+.inv-stamp {
+  flex-shrink: 0;
+  display: grid;
+  justify-items: center;
+  gap: 0.6mm;
+  padding: 2.2mm 5mm;
+  border: 0.6mm solid currentColor;
+  border-radius: 2.5mm;
+  transform: rotate(-5deg);
+  text-align: center;
+  line-height: 1.3;
+}
+.inv-stamp-main {
+  font-size: calc(13pt * var(--f));
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.inv-stamp-sub {
+  font-size: calc(8.6pt * var(--f));
+  font-weight: 600;
+}
+.inv-stamp-paid {
+  color: #1e7a52;
+  background: rgba(30, 122, 82, 0.06);
+}
+.inv-stamp-partial {
+  color: #9a6412;
+  background: rgba(154, 100, 18, 0.06);
+}
+.inv-stamp-unpaid {
+  color: #7d5560;
+  background: rgba(125, 85, 96, 0.06);
+}
+
+/* Amounts: the total large and clear, then paid and what is left. */
+.inv-amounts {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+  gap: 6mm;
+  align-items: center;
+  padding: calc(5mm * var(--g)) 6mm;
+  border: 0.3mm solid var(--inv-brand-100);
+  border-radius: 4mm;
+  background: var(--inv-brand-50);
+}
+.inv-total {
+  display: grid;
+  gap: 0.6mm;
+}
+.inv-total .inv-label {
+  margin: 0;
+}
+.inv-total-value {
+  font-size: calc(26pt * var(--f));
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--inv-navy);
+}
+.inv-total-value .inv-cur {
+  font-size: 0.6em;
+  font-weight: 700;
+  color: var(--inv-ink-2);
+}
+.inv-cur-name {
+  font-size: calc(8.8pt * var(--f));
+  color: var(--inv-ink-2);
+}
+.inv-split {
+  display: grid;
+  gap: 1.6mm;
+}
+.inv-split div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4mm;
+  padding: 1.6mm 3mm;
+  border-radius: 2mm;
+  background: #fff;
+}
+.inv-split dt {
+  color: var(--inv-ink-2);
+}
+.inv-split dd {
+  font-weight: 700;
+  font-size: calc(11.5pt * var(--f));
+}
+.inv-split .is-due {
+  background: var(--inv-due-bg);
+}
+.inv-split .is-due dt,
+.inv-split .is-due dd {
+  color: var(--inv-due);
+}
+.inv-split .inv-due dd {
+  font-size: calc(9.6pt * var(--f));
+}
+.inv-cur {
+  font-weight: 600;
+}
+
+/* Payment details, purpose and services. */
+.inv-kv {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3mm 6mm;
+}
+.inv-kv div {
+  display: grid;
+  gap: 0.4mm;
+}
+.inv-kv dt {
+  color: var(--inv-ink-3);
+  font-size: calc(8.8pt * var(--f));
+}
+.inv-kv dd {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.inv-text {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  color: var(--inv-ink);
+  line-height: 1.6;
+  font-size: calc(10pt * var(--f));
+}
+.inv-svc {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
+  gap: 2mm 4mm;
+}
+.inv-svc li {
+  display: flex;
+  align-items: center;
+  gap: 2mm;
+  color: var(--inv-ink-2);
+  font-size: calc(9.4pt * var(--f));
+  line-height: 1.35;
+}
+.inv-svc li.is-on {
+  color: var(--inv-navy);
+  font-weight: 700;
+}
+.inv-box {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 4.2mm;
+  height: 4.2mm;
+  border: 0.35mm solid #b8c2d6;
+  border-radius: 1mm;
+  background: #fff;
+  color: #fff;
+}
+.inv-svc li.is-on .inv-box {
+  border-color: var(--inv-brand);
+  background: var(--inv-brand);
+}
+.inv-box svg {
+  width: 3.4mm;
+  height: 3.4mm;
+}
+
+/* Footer stays at the bottom of the page. */
+.inv-foot {
+  margin-top: auto;
+  display: grid;
+  gap: 2mm;
+  padding-top: calc(4mm * var(--g));
+  border-top: 0.3mm solid var(--inv-line);
+  font-size: calc(9.2pt * var(--f));
+  color: var(--inv-ink-2);
+}
+.inv-closing {
+  white-space: pre-line;
+  color: var(--inv-navy);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.inv-note {
+  overflow-wrap: anywhere;
+  white-space: pre-line;
+}
+.inv-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5mm 6mm;
+  font-size: calc(8.8pt * var(--f));
+}
+.inv-contacts li {
+  white-space: nowrap;
+}
+
+/* ---------- Printing ---------- */
+.inv-print-host {
+  display: none;
+}
+@page {
+  size: A4;
+  margin: 0;
+}
+@media print {
+  html,
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+  /* In the dashboard only the invoice prints (it is copied into .inv-print-host first). */
+  body.inv-printing > :not(.inv-print-host) {
+    display: none !important;
+  }
+  body.inv-printing > .inv-print-host {
+    display: block !important;
+  }
+  .inv-sheet {
+    margin: 0 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    break-after: avoid;
+    break-inside: avoid;
+  }
+}
+
+/* The standalone print page. */
+.inv-print-page {
+  margin: 0;
+  background: #e9edf5;
+}
+.inv-print-wrap {
+  padding: 24px 0;
+}
+.inv-print-wrap .inv-sheet {
+  box-shadow: 0 10px 40px rgba(10, 20, 66, 0.12);
+}
+@media print {
+  .inv-print-wrap {
+    padding: 0;
+  }
+}
+
+/* ---------- Editor ---------- */
+.inv-page-head .actions {
+  flex-wrap: wrap;
+}
+.inv-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (min-width: 1180px) {
+  .inv-editor {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  }
+  .inv-preview-col {
+    position: sticky;
+    top: calc(var(--topbar-h) + 14px);
+  }
+}
+.inv-preview-col {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+}
+.inv-preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.inv-preview-head h2 {
+  font-size: 15px;
+}
+.inv-preview-frame {
+  position: relative;
+  overflow: hidden;
+  padding: 12px;
+  border-radius: 16px;
+  background: var(--surface-3);
+  border: 1px solid var(--border);
+}
+.inv-preview-frame .inv-sheet {
+  transform: scale(var(--inv-scale, 0.6));
+  transform-origin: top right;
+  box-shadow: 0 8px 30px rgba(10, 20, 66, 0.12);
+}
+.inv-overflow {
+  margin: 0;
+}
+.inv-paid-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.inv-paid-row .input {
+  flex: 1 1 160px;
+  width: auto;
+}
+.inv-quick {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip[aria-pressed='true'] {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: #fff;
+}
+.inv-balance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  font-size: 14px;
+}
+.inv-balance b {
+  font-size: 16px;
+}
+.inv-balance .is-due {
+  color: var(--warning);
+}
+.inv-count {
+  justify-self: end;
+}
+.inv-count.is-near {
+  color: var(--warning);
+  font-weight: 700;
+}
+fieldset.field {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+fieldset.field > legend {
+  padding: 0;
+  margin-bottom: 7px;
+}
+.inv-svc-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+.inv-svc-card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 10px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text-2);
+  font-weight: 700;
+  font-size: 13.5px;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: border-color 0.18s, background 0.18s;
+}
+.inv-svc-card input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+.inv-svc-tick {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--border-strong);
+  border-radius: 6px;
+  color: transparent;
+  font-size: 11px;
+}
+.inv-svc-card:hover {
+  border-color: var(--brand);
+}
+.inv-svc-card:has(input:checked) {
+  border-color: var(--brand);
+  background: var(--brand-50);
+  color: var(--text);
+}
+.inv-svc-card:has(input:checked) .inv-svc-tick {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: #fff;
+}
+.inv-svc-card:has(input:focus-visible) {
+  box-shadow: var(--ring);
+  border-color: var(--brand);
+}
+.field.has-error .inv-svc-card {
+  border-color: var(--danger);
+}
+.inv-seg {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+}
+.inv-seg label {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  height: 38px;
+  padding: 0 16px;
+  border-radius: 9px;
+  font-weight: 700;
+  font-size: 13.5px;
+  color: var(--text-2);
+  cursor: pointer;
+}
+.inv-seg input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+}
+.inv-seg label:has(input:checked) {
+  background: var(--brand);
+  color: #fff;
+}
+.inv-seg label:has(input:focus-visible) {
+  box-shadow: var(--ring);
+}
+.inv-save-bottom {
+  margin-top: 4px;
+}
+@media (min-width: 1180px) {
+  .inv-save-bottom {
+    display: none;
+  }
+}
+
+/* Country combobox */
+.combo {
+  position: relative;
+}
+.combo-box {
+  position: relative;
+}
+.combo-box .input {
+  padding-inline-end: 40px;
+}
+.combo-clear {
+  position: absolute;
+  top: 50%;
+  inset-inline-end: 8px;
+  transform: translateY(-50%);
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  color: var(--text-3);
+}
+.combo-clear:hover {
+  color: var(--text);
+  background: var(--surface-2);
+}
+.combo-list {
+  position: absolute;
+  inset-inline: 0;
+  top: calc(100% - 22px);
+  z-index: 40;
+  max-height: 280px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 6px;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+.combo-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 14px;
+}
+.combo-list li small {
+  color: var(--text-3);
+  font-size: 12px;
+}
+.combo-list li.is-active,
+.combo-list li:hover {
+  background: var(--brand-50);
+}
+.combo-list li[aria-selected='true'] {
+  font-weight: 700;
+  color: var(--brand);
+}
+.combo-list .combo-sep {
+  height: 1px;
+  margin: 6px 4px;
+  padding: 0;
+  background: var(--border);
+  pointer-events: none;
+}
+.combo-list .combo-empty {
+  color: var(--text-3);
+  cursor: default;
+}
+
+/* ---------- List ---------- */
+.inv-filters {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px 14px;
+  align-items: end;
+}
+.inv-filter-q {
+  grid-column: 1 / -1;
+}
+@media (min-width: 900px) {
+  .inv-filter-q {
+    grid-column: span 2;
+  }
+}
+.inv-filters .input,
+.inv-filters .select {
+  height: 44px;
+  font-size: 14px;
+}
+.inv-range {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  grid-column: span 2;
+}
+.inv-range[hidden] {
+  display: none;
+}
+.inv-filter-actions {
+  display: flex;
+  gap: 8px;
+}
+.inv-filter-note {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.inv-totals {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+.inv-total-card {
+  display: grid;
+  gap: 10px;
+}
+.inv-total-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+.inv-total-card dl {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+}
+.inv-total-card dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.inv-total-card dt {
+  color: var(--text-3);
+  font-weight: 600;
+  font-size: 13px;
+}
+.inv-total-card dd {
+  margin: 0;
+  font-weight: 800;
+}
+.inv-total-card .is-due dd,
+.inv-due-text {
+  color: var(--warning);
+  font-weight: 700;
+}
+.inv-table .code {
+  font-variant-numeric: tabular-nums;
+}
+.inv-row-actions {
+  flex-wrap: nowrap;
+}
+@media (max-width: 760px) {
+  .inv-range {
+    grid-column: 1 / -1;
+  }
+  .inv-row-actions {
+    flex-wrap: wrap;
+  }
+}

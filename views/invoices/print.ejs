@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="<%= lang %>" dir="<%= lang === 'ar' ? 'rtl' : 'ltr' %>">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <%# The title becomes the PDF file name: invoice number and client. %>
+  <title><%= title %></title>
+  <link rel="icon" type="image/png" href="/static/img/favicon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="<%= asset('/static/css/invoice.css') %>">
+</head>
+<body class="inv-print-page">
+  <main class="inv-print-wrap"><%- sheetHtml %></main>
+  <script src="<%= asset('/static/js/invoice-sheet.js') %>"></script>
+  <script src="<%= asset('/static/js/invoice-print.js') %>" data-autoprint="<%= autoPrint ? '1' : '0' %>"></script>
+</body>
+</html>
