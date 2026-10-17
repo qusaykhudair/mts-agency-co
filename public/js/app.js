@@ -333,7 +333,7 @@
     const prev = $('[data-hs-prev]', wrap);
     const next = $('[data-hs-next]', wrap);
     if (!track) return;
-    const rtl = getComputedStyle(track).direction === 'rtl';
+    const rtl = () => getComputedStyle(track).direction === 'rtl';
     const step = () => Math.max(track.clientWidth * 0.85, 220);
     const update = () => {
       const max = track.scrollWidth - track.clientWidth;
@@ -341,11 +341,21 @@
       if (prev) prev.disabled = pos <= 4;
       if (next) next.disabled = pos >= max - 4;
     };
-    on(prev, 'click', () => track.scrollBy({ left: rtl ? step() : -step(), behavior: 'smooth' }));
-    on(next, 'click', () => track.scrollBy({ left: rtl ? -step() : step(), behavior: 'smooth' }));
+    on(prev, 'click', () => track.scrollBy({ left: rtl() ? step() : -step(), behavior: 'smooth' }));
+    on(next, 'click', () => track.scrollBy({ left: rtl() ? -step() : step(), behavior: 'smooth' }));
     on(track, 'scroll', update, { passive: true });
     on(window, 'resize', update);
-    update();
+    // Measured once it comes into view: measuring at load would make the browser lay out every carousel
+    // further down the page before showing anything.
+    if ('IntersectionObserver' in window) {
+      const seen = new IntersectionObserver((entries) => {
+        if (entries.some((e) => e.isIntersecting)) {
+          seen.disconnect();
+          update();
+        }
+      });
+      seen.observe(wrap);
+    } else update();
   });
 
   /* ---------- Countdowns ---------- */

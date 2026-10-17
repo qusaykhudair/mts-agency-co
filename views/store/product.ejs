@@ -43,14 +43,14 @@
     </section>
 
     <% if (p.description) { %>
-    <section class="card card-body">
+    <section class="card card-body cv-auto">
       <h2 class="form-section-title" style="margin-bottom:12px"><i class="fa-solid fa-align-right"></i> وصف المنتج</h2>
       <div class="prose"><%= p.description %></div>
     </section>
     <% } %>
 
     <% if (p.features.length || p.activation_steps.length) { %>
-    <div class="grid-2">
+    <div class="grid-2 cv-auto">
       <% if (p.features.length) { %>
       <section class="card card-body">
         <h2 class="form-section-title" style="margin-bottom:14px"><i class="fa-solid fa-list-check"></i> ماذا ستحصل عليه؟</h2>
@@ -106,7 +106,7 @@
       <% } %>
     </section>
 
-    <section>
+    <section class="cv-auto">
       <h2 class="sec-title" style="margin-bottom:12px"><span class="ic"><i class="fa-solid fa-circle-question"></i></span> أسئلة شائعة</h2>
       <div class="faq">
         <% faq.forEach((f, i) => { %><details<%= i === 0 ? ' open' : '' %>><summary><%= f.q %></summary><div class="ans"><%= f.a %></div></details><% }) %>
@@ -155,7 +155,7 @@
       <p class="buy-note" data-stock-note hidden></p>
     </form>
 
-    <div class="card side-card">
+    <div class="card side-card cv-auto">
       <h4><i class="fa-solid fa-store"></i> معلومات البائع</h4>
       <div class="seller-row">
         <% if (seller.role === 'admin') { %><img src="/static/img/logo-96.png" alt=""><% } else { %><span class="avatar avatar-lg"><%= initials(seller.store_name || seller.name) %></span><% } %>
@@ -178,7 +178,7 @@
       <a class="btn btn-whatsapp btn-block" href="<%= waLink(storeWa, 'مرحبا، عندي سؤال عن: ' + p.title) %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> اسأل عبر واتساب</a>
     </div>
 
-    <div class="card side-card">
+    <div class="card side-card cv-auto">
       <h4><i class="fa-solid fa-shield-halved" style="color:var(--success)"></i> كيف نحمي طلبك</h4>
       <ul class="secure-list">
         <li><i class="fa-solid fa-check"></i> شخص من فريقنا يراجع كل إيصال قبل تأكيد الطلب.</li>
