@@ -27,6 +27,12 @@ router.use(requireAdmin, (req, res, next) => {
   next();
 });
 
+// A saved category, service or payment method may bring a new icon: the icon stylesheet is written again.
+router.use(['/categories', '/services', '/payment-methods'], (req, res, next) => {
+  if (req.method === 'POST') res.on('finish', () => require('../lib/icons').invalidate());
+  next();
+});
+
 const notFound = (what) => {
   const err = new Error(`${what} غير موجود`);
   err.status = 404;
@@ -820,6 +826,15 @@ router.post('/settings', (req, res) => {
   };
   const googleId = clean(b.google_client_id, 200);
   if (googleId && !/^[\w.-]+\.apps\.googleusercontent\.com$/.test(googleId)) errors.google_client_id = 'المعرف يجب أن ينتهي بـ .apps.googleusercontent.com';
+  // Search Console and Bing hand out a whole <meta> tag; only the code inside it is kept.
+  const verification = (field) => {
+    const raw = clean(b[field], 400);
+    const code = ((/content\s*=\s*["']([^"']+)["']/i.exec(raw) || [])[1] || raw).trim();
+    if (code && !/^[\w.+=-]{8,120}$/.test(code)) errors[field] = 'انسخ الرمز كما هو، أو الصق وسم meta كاملا';
+    return code;
+  };
+  const googleVerification = verification('google_site_verification');
+  const bingVerification = verification('bing_site_verification');
   if (Object.keys(errors).length) return res.reply({ ok: false, errors, message: Object.values(errors)[0] });
   settings.set({
     store_name: clean(b.store_name, 60) || 'MTS Store',
@@ -833,6 +848,8 @@ router.post('/settings', (req, res) => {
     hero_subtitle: cleanText(b.hero_subtitle, 300) || settings.DEFAULTS.hero_subtitle,
     checkout_note: cleanText(b.checkout_note, 400),
     google_client_id: googleId,
+    google_site_verification: googleVerification,
+    bing_site_verification: bingVerification,
     auto_complete_days: String(int(b.auto_complete_days, { min: 1, max: 60, fallback: 3 })),
     service_auto_complete_days: String(int(b.service_auto_complete_days, { min: 1, max: 90, fallback: 7 })),
     max_quantity: String(int(b.max_quantity, { min: 1, max: 100, fallback: 10 })),

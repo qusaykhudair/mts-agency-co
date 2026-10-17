@@ -128,6 +128,16 @@ function locals(req, res, next) {
     query: req.query,
     theme: ['light', 'dark'].includes(req.cookies && req.cookies.mts_theme) ? req.cookies.mts_theme : null,
     asset: (p) => `${p}?v=${BUILD}`,
+    // The icon stylesheet ("site": the icons in use, "dash": every icon, for the icon fields in forms).
+    iconsHref: (scope) => require('./lib/icons').href(scope),
+    // The site's own address for canonical links, link previews and structured data.
+    siteUrl: require('./lib/seo').origin(req),
+    // JSON-LD for public pages: the organisation and website on every page, plus the page's own nodes.
+    structuredData: (nodes) => {
+      const seo = require('./lib/seo');
+      const base = seo.origin(req);
+      return seo.graph([seo.organization(s, base), seo.website(s, base), ...(nodes || [])]);
+    },
     googleClientId: settings.googleClientId(),
     currencies: money.list(),
     displayCurrency,

@@ -9,18 +9,22 @@ const { clean, cleanText, int, pick, urls } = require('../lib/util');
 const { requireAuth } = require('../middleware');
 const { limiter } = require('../lib/limits');
 
+const seo = require('../lib/seo');
+
 const router = express.Router();
 const requestLimiter = limiter(10, 60, 'عدد كبير من الطلبات، حاول مرة أخرى بعد قليل');
 
 const activeServices = () => all('SELECT * FROM services WHERE is_active = 1 ORDER BY sort_order, id');
 
 router.get('/services', (req, res) => {
+  const list = activeServices();
   res.render('services/index', {
     nav: 'site',
     pageTitle: 'خدماتنا',
     fullTitle: 'خدمات MTS Agency | تصميم وبرمجة وتسويق وإنتاج مرئي',
     pageDesc: 'اطلب من MTS Agency موقعك أو هويتك البصرية أو حملتك الإعلانية أو فيديو لمشروعك، وتابع العمل واستلمه من حسابك.',
-    services: activeServices(),
+    services: list,
+    ld: [seo.services(list, seo.origin(req))],
   });
 });
 

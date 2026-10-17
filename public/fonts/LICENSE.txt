@@ -1,0 +1,9 @@
+Fonts served by this site
+
+IBM Plex Sans Arabic (plex-*.woff2), from Google Fonts
+Copyright (c) 2017 IBM Corp. with Reserved Font Name "Plex".
+SIL Open Font License 1.1: https://openfontlicense.org
+
+Font Awesome Free 6.5.1 (fa-*.woff2)
+Copyright 2023 Fonticons, Inc. Fonts: SIL Open Font License 1.1. Icons: CC BY 4.0.
+https://fontawesome.com/license/free

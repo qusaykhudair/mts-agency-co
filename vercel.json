@@ -3,7 +3,7 @@
   "routes": [
     {
       "src": "/(.*)",
-      "status": 307,
+      "status": 308,
       "headers": { "Location": "https://mts-agency-co-production.up.railway.app/$1" }
     }
   ]

@@ -6,7 +6,8 @@
   const nav = document.querySelector('[data-snav]');
   if (nav) {
     const onScroll = () => nav.classList.toggle('is-scrolled', window.scrollY > 8);
-    onScroll();
+    // First read after the browser has laid out the page, so loading does not force an extra layout.
+    requestAnimationFrame(onScroll);
     window.addEventListener('scroll', onScroll, { passive: true });
 
     const toggle = nav.querySelector('[data-snav-toggle]');

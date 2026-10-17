@@ -1,4 +1,4 @@
-<%- include('partials/top', { fullTitle: 'MTS Agency | اشتراكات ChatGPT وCanva بالدفع المحلي، وخدمات التصميم والبرمجة والتسويق' }) %>
+<%- include('partials/top', { fullTitle: 'MTS Agency | اشتراكات رقمية بالدفع المحلي وخدمات تصميم وبرمجة' }) %>
 <%
   const hp = heroProduct;
   const hpPlans = hp ? hp.plans.slice(0, 3) : [];
@@ -31,7 +31,7 @@
       <div class="h-sc-bg" aria-hidden="true"></div>
       <div class="h-sc-card h-sc-product">
         <div class="h-sc-head">
-          <span class="h-sc-tile" style="--c1:<%= hp.color1 %>;--c2:<%= hp.color2 %>"><img src="<%= hp.platform_logo %>" alt=""></span>
+          <span class="h-sc-tile" style="--c1:<%= hp.color1 %>;--c2:<%= hp.color2 %>"><img src="<%= hp.platform_logo %>" alt="" width="46" height="46"></span>
           <div class="grow"><b><%= hp.title.split('—')[0].trim() %></b><small><%= hp.title.split('—').slice(1).join('—').trim() || hp.platform_name %></small></div>
           <% if (hpPlan.discount) { %><span class="badge badge-sale" dir="ltr">-<%= hpPlan.discount %>%</span><% } %>
         </div>
@@ -58,8 +58,8 @@
     <div class="h-marquee-track">
       <% [0, 1].forEach((copy) => { %>
         <% platforms.forEach((pl) => { %>
-        <a class="h-logo" href="/store/platform/<%= pl.slug %>"<%= copy ? ' aria-hidden="true" tabindex="-1"' : '' %>>
-          <img src="<%= pl.logo_url %>" alt="" loading="lazy"><span><%= pl.name %></span>
+        <a class="h-logo" href="/store/platform/<%= pl.slug %>"<%- copy ? ' aria-hidden="true" tabindex="-1"' : '' %>>
+          <img src="<%= pl.logo_url %>" alt="" width="36" height="36" loading="lazy" decoding="async"><span><%= pl.name %></span>
         </a>
         <% }) %>
       <% }) %>

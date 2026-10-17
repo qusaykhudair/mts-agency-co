@@ -15,6 +15,9 @@ const DEFAULTS = {
   hero_subtitle: 'ChatGPT وCanva وCapCut وNetflix وغيرها، تدفع ثمنها من بنك فلسطين أو جوال باي أو بال باي أو فودافون كاش، وتصلك بيانات الاشتراك في حسابك بعد تأكيد التحويل.',
   checkout_note: 'نراجع إيصالك بأنفسنا، وعندما نؤكد الدفع تجد بيانات اشتراكك في صفحة الطلب ويصلك إشعار بذلك.',
   google_client_id: '',
+  // Ownership codes from Google Search Console and Bing Webmaster Tools (the "HTML tag" method).
+  google_site_verification: '',
+  bing_site_verification: '',
   auto_complete_days: '3',
   // Delivered service requests the client never answered are closed after this many days.
   service_auto_complete_days: '7',

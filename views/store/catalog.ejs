@@ -11,7 +11,7 @@
     <% if (head.logo) { %><img src="<%= head.logo %>" alt=""><% } else { %><i class="<%= head.icon || 'fa-solid fa-grip' %>"></i><% } %>
   </span>
   <div class="grow">
-    <h1><%= head.title %></h1>
+    <h1><%= head.title %><% if (head.alt) { %> <span class="h1-alt"><%= head.alt %></span><% } %></h1>
     <% if (head.desc) { %><p><%= head.desc %></p><% } %>
     <div class="meta">
       <span class="badge badge-brand"><i class="fa-solid fa-box"></i> <%= total %> منتج متوفر</span>

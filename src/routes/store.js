@@ -11,6 +11,7 @@ const { receiptUpload, discard } = require('../lib/uploads');
 const { str, safeNext, clean, cleanText, int, bool, pick, toLatinDigits } = require('../lib/util');
 const { paginate, requireAuth } = require('../middleware');
 const { limiter } = require('../lib/limits');
+const seo = require('../lib/seo');
 
 const router = express.Router();
 const PER_PAGE = 24;
@@ -41,6 +42,7 @@ router.get('/', (req, res) => {
   const spotlight = catalog.pickSpotlight(deals);
   res.render('store/home', {
     active: 'home',
+    fullTitle: `${settings.get('store_name')} | اشتراك ChatGPT وCanva وNetflix بالشيكل والجنيه`,
     platforms,
     newest: catalog.listProducts({ sort: 'newest', limit: 10 }).items,
     deals,
@@ -79,9 +81,11 @@ function renderCatalog(req, res, { category = null, platform = null }) {
   let head;
   let chips = [];
   if (platform) {
+    const ar = seo.arabicName(platform.slug);
     head = {
-      title: platform.name,
-      desc: platform.description || `جميع اشتراكات ${platform.name} المتوفرة في المتجر بأفضل الأسعار وتسليم سريع.`,
+      title: `اشتراكات ${platform.name}`,
+      alt: ar,
+      desc: platform.description || `جميع اشتراكات ${platform.name}${ar ? ` (${ar})` : ''} المتوفرة في المتجر بأفضل الأسعار وتسليم سريع.`,
       logo: platform.logo_url,
       c1: platform.color1,
       c2: platform.color2,
@@ -89,11 +93,11 @@ function renderCatalog(req, res, { category = null, platform = null }) {
     };
     chips = catalog.platformsWithCounts({ categoryId: platform.category_id }).map((p) => ({ label: p.name, href: '/store/platform/' + p.slug, count: p.product_count, active: p.id === platform.id }));
   } else if (category) {
-    head = { title: category.name, desc: category.description, icon: category.icon, crumbs: [] };
+    head = { title: category.name.startsWith('اشتراكات') ? category.name : `اشتراكات ${category.name}`, desc: category.description, icon: category.icon, crumbs: [] };
     chips = catalog.platformsWithCounts({ categoryId: category.id }).map((p) => ({ label: p.name, href: '/store/platform/' + p.slug, count: p.product_count }));
   } else {
     head = {
-      title: q ? `نتائج البحث عن «${q}»` : onSale ? 'العروض والخصومات الحالية' : 'جميع الاشتراكات',
+      title: q ? `نتائج البحث عن «${q}»` : onSale ? 'العروض والخصومات الحالية' : 'جميع الاشتراكات الرقمية',
       desc: q ? 'المنتجات المطابقة لبحثك في المتجر.' : onSale ? 'اشتراكات عليها خصومات حقيقية لفترة محدودة.' : 'تصفح كل الاشتراكات الرقمية المتوفرة واختر ما يناسبك.',
       icon: q ? 'fa-solid fa-magnifying-glass' : onSale ? 'fa-solid fa-fire' : 'fa-solid fa-grip',
       crumbs: [],
@@ -101,10 +105,20 @@ function renderCatalog(req, res, { category = null, platform = null }) {
     chips = res.locals.navCategories.map((c) => ({ label: c.name, href: '/store/category/' + c.slug, icon: c.icon, count: c.product_count }));
   }
 
+  // One address per listing: sorting is left out, the deals filter and the page number stay. Search results
+  // are not indexed, but their links are followed.
+  const listPath = platform ? `/store/platform/${platform.slug}` : category ? `/store/category/${category.slug}` : '/store/products';
+  const listQuery = new URLSearchParams();
+  if (onSale && !platform && !category) listQuery.set('sale', '1');
+  if (pg.page > 1) listQuery.set('page', String(pg.page));
+  const base = seo.origin(req);
   res.render('store/catalog', {
     active: platform ? '' : category ? 'cat-' + category.slug : onSale ? 'deals' : 'products',
-    pageTitle: head.title,
-    pageDesc: head.desc,
+    pageTitle: head.title + (pg.page > 1 ? ` (صفحة ${pg.page})` : ''),
+    pageDesc: seo.clip(head.desc),
+    canonical: base + listPath + (listQuery.size ? `?${listQuery}` : ''),
+    robots: q ? 'noindex, follow' : null,
+    ld: [seo.breadcrumbs(base, [{ name: 'المتجر', href: '/store' }, ...head.crumbs.map((c) => ({ name: c.label, href: c.href })), { name: head.title, href: listPath }])],
     head,
     chips,
     items: result.items,
@@ -141,7 +155,13 @@ router.get('/platforms', (req, res) => {
     .filter((g) => g.platforms.length);
   const orphans = platforms.filter((p) => !groups.some((g) => g.id === p.category_id));
   if (orphans.length) groups.push({ name: 'منصات أخرى', icon: 'fa-solid fa-shapes', platforms: orphans });
-  res.render('store/platforms', { active: 'platforms', pageTitle: 'المنصات', groups, totalPlatforms: platforms.length });
+  res.render('store/platforms', {
+    active: 'platforms',
+    pageTitle: 'كل المنصات المتوفرة',
+    pageDesc: `اشتراكات ${platforms.length} منصة رقمية في مكان واحد: الذكاء الاصطناعي والتصميم والأفلام والموسيقى والتعليم، بالدفع المحلي بالشيكل أو الجنيه.`,
+    groups,
+    totalPlatforms: platforms.length,
+  });
 });
 
 /* ---------- Product ---------- */
@@ -162,17 +182,44 @@ router.get('/product/:slug', (req, res, next) => {
     p.seller_id,
   );
   const selectedPlan = p.plans.find((pl) => String(pl.id) === str(req.query.plan) && pl.in_stock) || p.plans.find((pl) => pl.in_stock) || p.plans[0];
+  const base = seo.origin(req);
+  const url = `${base}/store/product/${p.slug}`;
+  const reviews = all('SELECT * FROM reviews WHERE product_id = ? AND is_visible = 1 ORDER BY id DESC LIMIT 20', p.id);
+  const summary = catalog.ratingSummary(p.id);
+  const ar = seo.arabicName(p.platform_slug);
+  const from = p.cheapest ? money.format(p.cheapest.price, money.base()) : '';
   res.render('store/product', {
     active: '',
-    pageTitle: p.title,
-    pageDesc: p.short_description,
+    // "اشتراك ChatGPT Plus" is how people search, so a Latin product name gets the word in front.
+    pageTitle: /^[A-Za-z0-9]/.test(p.title) ? `اشتراك ${p.title}` : p.title,
+    // Price and local payment first, so they show in the search result even when the description is long.
+    pageDesc: seo.clip(
+      [
+        `اشتراك ${p.title.split('—')[0].trim()}${ar ? ` (${ar})` : ''}${from ? ` بسعر يبدأ من ${from}` : ''}، وتدفع بتحويل بنكي أو من محفظتك بالشيكل أو الجنيه.`,
+        p.short_description || '',
+      ]
+        .filter(Boolean)
+        .join(' '),
+    ),
+    canonical: url,
+    ogType: 'product',
+    shareImage: p.cover_url && !/\.svg$/i.test(p.cover_url) ? seo.absolute(base, p.cover_url) : null,
+    ld: [
+      seo.product(p, base, { summary, reviews, url }),
+      seo.breadcrumbs(base, [
+        { name: 'المتجر', href: '/store' },
+        p.category_name && { name: p.category_name, href: `/store/category/${p.category_slug}` },
+        p.platform_name && { name: p.platform_name, href: `/store/platform/${p.platform_slug}` },
+        { name: p.title, href: `/store/product/${p.slug}` },
+      ].filter(Boolean)),
+    ],
     p,
     seller,
     sellerStats,
     sellerRating,
     selectedPlan,
-    reviews: all('SELECT * FROM reviews WHERE product_id = ? AND is_visible = 1 ORDER BY id DESC LIMIT 20', p.id),
-    summary: catalog.ratingSummary(p.id),
+    reviews,
+    summary,
     similar: catalog.listProducts({ category: p.category_slug, excludeId: p.id, limit: 10 }).items,
     faq: content.productFaq(p, settings.getAll()),
     maxQty: int(settings.get('max_quantity'), { min: 1, max: 100, fallback: 10 }),
@@ -272,10 +319,22 @@ router.get('/currency/:code', (req, res) => {
 });
 
 router.get('/help', (req, res) => {
-  res.render('store/help', { active: 'help', pageTitle: 'كيف أشتري؟', steps: content.HOW_TO_BUY, faq: content.STORE_FAQ, methods: activeMethods() });
+  res.render('store/help', {
+    active: 'help',
+    pageTitle: 'كيف أشتري؟ خطوات الشراء والدفع',
+    pageDesc: 'خطوات شراء اشتراكك من المتجر، وطرق الدفع المتاحة بالشيكل والجنيه، وإجابات أكثر الأسئلة التي تصلنا.',
+    ld: [seo.faq(content.STORE_FAQ)],
+    steps: content.HOW_TO_BUY,
+    faq: content.STORE_FAQ,
+    methods: activeMethods(),
+  });
 });
 
-router.get('/terms', (req, res) => res.render('store/terms', { active: '', pageTitle: 'الشروط والأحكام' }));
-router.get('/privacy', (req, res) => res.render('store/privacy', { active: '', pageTitle: 'سياسة الخصوصية' }));
+router.get('/terms', (req, res) =>
+  res.render('store/terms', { active: '', pageTitle: 'الشروط والأحكام', pageDesc: 'شروط الشراء من المتجر وسياسة الضمان والاستبدال واسترداد المبلغ.' }),
+);
+router.get('/privacy', (req, res) =>
+  res.render('store/privacy', { active: '', pageTitle: 'سياسة الخصوصية', pageDesc: 'ما البيانات التي نجمعها عند الشراء وكيف نستخدمها ونحميها.' }),
+);
 
 module.exports = router;

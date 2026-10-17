@@ -6,7 +6,7 @@
 <aside class="sidebar" id="sidebar" aria-label="القائمة الجانبية">
   <div class="sb-head">
     <a class="sb-brand" href="<%= navMode === 'seller' ? '/seller' : navMode === 'provider' ? '/provider' : '/store' %>">
-      <img src="/static/img/logo-96.png" alt="MTS">
+      <img src="/static/img/logo-96.png" alt="MTS" width="40" height="40">
       <span><b>MTS <em><%= navMode === 'seller' ? 'Dashboard' : navMode === 'provider' ? 'Team' : 'Store' %></em></b><small><%= navMode === 'provider' ? 'فريق تنفيذ الخدمات' : settings.store_tagline %></small></span>
     </a>
     <button class="icon-btn sb-close" type="button" data-sidebar-close aria-label="إغلاق القائمة"><i class="fa-solid fa-xmark"></i></button>

@@ -7,6 +7,9 @@ const config = require('./config');
 const { get } = require('./db');
 const { loadUser } = require('./lib/auth');
 const { PUBLIC_DIR } = require('./lib/uploads');
+const assets = require('./lib/assets');
+const icons = require('./lib/icons');
+const seo = require('./lib/seo');
 const COUNTRIES = require('./data/countries.json');
 const mw = require('./middleware');
 
@@ -20,13 +23,18 @@ function createApp() {
 
   app.use(compression());
   app.use(mw.securityHeaders());
+  app.use(seo.canonicalHost);
 
   /* ---------- Static files ---------- */
   const countriesJs = `window.MTS_COUNTRIES=${JSON.stringify(COUNTRIES)};`;
   app.get('/static/js/countries.js', (req, res) => {
     res.type('application/javascript').set('Cache-Control', 'public, max-age=86400').send(countriesJs);
   });
-  app.use('/static', express.static(path.join(config.root, 'public'), { maxAge: config.isProd ? '7d' : 0 }));
+  // The icon stylesheet is written from the icons the site uses (lib/icons.js).
+  app.get(/^\/static\/css\/icons-(site|dash)\.css$/, (req, res) => assets.sendText(req, res, `icons-${req.params[0]}`, icons.stylesheet(req.params[0]).css));
+  // CSS, JS and SVG come minified and pre-compressed from memory; fonts and images from disk.
+  app.use('/static', assets.middleware(path.join(config.root, 'public')));
+  app.use('/static', express.static(path.join(config.root, 'public'), { maxAge: config.isProd ? '30d' : 0, setHeaders: assets.staticHeaders }));
   app.use('/assets', express.static(path.join(config.root, 'assets'), { maxAge: config.isProd ? '7d' : 0 }));
   app.use('/uploads', express.static(PUBLIC_DIR, { maxAge: '30d', dotfiles: 'deny', fallthrough: true }));
   app.get('/index.html', (req, res) => res.redirect(301, '/'));
@@ -37,7 +45,8 @@ function createApp() {
     // mail: which transport sends verification codes ("off" until the keys are set); never any secret.
     res.set('Cache-Control', 'no-store').json({ ok: true, storage: config.ephemeralStorage ? 'ephemeral' : 'persistent', version: config.commit || 'dev', mail: require('./lib/mail').status() });
   });
-  app.get('/robots.txt', (req, res) => res.type('text').send('User-agent: *\nDisallow: /account\nDisallow: /seller\nDisallow: /api\nDisallow: /files\n'));
+  app.get('/robots.txt', (req, res) => res.type('text').set('Cache-Control', 'public, max-age=3600').send(seo.robots(req)));
+  app.get('/sitemap.xml', (req, res) => res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(seo.sitemap(req)));
 
   /* ---------- Request pipeline ---------- */
   app.use(cookieParser());

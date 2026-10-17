@@ -55,6 +55,27 @@
       </section>
 
       <section class="card">
+        <div class="card-head"><h2><i class="fa-solid fa-magnifying-glass-chart"></i> الظهور في محركات البحث</h2><span class="badge <%= s.google_site_verification ? 'badge-success' : 'badge-muted' %>"><%= s.google_site_verification ? 'مربوط بـ Google' : 'غير مربوط' %></span></div>
+        <div class="card-body stack">
+          <div class="field">
+            <label class="label" for="google_site_verification">رمز التحقق من Google Search Console</label>
+            <input class="input mono" id="google_site_verification" name="google_site_verification" value="<%= s.google_site_verification %>" dir="ltr" placeholder="&lt;meta name=&quot;google-site-verification&quot; content=&quot;…&quot;&gt;">
+            <span class="field-error"></span>
+          </div>
+          <div class="field">
+            <label class="label" for="bing_site_verification">رمز التحقق من Bing Webmaster Tools (اختياري)</label>
+            <input class="input mono" id="bing_site_verification" name="bing_site_verification" value="<%= s.bing_site_verification %>" dir="ltr">
+            <span class="field-error"></span>
+          </div>
+          <ol class="pm-steps" style="margin-top:0">
+            <li>افتح <a class="link" href="https://search.google.com/search-console" target="_blank" rel="noopener">Google Search Console</a> وأضف موقعك بخيار <b style="display:inline">URL prefix</b>.</li>
+            <li>اختر طريقة <b style="display:inline">HTML tag</b>، وانسخ الوسم كله أو الرمز وحده والصقه هنا ثم احفظ.</li>
+            <li>ارجع إلى Search Console واضغط Verify، ثم أرسل خريطة الموقع من قسم Sitemaps: <code dir="ltr" class="mono"><%= siteUrl %>/sitemap.xml</code></li>
+          </ol>
+        </div>
+      </section>
+
+      <section class="card">
         <div class="card-head"><h2><i class="fa-solid fa-gears"></i> الطلبات</h2></div>
         <div class="card-body form-grid cols-2">
           <div class="field"><label class="label" for="auto_complete_days">إكمال تلقائي بعد (أيام)</label><input class="input" id="auto_complete_days" type="number" lang="en" name="auto_complete_days" value="<%= s.auto_complete_days %>" min="1" max="60"><span class="help">بعد التسليم إن لم يؤكد العميل.</span></div>
