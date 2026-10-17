@@ -1,7 +1,8 @@
 'use strict';
 // E-mail verification with a 6-digit code. Only the salted hash of a code is stored; a code works once,
 // expires after CODE_MINUTES, and locks after MAX_ATTEMPTS wrong tries. Verification is required only
-// while outgoing mail is configured, so the store keeps working before the Gmail keys are added.
+// while outgoing mail works (mail.js checks it), so the store keeps working before the Gmail keys are added
+// or while Gmail refuses to send.
 const crypto = require('crypto');
 const path = require('path');
 const ejs = require('ejs');
@@ -18,6 +19,12 @@ const COOLDOWN_SECONDS = 60;
 const MAX_PER_HOUR = 5;
 
 const required = (user) => Boolean(user && !user.email_verified_at && mail.isConfigured());
+// The same answer, after waiting for the first mail check when the server has only just started.
+const requiredNow = async (user) => {
+  if (!user || user.email_verified_at) return false;
+  await mail.settled();
+  return required(user);
+};
 
 function hashCode(code, salt = crypto.randomBytes(12).toString('base64url')) {
   return `${salt}$${crypto.createHash('sha256').update(`${salt}:${code}`).digest('base64url')}`;
@@ -104,7 +111,7 @@ async function sendCode(user, { force = false } = {}) {
         .lastInsertRowid,
     );
   });
-  const sent = await mail.send(await message(user, code));
+  const sent = await mail.send({ ...(await message(user, code)), kind: 'code', userId: user.id });
   if (!sent.ok) {
     run('DELETE FROM email_codes WHERE id = ?', id);
     return { ok: false, message: 'لم نتمكن من إرسال الكود الآن. حاول مرة أخرى بعد قليل' };
@@ -139,4 +146,4 @@ function verify(user, input) {
 
 const markVerified = (userId) => run("UPDATE users SET email_verified_at = COALESCE(email_verified_at, datetime('now')) WHERE id = ?", userId);
 
-module.exports = { CODE_MINUTES, MAX_ATTEMPTS, COOLDOWN_SECONDS, required, maskEmail, cooldown, activeCode, sendCode, ensureCode, verify, markVerified, message };
+module.exports = { CODE_MINUTES, MAX_ATTEMPTS, COOLDOWN_SECONDS, required, requiredNow, maskEmail, cooldown, activeCode, sendCode, ensureCode, verify, markVerified, message };

@@ -15,6 +15,13 @@
 </div>
 <% } %>
 
+<% if (mailWarning) { %>
+<div class="alert alert-warning mb-16">
+  <i class="fa-solid fa-envelope-circle-check"></i>
+  <div class="grow"><b>أكواد تأكيد البريد لا تصل الآن</b>لذلك أوقفنا طلب الكود مؤقتا، وتدخل الحسابات الجديدة بلا تأكيد حتى يعود البريد. <a class="link" href="/seller/settings#mail">السبب وطريقة الإصلاح</a></div>
+</div>
+<% } %>
+
 <div class="stats">
   <div class="stat"><span class="ic"><i class="fa-solid fa-sack-dollar"></i></span><div><small>مبيعات هذا الشهر</small><b><%- moneyBase(stats.month_revenue) %></b></div></div>
   <div class="stat warning"><span class="ic"><i class="fa-solid fa-hourglass-half"></i></span><div><small>بانتظار مراجعة الدفع</small><b><%= stats.pending %></b><a class="stretch" href="/seller/orders?status=under_review" aria-label="الطلبات بانتظار المراجعة"></a></div></div>

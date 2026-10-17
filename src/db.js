@@ -465,6 +465,22 @@ const MIGRATIONS = [
   CREATE INDEX idx_invoices_issued ON invoices(issued_on, id);
   CREATE INDEX idx_invoices_project ON invoices(project_id);
   `,
+  // v9: every e-mail the store sends (verification codes, the admin's test messages), so the admin can see
+  // that a code went out and what Gmail said when it did not. Rows older than 90 days are dropped.
+  `
+  CREATE TABLE mail_log (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind       TEXT NOT NULL,
+    to_email   TEXT NOT NULL,
+    user_id    INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    transport  TEXT NOT NULL,
+    ok         INTEGER NOT NULL,
+    error      TEXT,
+    message_id TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX idx_mail_log_created ON mail_log(created_at);
+  `,
 ];
 
 function migrate() {

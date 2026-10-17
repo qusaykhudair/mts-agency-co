@@ -173,6 +173,8 @@ function locals(req, res, next) {
     sellerSignupOpen: settings.sellerApplicationsOpen(),
     // Admins are warned when uploads and the database would not survive a redeploy.
     storageWarning: isAdmin(user) && config.ephemeralStorage,
+    // …and when verification codes cannot be sent, which switches verification off.
+    mailWarning: isAdmin(user) && require('./lib/mail').status().endsWith('-unreachable'),
   });
   if (user) {
     res.locals.counts.unread = get('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND is_read = 0', user.id).n;
@@ -199,10 +201,12 @@ function locals(req, res, next) {
 
 const PROFILE_EXEMPT = /^\/(auth\/|logout|static\/|assets\/|uploads\/|files\/|api\/|favicon)/;
 
-// E-mail sign-ups confirm their address with a code before using the store (only while mail is configured).
-function requireEmailVerification(req, res, next) {
+// E-mail sign-ups confirm their address with a code before using the store (only while mail can be sent).
+async function requireEmailVerification(req, res, next) {
   if (!req.user || req.user.email_verified_at || PROFILE_EXEMPT.test(req.path) || req.path === '/') return next();
-  if (!require('./lib/mail').isConfigured()) return next();
+  const mail = require('./lib/mail');
+  await mail.settled();
+  if (!mail.isConfigured()) return next();
   if (req.method !== 'GET') {
     const err = new Error('أكد بريدك الإلكتروني أولا');
     err.status = 403;

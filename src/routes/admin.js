@@ -1,5 +1,8 @@
 'use strict';
+const crypto = require('crypto');
 const express = require('express');
+const config = require('../config');
+const mail = require('../lib/mail');
 const { get, all, run, tx } = require('../db');
 const money = require('../lib/money');
 const settings = require('../lib/settings');
@@ -717,14 +720,91 @@ router.post('/services/:id/delete', (req, res) => {
 /* =====================================================================
    Settings
    ===================================================================== */
+// What stopped the verification mail and how to fix it, in the admin's words.
+function mailProblem(h, transport) {
+  const project = h.project ? `?project=${h.project}` : '';
+  switch (h.reason) {
+    case 'api-disabled':
+      return {
+        title: 'واجهة Gmail API متوقفة في مشروع Google Cloud',
+        fix: 'افتح صفحة Gmail API بنفس حساب Google الذي أنشأت به المشروع واضغط Enable، ثم انتظر دقيقتين واضغط «افحص الآن».',
+        link: `https://console.cloud.google.com/apis/library/gmail.googleapis.com${project}`,
+        linkText: 'فتح صفحة Gmail API',
+      };
+    case 'scope':
+      return {
+        title: 'حساب Gmail لم يسمح للمتجر بإرسال البريد',
+        fix: 'شغل npm run gmail-auth على جهازك، وفي شاشة Google اترك خيار إرسال البريد محددا. ضع الرمز الجديد في GMAIL_REFRESH_TOKEN على Railway ثم اضغط «افحص الآن».',
+      };
+    case 'revoked':
+      return {
+        title: 'انتهى ربط حساب Gmail أو ألغي',
+        fix: 'شغل npm run gmail-auth على جهازك، وضع الرمز الجديد في GMAIL_REFRESH_TOKEN على Railway ثم اضغط «افحص الآن». إن كان التطبيق في Google Cloud على وضع Testing فالرمز ينتهي بعد 7 أيام، فانشره أولا.',
+      };
+    case 'client':
+      return {
+        title: 'قيمة GMAIL_CLIENT_ID أو GMAIL_CLIENT_SECRET غير صحيحة',
+        fix: 'انسخ القيمتين من جديد من صفحة Credentials في Google Cloud وضعهما في Railway.',
+        link: `https://console.cloud.google.com/apis/credentials${project}`,
+        linkText: 'فتح صفحة Credentials',
+      };
+    case 'mailbox':
+      return { title: 'خدمة Gmail غير مفعلة لهذا الحساب', fix: 'استخدم حساب Gmail عاديا، أو فعل Gmail لهذا الحساب من لوحة Google Workspace.' };
+    case 'quota':
+      return { title: 'وصل حساب Gmail إلى حد الإرسال اليومي', fix: 'يعود الإرسال وحده خلال يوم، ونعيد الفحص كل ساعة.' };
+    case 'login':
+      return { title: 'خادم SMTP رفض اسم المستخدم أو كلمة المرور', fix: 'راجع SMTP_USER و SMTP_PASS في Railway. مع Gmail استخدم كلمة مرور التطبيقات وليس كلمة مرور الحساب.' };
+    case 'network':
+      return transport === 'smtp'
+        ? { title: 'لا نصل إلى خادم SMTP', fix: 'Railway يغلق منافذ SMTP في الخطط الأقل من Pro، فاستخدم Gmail API بدلا منه (الخطوات في ملف README).' }
+        : { title: 'لا نصل إلى Google الآن', fix: 'غالبا انقطاع مؤقت، ونعيد الفحص وحدنا كل 5 دقائق.' };
+    default:
+      return { title: 'خادم البريد رفض الإرسال', fix: 'السبب كما وصلنا مكتوب في التفاصيل بالأسفل.' };
+  }
+}
+
 router.get('/settings', (req, res) => {
+  const transport = mail.transportName();
   res.render('seller/settings', {
     active: 'admin-settings',
     pageTitle: 'إعدادات المتجر',
     s: settings.getAll(),
     envGoogle: !!process.env.GOOGLE_CLIENT_ID,
     origin: `${req.protocol}://${req.get('host')}`,
+    mailInfo: {
+      transport,
+      state: transport === 'off' ? 'off' : !['gmail', 'smtp'].includes(transport) ? 'local' : { ready: 'ready', failed: 'failed' }[mail.health.status] || 'checking',
+      health: mail.health,
+      from: config.mail.from || config.mail.smtp.user,
+      problem: mail.health.status === 'failed' ? mailProblem(mail.health, transport) : null,
+      recent: mail.recent(),
+    },
   });
+});
+
+/* ---------- Mail: verification codes ---------- */
+const MAIL_OFF = 'البريد غير مضبوط بعد. أضف قيم GMAIL_ على الخادم أولا';
+
+router.post('/mail/check', async (req, res) => {
+  if (mail.transportName() === 'off') return res.reply({ ok: false, message: MAIL_OFF });
+  await mail.check();
+  if (mail.isConfigured()) return res.reply({ ok: true, message: 'البريد يعمل، وكود التأكيد مطلوب من كل حساب جديد', reload: true });
+  req.flash('error', 'البريد ما زال متوقفا. السبب وطريقة الإصلاح في بطاقة البريد');
+  res.reply({ ok: true, reload: true });
+});
+
+// The same message a customer gets, with a code that opens nothing, so the admin can see it arrive.
+router.post('/mail/test', async (req, res) => {
+  const to = clean(req.body.email, 254).toLowerCase();
+  if (!isEmail(to)) return res.reply({ ok: false, errors: { email: 'أدخل بريدا إلكترونيا صحيحا' } });
+  if (mail.transportName() === 'off') return res.reply({ ok: false, message: MAIL_OFF });
+  const msg = await emailVerify.message({ name: req.user.name, email: to }, String(crypto.randomInt(0, 1000000)).padStart(6, '0'));
+  const sent = await mail.send({ ...msg, subject: `رسالة تجربة: ${msg.subject}`, kind: 'test', userId: req.user.id });
+  if (!sent.ok) {
+    req.flash('error', 'لم يقبل خادم البريد رسالة التجربة. السبب في بطاقة البريد');
+    return res.reply({ ok: true, reload: true });
+  }
+  res.reply({ ok: true, message: `أرسلنا رسالة التجربة إلى ${to}. افتح البريد وتأكد أنها وصلت`, reload: true });
 });
 
 router.post('/settings', (req, res) => {

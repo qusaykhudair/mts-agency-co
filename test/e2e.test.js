@@ -1271,6 +1271,173 @@ test('a mail server that cannot be reached leaves verification off instead of bl
   }
 });
 
+// A stand-in for the Gmail API. g.mode decides every answer ("ok", "disabled", "scope", "busy"); g.answers
+// queues one-off answers first. Requests to the test server itself pass through.
+function fakeGmail() {
+  const config = require('../src/config');
+  const mail = require('../src/lib/mail');
+  const { OAuth2Client } = require('google-auth-library');
+  const saved = { gmail: { ...config.mail.gmail }, from: config.mail.from, token: OAuth2Client.prototype.getAccessToken, fetch: global.fetch, retry: mail.retry.ms };
+  Object.assign(config.mail.gmail, { clientId: '290156006782-test.apps.googleusercontent.com', clientSecret: 'secret-never-shown', refreshToken: 'refresh-never-shown' });
+  config.mail.from = 'shop@test.local';
+  OAuth2Client.prototype.getAccessToken = async () => ({ token: 'access-token' });
+  mail.reset();
+  mail.retry.ms = 0;
+  const reply = (status, body) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  const info = (reason, extra = {}) => ({ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason, ...extra });
+  const ANSWERS = {
+    empty: () => reply(400, { error: { code: 400, message: "'raw' RFC822 payload message string or uploading message via /upload/* URL required", errors: [{ reason: 'invalidArgument' }], status: 'INVALID_ARGUMENT' } }),
+    disabled: () =>
+      reply(403, {
+        error: {
+          code: 403,
+          message: 'Gmail API has not been used in project 290156006782 before or it is disabled. Enable it by visiting https://console.developers.google.com/apis/api/gmail.googleapis.com/overview?project=290156006782 then retry.',
+          errors: [{ reason: 'accessNotConfigured' }],
+          status: 'PERMISSION_DENIED',
+          details: [info('SERVICE_DISABLED', { metadata: { consumer: 'projects/290156006782' } })],
+        },
+      }),
+    scope: () => reply(403, { error: { code: 403, message: 'Request had insufficient authentication scopes.', errors: [{ reason: 'insufficientPermissions' }], status: 'PERMISSION_DENIED', details: [info('ACCESS_TOKEN_SCOPE_INSUFFICIENT')] } }),
+    busy: () => reply(503, { error: { code: 503, message: 'The service is currently unavailable.', status: 'UNAVAILABLE' } }),
+  };
+  const g = { mode: 'ok', answers: [], probes: 0, sent: [], delay: 0 };
+  global.fetch = async (url, opts = {}) => {
+    if (!String(url).startsWith('https://gmail.googleapis.com/')) return saved.fetch(url, opts);
+    if (g.delay) await new Promise((resolve) => setTimeout(resolve, g.delay));
+    const { raw } = JSON.parse(opts.body || '{}');
+    const mode = g.answers.length ? g.answers.shift() : g.mode;
+    if (!raw) g.probes++;
+    if (mode !== 'ok') return ANSWERS[mode]();
+    if (!raw) return ANSWERS.empty();
+    g.sent.push(Buffer.from(raw, 'base64url').toString('utf8'));
+    return reply(200, { id: `gm-${g.sent.length}`, threadId: 'thread', labelIds: ['SENT'] });
+  };
+  g.restore = () => {
+    Object.assign(config.mail.gmail, saved.gmail);
+    config.mail.from = saved.from;
+    OAuth2Client.prototype.getAccessToken = saved.token;
+    global.fetch = saved.fetch;
+    mail.retry.ms = saved.retry;
+    mail.reset();
+  };
+  return g;
+}
+
+// The decoded subject of a raw message ("=?UTF-8?B?…?=" words joined back together).
+const subjectOf = (raw) =>
+  /^Subject: (.*(?:\r?\n[ \t].*)*)/m
+    .exec(raw)[1]
+    .replace(/\r?\n[ \t]/g, ' ')
+    .replace(/=\?UTF-8\?B\?([^?]*)\?=\s*/gi, (m, b64) => Buffer.from(b64, 'base64').toString('utf8'));
+
+test('the Gmail check finds a disabled API or a missing permission without sending anything', async () => {
+  const mail = require('../src/lib/mail');
+  const g = fakeGmail();
+  try {
+    assert.equal(mail.status(), 'gmail-checking');
+    assert.equal(mail.isConfigured(), false, 'not trusted before a live check');
+
+    // The problem behind "codes never arrive": the token works but the API is off in Google Cloud.
+    g.mode = 'disabled';
+    assert.equal(await mail.check(), 'gmail-unreachable');
+    assert.equal(mail.health.reason, 'api-disabled');
+    assert.equal(mail.health.project, '290156006782');
+    assert.equal(g.sent.length, 0, 'the check never sends a message');
+    const res = await signUp(new Client(), 'api.off@test.local', '0599111227');
+    assert.equal(res.body.redirect, '/store', 'sign-up goes on without a code while mail cannot be sent');
+    const page = await (await admin.get('/seller/settings')).text();
+    assert.ok(page.includes('واجهة Gmail API متوقفة') && page.includes('gmail.googleapis.com?project=290156006782'), 'the admin sees the cause and the link that fixes it');
+    assert.ok(!page.includes('secret-never-shown') && !page.includes('refresh-never-shown'));
+    assert.ok((await (await admin.get('/seller')).text()).includes('أكواد تأكيد البريد لا تصل الآن'), 'the dashboard warns the admin');
+
+    g.mode = 'scope';
+    await mail.check();
+    assert.equal(mail.health.reason, 'scope');
+    assert.ok((await (await admin.get('/seller/settings')).text()).includes('لم يسمح للمتجر بإرسال البريد'));
+
+    // Fixed in Google Cloud: the next check turns verification on.
+    g.mode = 'ok';
+    assert.equal((await admin.post('/seller/mail/check', {})).body.ok, true);
+    assert.equal(mail.status(), 'gmail');
+    assert.equal(g.sent.length, 0);
+    assert.ok(!(await (await admin.get('/seller')).text()).includes('أكواد تأكيد البريد لا تصل الآن'));
+  } finally {
+    g.restore();
+  }
+});
+
+test('codes go out through Gmail, are logged, and a refusal switches verification off until Gmail works again', async () => {
+  const mail = require('../src/lib/mail');
+  const g = fakeGmail();
+  try {
+    await mail.check();
+    assert.equal(mail.isConfigured(), true);
+    const c = new Client();
+    const reg = await signUp(c, 'gmail.code@test.local', '0599111228');
+    assert.match(reg.body.redirect, /^\/auth\/verify-email/);
+    assert.equal(g.sent.length, 1);
+    const raw = g.sent[0];
+    assert.match(raw, /^From: MTS Store <shop@test\.local>/m);
+    assert.match(raw, /^To: gmail\.code@test\.local/m);
+    assert.match(raw, /Content-ID: <logo@mts>/i, 'the logo travels inside the message');
+    const code = subjectOf(raw).match(/\d{6}/)[0];
+    assert.equal((await c.post('/auth/verify-email', { code })).body.ok, true, 'the code in the e-mail opens the account');
+    const logged = get("SELECT * FROM mail_log WHERE to_email = 'gmail.code@test.local'");
+    assert.deepEqual({ kind: logged.kind, ok: logged.ok, transport: logged.transport, message_id: logged.message_id }, { kind: 'code', ok: 1, transport: 'gmail', message_id: 'gm-1' });
+
+    // A busy Google server gets one more try.
+    g.answers.push('busy');
+    const retried = await signUp(new Client(), 'gmail.retry@test.local', '0599111229');
+    assert.match(retried.body.redirect, /^\/auth\/verify-email/);
+    assert.equal(g.sent.length, 2);
+    assert.equal(mail.isConfigured(), true);
+
+    // The admin's test message: same layout as a code, logged as a test.
+    const trial = await admin.post('/seller/mail/test', { email: 'owner.inbox@test.local' });
+    assert.equal(trial.body.ok, true, JSON.stringify(trial.body));
+    assert.match(subjectOf(g.sent[2]), /^رسالة تجربة: \d{6} هو كود تأكيد بريدك/);
+    assert.equal(get("SELECT kind FROM mail_log WHERE to_email = 'owner.inbox@test.local'").kind, 'test');
+    const card = await (await admin.get('/seller/settings')).text();
+    assert.ok(card.includes('owner.inbox@test.local') && card.includes('رسالة تجربة') && card.includes('أرسلت'));
+    assert.equal((await admin.post('/seller/mail/test', { email: 'not-an-address' })).body.ok, false);
+
+    // Gmail starts refusing: verification stops at once and stays off while the check keeps failing.
+    g.mode = 'disabled';
+    const rc = new Client();
+    const refused = await signUp(rc, 'gmail.refused@test.local', '0599111230');
+    assert.equal(mail.status(), 'gmail-unreachable');
+    assert.equal(mail.health.reason, 'api-disabled');
+    const failed = get("SELECT * FROM mail_log WHERE to_email = 'gmail.refused@test.local'");
+    assert.equal(failed.ok, 0);
+    assert.match(failed.error, /SERVICE_DISABLED/);
+    assert.ok(!/secret-never-shown|refresh-never-shown/.test(failed.error + mail.health.error));
+    assert.match(refused.body.redirect, /^\/auth\/verify-email/);
+    const back = await rc.get('/auth/verify-email?next=%2Fstore');
+    assert.equal(back.headers.get('location'), '/store', 'the new customer is let in rather than left waiting for a code');
+    assert.equal(await mail.check(), 'gmail-unreachable', 'no flip-flopping: the check fails the same way');
+
+    g.mode = 'ok';
+    assert.equal(await mail.check(), 'gmail');
+  } finally {
+    g.restore();
+  }
+});
+
+test('a sign-up right after start-up waits for the first mail check instead of skipping the code', async () => {
+  const mail = require('../src/lib/mail');
+  const g = fakeGmail();
+  try {
+    g.delay = 300;
+    mail.startChecks();
+    assert.equal(mail.status(), 'gmail-checking');
+    const res = await signUp(new Client(), 'early.bird@test.local', '0599111231');
+    assert.match(res.body.redirect, /^\/auth\/verify-email/, 'the code is asked for once the check has passed');
+    assert.equal(g.sent.length, 1);
+  } finally {
+    g.restore();
+  }
+});
+
 test('migrating a v2 database keeps users, sessions and orders and adds the provider role', () => {
   const { execFileSync } = require('child_process');
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'mts-v2-'));

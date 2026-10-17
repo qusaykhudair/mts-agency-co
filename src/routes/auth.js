@@ -61,7 +61,7 @@ router.post('/login', loginLimiter, async (req, res) => {
   if (user.is_blocked) return res.reply({ ok: false, message: 'تم إيقاف هذا الحساب. تواصل مع الدعم لمزيد من التفاصيل.' });
 
   startSession(req, res, user.id);
-  if (emailVerify.required(user)) {
+  if (await emailVerify.requiredNow(user)) {
     // Signed up but never confirmed the e-mail: send a code unless one is already waiting.
     const sent = await emailVerify.ensureCode(user);
     if (!sent.ok && !sent.wait) req.flash('error', sent.message);
@@ -116,7 +116,7 @@ router.post('/register', registerLimiter, async (req, res) => {
   }
   startSession(req, res, userId);
   const user = get('SELECT * FROM users WHERE id = ?', userId);
-  if (emailVerify.required(user)) {
+  if (await emailVerify.requiredNow(user)) {
     const sent = await emailVerify.sendCode(user, { force: true });
     if (!sent.ok) req.flash('error', sent.message);
     return res.reply({ ok: true, message: sent.ok ? 'أرسلنا كود التأكيد إلى بريدك' : null, redirect: verifyUrl(next || '/store') });
@@ -125,9 +125,9 @@ router.post('/register', registerLimiter, async (req, res) => {
 });
 
 /* ---------- E-mail verification (6-digit code) ---------- */
-router.get('/auth/verify-email', requireAuth, (req, res) => {
+router.get('/auth/verify-email', requireAuth, async (req, res) => {
   const next = safeNext(req.query.next, '');
-  if (!emailVerify.required(req.user)) return res.redirect(next || homeFor(req.user));
+  if (!(await emailVerify.requiredNow(req.user))) return res.redirect(next || homeFor(req.user));
   authPage(res, 'auth/verify-email', {
     pageTitle: 'تأكيد البريد الإلكتروني',
     next,
@@ -138,16 +138,16 @@ router.get('/auth/verify-email', requireAuth, (req, res) => {
   });
 });
 
-router.post('/auth/verify-email', requireAuth, verifyLimiter, (req, res) => {
+router.post('/auth/verify-email', requireAuth, verifyLimiter, async (req, res) => {
   const next = safeNext(req.body.next, '');
-  if (!emailVerify.required(req.user)) return res.reply({ ok: true, redirect: next || homeFor(req.user) });
+  if (!(await emailVerify.requiredNow(req.user))) return res.reply({ ok: true, redirect: next || homeFor(req.user) });
   const result = emailVerify.verify(req.user, req.body.code);
   if (!result.ok) return res.reply({ ok: false, message: result.message, errors: { code: result.message } });
   res.reply({ ok: true, message: `تم تأكيد بريدك، أهلا بك يا ${firstName(req.user.name)}`, redirect: next || homeFor(req.user) });
 });
 
 router.post('/auth/verify-email/resend', requireAuth, codeLimiter, async (req, res) => {
-  if (!emailVerify.required(req.user)) return res.reply({ ok: true, reload: true });
+  if (!(await emailVerify.requiredNow(req.user))) return res.reply({ ok: true, reload: true });
   const sent = await emailVerify.sendCode(req.user);
   if (!sent.ok) return res.reply({ ok: false, message: sent.message, data: { wait: sent.wait || 0 } });
   res.reply({ ok: true, message: 'أرسلنا كودا جديدا إلى بريدك', data: { wait: sent.wait } });
@@ -155,7 +155,7 @@ router.post('/auth/verify-email/resend', requireAuth, codeLimiter, async (req, r
 
 // A typo in the address at sign-up: fix it here and the code goes to the new address.
 router.post('/auth/verify-email/change', requireAuth, codeLimiter, async (req, res) => {
-  if (!emailVerify.required(req.user)) return res.reply({ ok: true, reload: true });
+  if (!(await emailVerify.requiredNow(req.user))) return res.reply({ ok: true, reload: true });
   const email = clean(req.body.email, 254).toLowerCase();
   if (!isEmail(email)) return res.reply({ ok: false, errors: { email: 'أدخل بريدا إلكترونيا صحيحا' } });
   if (email === req.user.email.toLowerCase()) return res.reply({ ok: false, errors: { email: 'هذا هو بريدك الحالي نفسه' } });

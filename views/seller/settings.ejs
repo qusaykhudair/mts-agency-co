@@ -1,7 +1,7 @@
 <%- include('../partials/top') %>
 
 <div class="page-head">
-  <div><h1>إعدادات المتجر</h1><p>بيانات التواصل والنصوص الرئيسية وتسجيل الدخول عبر Google.</p></div>
+  <div><h1>إعدادات المتجر</h1><p>بيانات التواصل والنصوص الرئيسية وتسجيل الدخول عبر Google وبريد أكواد التأكيد.</p></div>
 </div>
 
 <form method="post" action="/seller/settings" data-ajax novalidate>
@@ -71,5 +71,72 @@
     </div>
   </div>
 </form>
+
+<% const m = mailInfo; const live = m.transport === 'gmail' || m.transport === 'smtp'; %>
+<section class="card mt-16" id="mail">
+  <div class="card-head">
+    <h2><i class="fa-solid fa-envelope-circle-check"></i> بريد أكواد التأكيد</h2>
+    <span class="badge badge-<%= { ready: 'success', failed: 'danger', checking: 'muted', off: 'muted', local: 'info' }[m.state] %>"><%= { ready: 'يعمل', failed: 'متوقف', checking: 'قيد الفحص', off: 'غير مضبوط', local: 'تجريبي' }[m.state] %></span>
+  </div>
+  <div class="card-body stack">
+    <% if (m.state === 'ready') { %>
+    <p>كل حساب جديد بالبريد يؤكد بريده بكود من 6 أرقام. نرسل الأكواد من <bdi dir="ltr"><%= m.from %></bdi> عبر <%= m.transport === 'gmail' ? 'Gmail' : 'SMTP' %>.<% if (m.health.checkedAt) { %> آخر فحص: <%= timeAgo(m.health.checkedAt) %>.<% } %></p>
+    <% } else if (m.state === 'failed') { %>
+    <div class="alert alert-danger">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <div class="grow"><b><%= m.problem.title %></b><%= m.problem.fix %><% if (m.problem.link) { %> <a class="link" href="<%= m.problem.link %>" target="_blank" rel="noopener"><%= m.problem.linkText %></a><% } %></div>
+    </div>
+    <p class="help">حتى يعود البريد لا نطلب كود التأكيد، فتدخل الحسابات الجديدة المتجر بلا تأكيد. نعيد الفحص وحدنا كل 5 دقائق، ويمكنك الضغط على «افحص الآن» بعد الإصلاح.</p>
+    <details class="help"><summary>التفاصيل كما وصلت من خادم البريد</summary><code class="mono" dir="ltr" style="display:block;white-space:pre-wrap;word-break:break-word;margin-top:6px"><%= m.health.error %></code></details>
+    <% } else if (m.state === 'checking') { %>
+    <p>نفحص الاتصال بخادم البريد الآن. حدث الصفحة بعد لحظات.</p>
+    <% } else if (m.state === 'off') { %>
+    <p>البريد غير مضبوط، لذلك لا نطلب كود تأكيد عند التسجيل. أضف في Railway القيم GMAIL_CLIENT_ID و GMAIL_CLIENT_SECRET و GMAIL_REFRESH_TOKEN و MAIL_FROM (الخطوات في ملف README).</p>
+    <% } else { %>
+    <p>وضع التجربة: تحفظ الرسائل في مجلد data/outbox ولا تصل لأحد.</p>
+    <% } %>
+
+    <% if (m.transport !== 'off') { %>
+    <div class="flex flex-wrap gap-12" style="align-items:flex-end">
+      <form class="grow" method="post" action="/seller/mail/test" data-ajax novalidate style="min-width:240px">
+        <div class="field">
+          <label class="label" for="mail_test_to">أرسل رسالة تجربة إلى</label>
+          <div class="flex gap-8">
+            <input class="input grow" id="mail_test_to" name="email" type="email" dir="ltr" autocomplete="email" value="<%= user.email %>" required>
+            <button class="btn btn-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> أرسل</button>
+          </div>
+          <span class="field-error"></span>
+        </div>
+      </form>
+      <% if (live) { %>
+      <form method="post" action="/seller/mail/check" data-ajax>
+        <button class="btn btn-soft" type="submit"><i class="fa-solid fa-rotate"></i> افحص الآن</button>
+      </form>
+      <% } %>
+    </div>
+    <p class="help">رسالة التجربة بنفس شكل رسالة الكود، والكود فيها لا يفعل شيئا. ابحث عنها في البريد الوارد ثم في Spam.</p>
+    <% } %>
+
+    <% if (m.recent.length) { %>
+    <div class="table-wrap">
+      <table class="table responsive">
+        <thead><tr><th>الوقت</th><th>إلى</th><th>الرسالة</th><th>النتيجة</th></tr></thead>
+        <tbody>
+          <% for (const r of m.recent) { %>
+          <tr>
+            <td data-label="الوقت"><%= timeAgo(r.created_at) %></td>
+            <td data-label="إلى"><bdi dir="ltr"><%= r.to_email %></bdi></td>
+            <td data-label="الرسالة"><%= r.kind === 'code' ? 'كود تأكيد' : r.kind === 'test' ? 'رسالة تجربة' : 'رسالة' %></td>
+            <td data-label="النتيجة"><% if (r.ok) { %><span class="badge badge-success">أرسلت</span><% } else { %><span class="badge badge-danger" title="<%= r.error %>">لم ترسل</span><% } %></td>
+          </tr>
+          <% } %>
+        </tbody>
+      </table>
+    </div>
+    <% } else { %>
+    <p class="help">لم يرسل المتجر أي رسالة بعد.</p>
+    <% } %>
+  </div>
+</section>
 
 <%- include('../partials/bottom') %>
