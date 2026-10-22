@@ -45,6 +45,8 @@ async function main() {
     }
     // E-mail verification switches on once the mail server (Gmail) answers.
     require('./src/lib/mail').startChecks();
+    // The Google button is offered only while Google accepts its client ID.
+    require('./src/lib/google-login').startChecks();
   });
   const shutdown = () => server.close(() => process.exit(0));
   process.on('SIGINT', shutdown);

@@ -36,21 +36,33 @@
     </div>
 
     <div class="stack">
-      <section class="card">
-        <div class="card-head"><h2><i class="fa-brands fa-google"></i> تسجيل الدخول عبر Google</h2><span class="badge <%= googleClientId ? 'badge-success' : 'badge-muted' %>"><%= googleClientId ? 'مفعل' : 'غير مفعل' %></span></div>
+      <% const gActive = google.find((c) => c.active); const gRejected = google.filter((c) => c.problem); %>
+      <section class="card" id="google">
+        <div class="card-head"><h2><i class="fa-brands fa-google"></i> تسجيل الدخول عبر Google</h2><span class="badge <%= gActive ? 'badge-success' : gRejected.length ? 'badge-danger' : 'badge-muted' %>"><%= gActive ? 'مفعل' : gRejected.length ? 'متوقف' : 'غير مفعل' %></span></div>
         <div class="card-body stack">
+          <% if (!gActive) { gRejected.forEach((c) => { %>
+          <div class="alert alert-danger">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <div class="grow"><b>Google يرفض المعرف المنتهي بـ <bdi dir="ltr"><%= c.id.slice(-30) %></bdi><%= c.source === 'server' ? ' (من Railway)' : '' %></b><%= c.problem %></div>
+          </div>
+          <% }) } %>
+          <% if (gRejected.length && !gActive) { %><p class="help">لذلك أخفينا زر Google عن العملاء حتى تصلحه، ويبقى التسجيل بالبريد متاحا.</p><% } %>
+          <% if (gActive) gRejected.forEach((c) => { %><p class="help">المعرف القديم المنتهي بـ <bdi dir="ltr" class="mono"><%= c.id.slice(-30) %></bdi><%= c.source === 'server' ? ' في Railway' : '' %> يرفضه Google، فلا نستخدمه. يمكنك تحديثه أو حذفه من هناك.</p><% }) %>
           <div class="field">
             <label class="label" for="google_client_id">Google OAuth Client ID</label>
-            <input class="input mono" id="google_client_id" name="google_client_id" value="<%= s.google_client_id %>" dir="ltr" placeholder="1234567890-xxxx.apps.googleusercontent.com"<%= envGoogle ? ' disabled' : '' %>>
-            <% if (envGoogle) { %><span class="help">محدد من متغير البيئة GOOGLE_CLIENT_ID على الخادم.</span><% } %>
+            <input class="input mono" id="google_client_id" name="google_client_id" value="<%= s.google_client_id %>" dir="ltr" placeholder="1234567890-xxxx.apps.googleusercontent.com">
+            <span class="help"><%= envGoogle ? 'المعرف الذي تكتبه هنا يقدم على GOOGLE_CLIENT_ID المحفوظ في Railway، وإن تركته فارغا نستخدم معرف Railway.' : 'نفحص المعرف مع Google عند كل حفظ، وكل 6 ساعات.' %></span>
             <span class="field-error"></span>
           </div>
+          <% if (gActive) { %><p class="help">المعرف المستخدم الآن ينتهي بـ <bdi dir="ltr" class="mono"><%= gActive.id.slice(-30) %></bdi><%= gActive.status === 'ready' ? `، وآخر فحص له مع Google: ${timeAgo(gActive.checkedAt)}، ويعمل.` : '.' %></p><% } %>
           <ol class="pm-steps" style="margin-top:0">
-            <li>ادخل إلى <a class="link" href="https://console.cloud.google.com/apis/credentials" target="_blank" rel="noopener">Google Cloud Console ← Credentials</a>.</li>
-            <li>أنشئ <b style="display:inline">OAuth client ID</b> من نوع <b style="display:inline">Web application</b>.</li>
-            <li>في <b style="display:inline">Authorized JavaScript origins</b> أضف: <code dir="ltr" class="mono"><%= origin %></code> ورابط موقعك النهائي.</li>
-            <li>انسخ الـ Client ID والصقه هنا ثم احفظ.</li>
+            <li>افتح <a class="link" href="https://console.cloud.google.com/auth/clients" target="_blank" rel="noopener">Google Auth Platform ← Clients</a> واضغط <b style="display:inline">Create client</b>.</li>
+            <li>اختر نوع <b style="display:inline">Web application</b>، وسمه مثلا «MTS تسجيل الدخول».</li>
+            <li>في <b style="display:inline">Authorized JavaScript origins</b> أضف: <code dir="ltr" class="mono"><%= origin %></code></li>
+            <li>في <b style="display:inline">Authorized redirect URIs</b> أضف: <code dir="ltr" class="mono"><%= origin %>/auth/google/callback</code></li>
+            <li>انسخ الـ Client ID والصقه هنا ثم احفظ، فيفحصه الموقع مع Google فورا.</li>
           </ol>
+          <p class="help">لا تحذف هذا العميل من Google Cloud، فحذفه يوقف زر Google. عميل البريد (من نوع Desktop) عميل آخر منفصل عنه.</p>
         </div>
       </section>
 

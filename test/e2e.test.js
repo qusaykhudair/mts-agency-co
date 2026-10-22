@@ -1157,6 +1157,62 @@ test('Google popup sign-in accepts only access tokens issued to this site', asyn
   }
 });
 
+test('a Google client that Google reports deleted is not offered, and the admin can replace it from the dashboard', async () => {
+  const config = require('../src/config');
+  const googleLogin = require('../src/lib/google-login');
+  const DELETED = '111111111111-deleted.apps.googleusercontent.com';
+  const GOOD = '111111111111-good.apps.googleusercontent.com';
+  const saved = { appUrl: config.appUrl, env: config.googleClientId };
+  const realFetch = global.fetch;
+  // Google's sign-in endpoint: a rejected client goes to the error page with the reason inside authError,
+  // a working one to the account chooser.
+  const authError = (reason) => Buffer.from(`\n\x0e${reason}\x12\x00`, 'latin1').toString('base64url');
+  const seen = [];
+  global.fetch = async (url, options = {}) => {
+    const href = String(url);
+    if (href.startsWith('https://accounts.google.com/o/oauth2/v2/auth')) {
+      const q = new URL(href).searchParams;
+      seen.push(q.get('redirect_uri'));
+      const id = q.get('client_id');
+      const location = id === GOOD ? 'https://accounts.google.com/v3/signin/identifier?flow=1' : `https://accounts.google.com/signin/oauth/error?authError=${authError(id === DELETED ? 'deleted_client' : 'invalid_client')}`;
+      return new Response(null, { status: 302, headers: { location } });
+    }
+    return realFetch(url, options);
+  };
+  // Like Railway's GOOGLE_CLIENT_ID still pointing at a client deleted in Google Cloud.
+  config.appUrl = 'https://shop.example';
+  config.googleClientId = DELETED;
+  googleLogin.reset();
+  try {
+    await googleLogin.checkAll();
+    assert.equal(seen[0], 'storagerelay://https/shop.example?id=auth1', 'checked the way the popup opens Google, for this site');
+    assert.equal(googleLogin.clientId(), '', 'the deleted client is not offered');
+    assert.ok(!(await (await new Client().get('/login')).text()).includes('class="g-btn"'), 'customers never reach Google\'s error page');
+    assert.ok((await (await admin.get('/seller')).text()).includes('تسجيل الدخول عبر Google متوقف'));
+    const card = await (await admin.get('/seller/settings')).text();
+    assert.ok(card.includes('هذا العميل محذوف من Google Cloud') && card.includes('https://shop.example/auth/google/callback'));
+
+    // A new client pasted in the dashboard is checked on save and used before the server's.
+    const save = await admin.post('/seller/settings', { ...settings.getAll(), google_client_id: GOOD });
+    assert.equal(save.body.ok, true, JSON.stringify(save.body));
+    assert.equal(googleLogin.clientId(), GOOD);
+    assert.ok((await (await new Client().get('/login')).text()).includes(`data-client-id="${GOOD}"`));
+    assert.ok(!(await (await admin.get('/seller')).text()).includes('تسجيل الدخول عبر Google متوقف'));
+    const fixed = await (await admin.get('/seller/settings')).text();
+    assert.ok(!fixed.includes('Google يرفض المعرف') && fixed.includes('المعرف القديم المنتهي بـ'), 'the old Railway ID is only a quiet note once a working one is in use');
+
+    // A network failure at Google never hides a working button.
+    global.fetch = async (url, options = {}) => (String(url).startsWith('https://accounts.google.com/') ? Promise.reject(new Error('fetch failed')) : realFetch(url, options));
+    await googleLogin.checkAll();
+    assert.equal(googleLogin.clientId(), GOOD);
+  } finally {
+    global.fetch = realFetch;
+    Object.assign(config, { appUrl: saved.appUrl, googleClientId: saved.env });
+    settings.set({ google_client_id: '' });
+    googleLogin.reset();
+  }
+});
+
 const signUp = (client, email, wa) =>
   client.post('/register', { name: 'Code Tester', email, password: 'password123', password_confirm: 'password123', wa_country: 'PS', wa_number: wa, agree: '1' });
 

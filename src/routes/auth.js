@@ -7,6 +7,7 @@ const { hashPassword, verifyPassword, startSession, endSession, isStaff, isProvi
 const { normalizeWhatsapp } = require('../lib/phone');
 const settings = require('../lib/settings');
 const emailVerify = require('../lib/email-verify');
+const googleLogin = require('../lib/google-login');
 const { str, safeNext, clean, isEmail, bool } = require('../lib/util');
 const { requireAuth } = require('../middleware');
 const { limiter } = require('../lib/limits');
@@ -239,7 +240,7 @@ function finishGoogleSignIn(req, res, payload, next) {
 }
 
 router.post('/auth/google/token', googleLimiter, async (req, res) => {
-  const clientId = settings.googleClientId();
+  const clientId = googleLogin.clientId();
   if (!clientId) return res.reply({ ok: false, message: 'تسجيل الدخول عبر Google غير مفعل حاليا' });
   const accessToken = str(req.body.access_token);
   if (!accessToken || accessToken.length > 4096) return res.reply({ ok: false, message: 'تعذر التحقق من حساب Google، حاول مرة أخرى' });
@@ -253,7 +254,7 @@ router.post('/auth/google/token', googleLimiter, async (req, res) => {
 });
 
 router.get('/auth/google/start', googleLimiter, (req, res) => {
-  const clientId = settings.googleClientId();
+  const clientId = googleLogin.clientId();
   if (!clientId) {
     req.flash('error', 'تسجيل الدخول عبر Google غير مفعل حاليا');
     return res.redirect('/login');
@@ -278,7 +279,7 @@ router.get('/auth/google/callback', (req, res) => {
 });
 
 router.post('/auth/google', googleLimiter, async (req, res) => {
-  const clientId = settings.googleClientId();
+  const clientId = googleLogin.clientId();
   if (!clientId) return res.reply({ ok: false, message: 'تسجيل الدخول عبر Google غير مفعل حاليا' });
   const flow = readGoogleFlow(req);
   res.clearCookie(GOOGLE_COOKIE, { path: '/' });

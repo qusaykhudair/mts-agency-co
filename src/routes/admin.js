@@ -3,6 +3,7 @@ const crypto = require('crypto');
 const express = require('express');
 const config = require('../config');
 const mail = require('../lib/mail');
+const googleLogin = require('../lib/google-login');
 const { get, all, run, tx } = require('../db');
 const money = require('../lib/money');
 const settings = require('../lib/settings');
@@ -769,14 +770,26 @@ function mailProblem(h, transport) {
   }
 }
 
+// Why Google rejects a sign-in client and what to do about it, in the admin's words.
+function googleProblem(status, origin) {
+  return {
+    deleted: 'هذا العميل محذوف من Google Cloud. استرجعه من صفحة العملاء المحذوفة إن لم تمر 30 يوما على حذفه، أو أنشئ عميلا جديدا بالخطوات أدناه والصق معرفه هنا.',
+    missing: 'لا يوجد في Google عميل بهذا المعرف. انسخه كاملا من صفحة Clients في Google Cloud.',
+    origin: `عنوان الموقع غير مضاف إلى Authorized JavaScript origins في هذا العميل. أضف ${origin} ثم احفظ هنا من جديد.`,
+    wrong_type: 'هذا المعرف ليس لعميل من نوع Web application، وربما يكون معرف عميل البريد. أنشئ عميلا من نوع Web application بالخطوات أدناه.',
+  }[status] || '';
+}
+
 router.get('/settings', (req, res) => {
   const transport = mail.transportName();
+  const origin = config.appUrl || `${req.protocol}://${req.get('host')}`;
   res.render('seller/settings', {
     active: 'admin-settings',
     pageTitle: 'إعدادات المتجر',
     s: settings.getAll(),
-    envGoogle: !!process.env.GOOGLE_CLIENT_ID,
-    origin: `${req.protocol}://${req.get('host')}`,
+    envGoogle: !!config.googleClientId,
+    origin,
+    google: googleLogin.report().map((c) => ({ ...c, problem: googleProblem(c.status, origin) })),
     mailInfo: {
       transport,
       state: transport === 'off' ? 'off' : !['gmail', 'smtp'].includes(transport) ? 'local' : { ready: 'ready', failed: 'failed' }[mail.health.status] || 'checking',
@@ -813,7 +826,7 @@ router.post('/mail/test', async (req, res) => {
   res.reply({ ok: true, message: `أرسلنا رسالة التجربة إلى ${to}. افتح البريد وتأكد أنها وصلت`, reload: true });
 });
 
-router.post('/settings', (req, res) => {
+router.post('/settings', async (req, res) => {
   const b = req.body;
   const errors = {};
   const wa = fromInternational(b.whatsapp_number);
@@ -855,6 +868,12 @@ router.post('/settings', (req, res) => {
     max_quantity: String(int(b.max_quantity, { min: 1, max: 100, fallback: 10 })),
     sellers_can_approve: bool(b.sellers_can_approve) ? '1' : '0',
   });
+  // Saving asks Google again, so a client fixed or replaced in Google Cloud is picked up at once.
+  await googleLogin.checkAll();
+  if (googleLogin.broken()) {
+    req.flash('error', 'حفظنا الإعدادات، لكن Google يرفض معرف تسجيل الدخول، فزر Google مخفي عن العملاء. السبب في بطاقة Google');
+    return res.reply({ ok: true, reload: true });
+  }
   res.reply({ ok: true, message: 'تم حفظ إعدادات المتجر', reload: true });
 });
 

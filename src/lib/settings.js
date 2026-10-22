@@ -1,6 +1,5 @@
 'use strict';
 const { all, run, tx } = require('../db');
-const config = require('../config');
 
 const DEFAULTS = {
   store_name: 'MTS Store',
@@ -77,9 +76,4 @@ function sellerApplicationsOpen(now = new Date()) {
   return Number.isNaN(t) || now.getTime() < t;
 }
 
-// The environment variable wins so a deployment can pin the client id.
-function googleClientId() {
-  return config.googleClientId || get('google_client_id') || '';
-}
-
-module.exports = { DEFAULTS, get, getAll, set, load, googleClientId, sellerApplicationsOpen };
+module.exports = { DEFAULTS, get, getAll, set, load, sellerApplicationsOpen };

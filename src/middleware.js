@@ -138,7 +138,8 @@ function locals(req, res, next) {
       const base = seo.origin(req);
       return seo.graph([seo.organization(s, base), seo.website(s, base), ...(nodes || [])]);
     },
-    googleClientId: settings.googleClientId(),
+    // The Google client the sign-in button uses ('' when none is set up or Google rejects it).
+    googleClientId: require('./lib/google-login').clientId(),
     currencies: money.list(),
     displayCurrency,
     baseCurrency: money.base(),
@@ -185,6 +186,8 @@ function locals(req, res, next) {
     storageWarning: isAdmin(user) && config.ephemeralStorage,
     // …and when verification codes cannot be sent, which switches verification off.
     mailWarning: isAdmin(user) && require('./lib/mail').status().endsWith('-unreachable'),
+    // …and when Google no longer accepts the sign-in client, so the Google button is hidden.
+    googleWarning: isAdmin(user) && require('./lib/google-login').broken(),
   });
   if (user) {
     res.locals.counts.unread = get('SELECT COUNT(*) AS n FROM notifications WHERE user_id = ? AND is_read = 0', user.id).n;
