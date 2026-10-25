@@ -17,6 +17,14 @@ const DEFAULTS = {
   // Ownership codes from Google Search Console and Bing Webmaster Tools (the "HTML tag" method).
   google_site_verification: '',
   bing_site_verification: '',
+  // '1' = e-mail the daily database snapshot to the store's address; the day it last went out.
+  backup_email: '0',
+  backup_email_last: '',
+  // Google Drive copies of the invoices: the folders and the register the store made there (JSON of ids),
+  // a random id that marks this store's files, and the last time everything was uploaded.
+  drive_folders: '',
+  drive_instance: '',
+  drive_synced_at: '',
   auto_complete_days: '3',
   // Delivered service requests the client never answered are closed after this many days.
   service_auto_complete_days: '7',

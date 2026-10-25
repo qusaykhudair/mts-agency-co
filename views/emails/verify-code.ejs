@@ -6,7 +6,7 @@
 <meta name="x-apple-disable-message-reformatting">
 <meta name="color-scheme" content="light">
 <meta name="supported-color-schemes" content="light">
-<title>كود تأكيد بريدك</title>
+<title><%= locals.title || 'كود تأكيد بريدك' %></title>
 <style>
   body { margin: 0; padding: 0; }
   a { text-decoration: none; }
@@ -34,9 +34,9 @@
         </tr>
         <tr>
           <td class="px" dir="rtl" style="padding:20px 40px 4px;text-align:right;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;color:#0b1530;">
-            <h1 style="margin:0 0 12px;font-size:22px;line-height:1.5;font-weight:700;color:#0b1530;">تأكيد بريدك الإلكتروني</h1>
+            <h1 style="margin:0 0 12px;font-size:22px;line-height:1.5;font-weight:700;color:#0b1530;"><%= locals.heading || 'تأكيد بريدك الإلكتروني' %></h1>
             <p style="margin:0 0 4px;font-size:15px;line-height:1.9;color:#334155;">أهلا <%= name %>،</p>
-            <p style="margin:0;font-size:15px;line-height:1.9;color:#334155;">اكتب هذا الكود في صفحة التأكيد على <%= storeName %> ليتفعل حسابك:</p>
+            <p style="margin:0;font-size:15px;line-height:1.9;color:#334155;"><%= locals.intro || `اكتب هذا الكود في صفحة التأكيد على ${storeName} ليتفعل حسابك:` %></p>
           </td>
         </tr>
         <tr>
@@ -54,7 +54,7 @@
         <% if (appUrl) { %>
         <tr>
           <td align="center" style="padding:22px 40px 4px;">
-            <a href="<%= appUrl %>/auth/verify-email" style="display:inline-block;background-color:#2f6bff;color:#ffffff;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;font-size:15px;font-weight:700;line-height:1;padding:14px 28px;border-radius:12px;">افتح صفحة التأكيد</a>
+            <a href="<%= appUrl %><%= locals.path || '/auth/verify-email' %>" style="display:inline-block;background-color:#2f6bff;color:#ffffff;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;font-size:15px;font-weight:700;line-height:1;padding:14px 28px;border-radius:12px;"><%= locals.buttonLabel || 'افتح صفحة التأكيد' %></a>
           </td>
         </tr>
         <% } %>
@@ -62,7 +62,7 @@
           <td class="px" dir="rtl" style="padding:24px 40px 32px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
               <tr>
-                <td dir="rtl" style="background-color:#f8fafc;border:1px solid #eef2f7;border-radius:12px;padding:14px 16px;text-align:right;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;font-size:13px;line-height:1.85;color:#475569;">لم تنشئ حسابا في <%= storeName %>؟ تجاهل هذه الرسالة، فلن يتفعل أي حساب ببريدك دون هذا الكود. ولا تعط الكود لأي شخص، ففريقنا لن يطلبه منك.</td>
+                <td dir="rtl" style="background-color:#f8fafc;border:1px solid #eef2f7;border-radius:12px;padding:14px 16px;text-align:right;font-family:'IBM Plex Sans Arabic',Tahoma,Arial,sans-serif;font-size:13px;line-height:1.85;color:#475569;"><%= locals.note || `لم تنشئ حسابا في ${storeName}؟ تجاهل هذه الرسالة، فلن يتفعل أي حساب ببريدك دون هذا الكود. ولا تعط الكود لأي شخص، ففريقنا لن يطلبه منك.` %></td>
               </tr>
             </table>
           </td>

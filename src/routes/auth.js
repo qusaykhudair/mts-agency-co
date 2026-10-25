@@ -8,6 +8,8 @@ const { normalizeWhatsapp } = require('../lib/phone');
 const settings = require('../lib/settings');
 const emailVerify = require('../lib/email-verify');
 const googleLogin = require('../lib/google-login');
+const passwordReset = require('../lib/password-reset');
+const mail = require('../lib/mail');
 const { str, safeNext, clean, isEmail, bool } = require('../lib/util');
 const { requireAuth } = require('../middleware');
 const { limiter } = require('../lib/limits');
@@ -324,8 +326,67 @@ router.post('/logout', (req, res) => {
   res.redirect('/store');
 });
 
-router.get('/forgot-password', (req, res) => {
-  authPage(res, 'auth/forgot', { pageTitle: 'استعادة كلمة المرور' });
+/* ---------- Forgot password (6-digit code by e-mail) ----------
+ * The visitor types the address, a code goes to it, and the code with a new password resets the account. The
+ * address waits in a short-lived cookie between the two pages. WhatsApp stays as the way out only while
+ * e-mail cannot be sent. */
+const RESET_COOKIE = 'mts_reset';
+const resetCookie = (req) => ({ httpOnly: true, sameSite: 'lax', secure: req.secure, path: '/', maxAge: 30 * 60 * 1000 });
+const resetLimiter = limiter(10, 60, 'طلبت أكوادا كثيرة، حاول بعد قليل');
+const sendResetCode = (email) => passwordReset.request(email).catch((err) => console.error('[reset] could not send a code', err));
+
+router.get('/forgot-password', async (req, res) => {
+  if (req.query.change) res.clearCookie(RESET_COOKIE, { path: '/' });
+  await mail.settled();
+  authPage(res, 'auth/forgot', { pageTitle: 'استعادة كلمة المرور', mailReady: mail.isConfigured() });
+});
+
+router.post('/forgot-password', resetLimiter, (req, res) => {
+  const email = clean(req.body.email, 254).toLowerCase();
+  if (!isEmail(email)) return res.reply({ ok: false, errors: { email: 'أدخل بريدا إلكترونيا صحيحا' } });
+  if (!mail.isConfigured()) {
+    req.flash('error', 'إرسال البريد متوقف الآن، فاطلب الاستعادة عبر واتساب');
+    return res.reply({ ok: true, reload: true });
+  }
+  // The code goes out in the background, so the answer is the same and as quick whether or not the address
+  // has an account.
+  sendResetCode(email);
+  res.cookie(RESET_COOKIE, email, resetCookie(req));
+  res.reply({ ok: true, redirect: '/forgot-password/code' });
+});
+
+router.get('/forgot-password/code', (req, res) => {
+  const email = str(req.cookies[RESET_COOKIE]);
+  if (!isEmail(email)) return res.redirect('/forgot-password');
+  authPage(res, 'auth/reset', {
+    pageTitle: 'كلمة مرور جديدة',
+    email,
+    maskedEmail: emailVerify.maskEmail(email),
+    minutes: emailVerify.CODE_MINUTES,
+    wait: emailVerify.COOLDOWN_SECONDS,
+  });
+});
+
+router.post('/forgot-password/code', verifyLimiter, async (req, res) => {
+  const email = clean(req.body.email, 254).toLowerCase();
+  const password = str(req.body.password);
+  const errors = {};
+  if (password.length < 8) errors.password = 'كلمة المرور يجب أن تكون 8 أحرف على الأقل';
+  else if (password.length > 128) errors.password = 'كلمة المرور طويلة جدا';
+  if (str(req.body.password_confirm) !== password) errors.password_confirm = 'كلمتا المرور غير متطابقتين';
+  if (Object.keys(errors).length) return res.reply({ ok: false, errors });
+  const result = await passwordReset.reset(email, req.body.code, password);
+  if (!result.ok) return res.reply({ ok: false, message: result.message, errors: { [result.field]: result.message } });
+  res.clearCookie(RESET_COOKIE, { path: '/' });
+  startSession(req, res, result.user.id);
+  res.reply({ ok: true, message: `غيرنا كلمة المرور وسجلنا دخولك، أهلا يا ${firstName(result.user.name)}`, redirect: homeFor(result.user) });
+});
+
+router.post('/forgot-password/resend', resetLimiter, (req, res) => {
+  const email = str(req.cookies[RESET_COOKIE]);
+  if (!isEmail(email)) return res.reply({ ok: false, message: 'ابدأ من جديد واكتب بريدك', redirect: '/forgot-password' });
+  sendResetCode(email);
+  res.reply({ ok: true, message: 'إن كان البريد مسجلا عندنا فقد أرسلنا إليه كودا جديدا', data: { wait: emailVerify.COOLDOWN_SECONDS } });
 });
 
 module.exports = router;

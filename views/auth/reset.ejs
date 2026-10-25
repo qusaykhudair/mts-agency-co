@@ -1,0 +1,48 @@
+<%- include('../partials/top') %>
+
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-icon"><i class="fa-solid fa-key"></i></div>
+    <h1>كلمة مرور جديدة</h1>
+    <p class="sub">إن كان <bdi dir="ltr" class="verify-mail"><%= maskedEmail %></bdi> مسجلا عندنا فقد أرسلنا إليه كودا من 6 أرقام. اكتبه هنا مع كلمة المرور الجديدة.</p>
+
+    <form class="stack" method="post" action="/forgot-password/code" data-ajax novalidate>
+      <input type="hidden" name="email" value="<%= email %>">
+      <div class="field">
+        <label class="label" for="code">الكود</label>
+        <input class="input code-input" id="code" name="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="------" dir="ltr" required autofocus>
+        <span class="field-error"></span>
+        <span class="help">ينتهي الكود بعد <%= minutes %> دقيقة. لم تجده؟ ابحث في مجلد الرسائل غير المرغوب فيها (Spam).</span>
+      </div>
+      <div class="field">
+        <label class="label" for="password">كلمة المرور الجديدة</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock"></i>
+          <input class="input has-toggle" id="password" type="password" name="password" autocomplete="new-password" required minlength="8" placeholder="8 أحرف على الأقل">
+          <button class="pw-toggle" type="button" data-pw-toggle aria-label="إظهار كلمة المرور"><i class="fa-regular fa-eye"></i></button>
+        </div>
+        <span class="field-error"></span>
+      </div>
+      <div class="field">
+        <label class="label" for="password_confirm">تأكيد كلمة المرور</label>
+        <div class="input-wrap">
+          <i class="fa-solid fa-lock"></i>
+          <input class="input" id="password_confirm" type="password" name="password_confirm" autocomplete="new-password" required minlength="8" placeholder="أعد كتابة كلمة المرور">
+        </div>
+        <span class="field-error"></span>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-check"></i> غير كلمة المرور</button>
+    </form>
+
+    <form class="verify-resend" method="post" action="/forgot-password/resend" data-ajax data-resend-form>
+      <span>لم يصلك الكود؟</span>
+      <button class="link" type="submit" data-resend data-wait="<%= wait %>" data-label="أرسل كودا جديدا">أرسل كودا جديدا</button>
+    </form>
+
+    <div class="auth-foot">
+      <a class="link" href="/forgot-password?change=1" style="font-size:13.5px">كتبت بريدا آخر؟ غيره</a>
+    </div>
+  </div>
+</div>
+
+<%- include('../partials/bottom', { scripts: ['/static/js/verify-email.js'] }) %>

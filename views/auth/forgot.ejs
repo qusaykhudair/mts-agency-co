@@ -4,10 +4,23 @@
   <div class="auth-card">
     <div class="auth-icon"><i class="fa-solid fa-key"></i></div>
     <h1>نسيت كلمة المرور؟</h1>
-    <p class="sub">يحدث هذا كثيرا. أرسل لنا بريدك المسجل على واتساب، وبعد أن نتأكد أنك صاحب الحساب نعيد تعيين كلمة المرور.</p>
+    <% if (mailReady) { %>
+    <p class="sub">اكتب بريدك المسجل، ونرسل إليه كودا من 6 أرقام تختار به كلمة مرور جديدة.</p>
 
-    <div class="stack">
-      <a class="btn btn-whatsapp btn-lg btn-block" href="<%= waLink(storeWa, 'مرحبا MTS Store، نسيت كلمة المرور لحسابي. بريدي المسجل هو: ') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> طلب إعادة التعيين عبر واتساب</a>
+    <form class="stack" method="post" action="/forgot-password" data-ajax novalidate>
+      <div class="field">
+        <label class="label" for="email">البريد الإلكتروني</label>
+        <div class="input-wrap"><i class="fa-regular fa-envelope"></i><input class="input" id="email" name="email" type="email" dir="ltr" autocomplete="email" required autofocus placeholder="name@example.com"></div>
+        <span class="field-error"></span>
+      </div>
+      <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-paper-plane"></i> أرسل الكود</button>
+    </form>
+    <% } else { %>
+    <p class="sub">إرسال البريد متوقف الآن. أرسل لنا بريدك المسجل على واتساب، وبعد أن نتأكد أنك صاحب الحساب نعيد تعيين كلمة المرور.</p>
+    <a class="btn btn-whatsapp btn-lg btn-block" href="<%= waLink(storeWa, 'مرحبا MTS Store، نسيت كلمة المرور لحسابي. بريدي المسجل هو: ') %>" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp"></i> طلب إعادة التعيين عبر واتساب</a>
+    <% } %>
+
+    <div class="stack mt-16">
       <% if (googleClientId) { %>
       <div class="alert alert-brand"><i class="fa-brands fa-google"></i><div>إذا كان بريدك على Gmail يمكنك أيضا الدخول مباشرة بزر <b style="display:inline">المتابعة باستخدام Google</b> من صفحة تسجيل الدخول.</div></div>
       <% } %>

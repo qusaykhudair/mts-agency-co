@@ -1,8 +1,9 @@
 'use strict';
-// One-time Gmail API authorisation for sending verification codes.
-// Needs GMAIL_CLIENT_ID / GMAIL_CLIENT_SECRET (an OAuth client of type "Desktop app") in .env. Opens Google's
-// consent page for the gmail.send scope, then saves GMAIL_REFRESH_TOKEN (and MAIL_FROM if empty) to .env.
-// The token is written to the file only, never printed.
+// One-time Google authorisation, run on your own computer:
+//   npm run gmail-auth   send the verification codes from Gmail (gmail.send)  -> GMAIL_REFRESH_TOKEN (and MAIL_FROM if empty)
+//   npm run drive-auth   keep a PDF of every invoice in Google Drive (drive.file) -> DRIVE_REFRESH_TOKEN
+// Both need GMAIL_CLIENT_ID / GMAIL_CLIENT_SECRET (an OAuth client of type "Desktop app") in .env. The script opens
+// Google's consent page and saves the token to .env; the token is written to the file only, never printed.
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
@@ -17,6 +18,23 @@ try {
 } catch {
   /* no .env yet */
 }
+
+const DRIVE = process.argv.includes('--drive');
+const MODE = DRIVE
+  ? {
+      scope: 'https://www.googleapis.com/auth/drive.file',
+      key: 'DRIVE_REFRESH_TOKEN',
+      service: 'Google Drive',
+      command: 'npm run drive-auth',
+      intro: 'افتح هذا الرابط وسجل بحساب Google الذي تريد حفظ الفواتير في Drive الخاص به، ثم اضغط Allow:',
+    }
+  : {
+      scope: 'https://www.googleapis.com/auth/gmail.send',
+      key: 'GMAIL_REFRESH_TOKEN',
+      service: 'Gmail',
+      command: 'npm run gmail-auth',
+      intro: 'افتح هذا الرابط وسجل بحساب Gmail الذي سترسل منه الأكواد، ثم اضغط Allow:',
+    };
 
 const clientId = process.env.GMAIL_CLIENT_ID;
 const clientSecret = process.env.GMAIL_CLIENT_SECRET;
@@ -45,6 +63,21 @@ function openBrowser(url) {
   }
 }
 
+// Drive only: is the API switched on in the Google Cloud project? Uploads fail until it is.
+async function checkDrive(accessToken) {
+  try {
+    const res = await fetch('https://www.googleapis.com/drive/v3/about?fields=user(emailAddress)', { headers: { Authorization: `Bearer ${accessToken}` }, signal: AbortSignal.timeout(15000) });
+    if (res.ok) return console.log('Google Drive API مفعلة، والمتجر يستطيع الحفظ في Drive.');
+    const body = await res.text();
+    if (/SERVICE_DISABLED|accessNotConfigured|has not been used in project/i.test(body)) {
+      const project = (/^(\d+)-/.exec(clientId) || [])[1];
+      console.warn(`تنبيه: Google Drive API غير مفعلة في مشروعك. فعلها من هذه الصفحة ثم انتظر دقيقتين:\nhttps://console.cloud.google.com/apis/library/drive.googleapis.com${project ? `?project=${project}` : ''}`);
+    } else console.warn(`تنبيه: Google Drive رد بالخطأ ${res.status}. ستظهر التفاصيل في صفحة النسخ الاحتياطي بعد النشر.`);
+  } catch (err) {
+    console.warn(`تعذر فحص Google Drive الآن (${err.message}).`);
+  }
+}
+
 const page = (title, body) =>
   `<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${title}</title></head>` +
   '<body style="margin:0;display:grid;place-items:center;min-height:100vh;background:#eef3ff;font-family:Tahoma,Arial,sans-serif;color:#0b1530">' +
@@ -62,12 +95,16 @@ const server = http.createServer(async (req, res) => {
   }
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
   if (url.searchParams.get('error') || url.searchParams.get('state') !== state) {
-    res.end(page('لم يكتمل الربط', 'أغلق هذه الصفحة وشغل الأمر npm run gmail-auth مرة أخرى.'));
+    res.end(page('لم يكتمل الربط', `أغلق هذه الصفحة وشغل الأمر ${MODE.command} مرة أخرى.`));
     console.error(`لم يكتمل الربط: ${url.searchParams.get('error') || 'state mismatch'}`);
     return finish(1);
   }
   try {
     const { tokens } = await client.getToken({ code: url.searchParams.get('code'), codeVerifier });
+    // Google lets people untick a permission on the consent page; without it the token is no use.
+    if (tokens.scope && !String(tokens.scope).split(/\s+/).includes(MODE.scope)) {
+      throw new Error(`لم تسمح بالوصول إلى ${MODE.service}. شغل ${MODE.command} مرة أخرى وحدد خانة ${MODE.service} في شاشة Google.`);
+    }
     if (!tokens.refresh_token) {
       throw new Error('لم يرسل Google رمز التحديث. احذف وصول التطبيق من myaccount.google.com/permissions ثم أعد المحاولة.');
     }
@@ -76,15 +113,20 @@ const server = http.createServer(async (req, res) => {
       const ticket = await client.verifyIdToken({ idToken: tokens.id_token, audience: clientId });
       email = ticket.getPayload().email || '';
     }
-    const values = { GMAIL_REFRESH_TOKEN: tokens.refresh_token };
-    if (email && !process.env.MAIL_FROM) values.MAIL_FROM = email;
+    const values = { [MODE.key]: tokens.refresh_token };
+    if (!DRIVE && email && !process.env.MAIL_FROM) values.MAIL_FROM = email;
     saveEnv(values);
-    res.end(page('تم ربط Gmail', 'حفظنا المفتاح في ملف .env. أغلق هذه الصفحة وارجع إلى الطرفية.'));
-    console.log(`تم الربط وحفظ GMAIL_REFRESH_TOKEN في ملف .env${email ? ` (الحساب: ${email})` : ''}.`);
-    if (email && process.env.MAIL_FROM && process.env.MAIL_FROM.toLowerCase() !== email.toLowerCase()) {
-      console.warn(`تنبيه: MAIL_FROM (${process.env.MAIL_FROM}) يختلف عن الحساب الذي وافقت به (${email}). اجعلهما البريد نفسه.`);
+    res.end(page(`تم ربط ${MODE.service}`, 'حفظنا المفتاح في ملف .env. أغلق هذه الصفحة وارجع إلى الطرفية.'));
+    console.log(`تم الربط وحفظ ${MODE.key} في ملف .env${email ? ` (الحساب: ${email})` : ''}.`);
+    if (DRIVE) {
+      await checkDrive(tokens.access_token);
+      console.log('الخطوة التالية: انسخ قيمة DRIVE_REFRESH_TOKEN من ملف .env إلى Variables في Railway ثم اضغط Deploy.');
+    } else {
+      if (email && process.env.MAIL_FROM && process.env.MAIL_FROM.toLowerCase() !== email.toLowerCase()) {
+        console.warn(`تنبيه: MAIL_FROM (${process.env.MAIL_FROM}) يختلف عن الحساب الذي وافقت به (${email}). اجعلهما البريد نفسه.`);
+      }
+      console.log('الخطوة التالية: جرب الإرسال بالأمر npm run mail-test -- بريدك@gmail.com ثم انسخ القيم إلى Variables في Railway.');
     }
-    console.log('الخطوة التالية: جرب الإرسال بالأمر npm run mail-test -- بريدك@gmail.com ثم انسخ القيم إلى Variables في Railway.');
     finish(0);
   } catch (err) {
     res.end(page('لم يكتمل الربط', 'حدث خطأ أثناء الحفظ. ارجع إلى الطرفية لترى التفاصيل.'));
@@ -108,13 +150,13 @@ server.listen(0, '127.0.0.1', async () => {
   const authUrl = client.generateAuthUrl({
     access_type: 'offline',
     prompt: 'consent',
-    scope: ['openid', 'email', 'https://www.googleapis.com/auth/gmail.send'],
+    scope: ['openid', 'email', MODE.scope],
     state,
     code_challenge_method: 'S256',
     code_challenge: pkce.codeChallenge,
     login_hint: process.env.MAIL_FROM || undefined,
   });
-  console.log('افتح هذا الرابط وسجل بحساب Gmail الذي سترسل منه الأكواد، ثم اضغط Allow:\n');
+  console.log(`${MODE.intro}\n`);
   console.log(authUrl + '\n');
   openBrowser(authUrl);
 });

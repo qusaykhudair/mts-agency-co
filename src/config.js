@@ -56,6 +56,17 @@ module.exports = {
     // "outbox" writes messages to data/outbox instead of sending them (local preview only).
     transport: env.MAIL_TRANSPORT || '',
   },
+  // A PDF copy of every invoice in Google Drive. It signs in with the Gmail OAuth client above and its own
+  // refresh token (npm run drive-auth), limited to the files the store creates itself.
+  drive: {
+    refreshToken: env.DRIVE_REFRESH_TOKEN || '',
+    // Uploads run on the live server only, so a copy of the store on your computer (whose .env holds the same
+    // token after npm run drive-auth) never mixes test invoices into the real folder. DRIVE_BACKUP=on|off overrides.
+    enabled: env.DRIVE_BACKUP ? env.DRIVE_BACKUP !== 'off' : isProd,
+    apiBase: 'https://www.googleapis.com',
+  },
+  // Chrome or Chromium that prints those PDFs; found on its own in the usual places when not set.
+  chromePath: env.CHROME_PATH || '',
   rateLimitOff: env.RATE_LIMIT === 'off',
   seedDemo: env.SEED_DEMO !== 'false',
   admin: {

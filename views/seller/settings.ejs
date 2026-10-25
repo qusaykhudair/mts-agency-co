@@ -159,7 +159,7 @@
           <tr>
             <td data-label="الوقت"><%= timeAgo(r.created_at) %></td>
             <td data-label="إلى"><bdi dir="ltr"><%= r.to_email %></bdi></td>
-            <td data-label="الرسالة"><%= r.kind === 'code' ? 'كود تأكيد' : r.kind === 'test' ? 'رسالة تجربة' : 'رسالة' %></td>
+            <td data-label="الرسالة"><%= ({ code: 'كود تأكيد', reset: 'كود استعادة', test: 'رسالة تجربة', backup: 'نسخة احتياطية', notice: 'تنبيه أمان' })[r.kind] || 'رسالة' %></td>
             <td data-label="النتيجة"><% if (r.ok) { %><span class="badge badge-success">أرسلت</span><% } else { %><span class="badge badge-danger" title="<%= r.error %>">لم ترسل</span><% } %></td>
           </tr>
           <% } %>

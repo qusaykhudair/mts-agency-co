@@ -16,6 +16,7 @@
   <div>
     <h1 data-inv-heading><%= isNew ? 'فاتورة جديدة' : 'الفاتورة ' + d.number %></h1>
     <p data-inv-sub><%= duplicateFrom ? `نسخة من ${duplicateFrom.number}. تحصل على رقم جديد عند الحفظ.` : isNew ? 'يحصل الرقم على التسلسل التالي عند الحفظ.' : 'رقم الفاتورة ثابت لا يتغير عند التعديل.' %></p>
+    <% if (driveUrl) { %><p class="help"><i class="fa-brands fa-google-drive" aria-hidden="true"></i> <a class="link" href="<%= driveUrl %>" target="_blank" rel="noopener">نسختها في Google Drive</a>، وتتحدث بعد ثوان من كل حفظ.</p><% } %>
   </div>
   <div class="actions inv-actions">
     <button class="btn btn-primary" type="submit" form="invForm" data-inv-save><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> حفظ</button>

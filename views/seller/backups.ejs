@@ -1,0 +1,121 @@
+<%- include('../partials/top') %>
+
+<div class="page-head">
+  <div><h1>النسخ الاحتياطي</h1><p>كل بيانات المتجر في ملف واحد بين يديك، تنقله لأي استضافة وتعيد تشغيل الموقع منه.</p></div>
+  <div class="actions"><a class="btn btn-primary" href="/seller/backups/download"><i class="fa-solid fa-download"></i> تنزيل نسخة كاملة</a></div>
+</div>
+
+<div class="dash-grid" style="margin-top:0">
+  <div class="stack">
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-box-archive"></i> ما في النسخة الكاملة</h2></div>
+      <div class="card-body stack">
+        <p><b>قاعدة البيانات</b> (<bdi dir="ltr"><%= fileSize(summary.dbSize) %></bdi>): الحسابات <%= summary.counts.users %>، الطلبات <%= summary.counts.orders %>، المنتجات <%= summary.counts.products %>، طلبات الخدمات <%= summary.counts.service_requests %>، الفواتير <%= summary.counts.invoices %>.</p>
+        <% if (summary.files) { %><p><b>الملفات المرفوعة</b>: <%= summary.files %> (<bdi dir="ltr"><%= fileSize(summary.filesSize) %></bdi>)، وهي الإيصالات وملفات الخدمات والصور.</p><% } else { %><p><b>الملفات المرفوعة</b>: لا توجد ملفات مرفوعة بعد.</p><% } %>
+        <p class="help">الملف بصيغة tar.gz ويفتحه أي برنامج ضغط. احفظه خارج الاستضافة، في Google Drive مثلا، ولا ترسله لأحد لأن فيه بيانات العملاء.</p>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-clock-rotate-left"></i> النسخ اليومية على السيرفر</h2></div>
+      <div class="card-body stack">
+        <p class="help">يأخذ الموقع كل يوم نسخة من قاعدة البيانات ويحتفظ بآخر <%= keep %> أيام، لتتراجع بها عن أي خطأ. هذه النسخ على السيرفر نفسه، فلا تغني عن نسخة عندك.</p>
+        <% if (daily.length) { %>
+        <div class="table-wrap">
+          <table class="table responsive">
+            <thead><tr><th>اليوم</th><th>الحجم</th><th></th></tr></thead>
+            <tbody>
+              <% daily.forEach((d) => { %>
+              <tr>
+                <td data-label="اليوم"><bdi dir="ltr"><%= d.day %></bdi></td>
+                <td data-label="الحجم"><bdi dir="ltr"><%= fileSize(d.size) %></bdi></td>
+                <td><a class="link" href="/seller/backups/daily/<%= d.name %>"><i class="fa-solid fa-download"></i> تنزيل</a></td>
+              </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+        <% } else { %>
+        <p class="help">لا توجد نسخة يومية بعد.</p>
+        <% } %>
+        <form method="post" action="/seller/backups/snapshot" data-ajax>
+          <button class="btn btn-soft" type="submit"><i class="fa-solid fa-camera"></i> خذ نسخة اليوم الآن</button>
+        </form>
+      </div>
+    </section>
+  </div>
+
+  <div class="stack">
+    <% const d = drive; %>
+    <section class="card" id="drive">
+      <div class="card-head"><h2><i class="fa-brands fa-google-drive"></i> الفواتير في Google Drive</h2><span class="badge badge-<%= { ready: 'success', failed: 'danger', checking: 'muted', off: 'muted', paused: 'info' }[d.state] %>"><%= { ready: 'يعمل', failed: 'متوقف', checking: 'قيد الفحص', off: 'غير مربوط', paused: 'على السيرفر فقط' }[d.state] %></span></div>
+      <div class="card-body stack">
+        <% if (d.state === 'paused') { %>
+        <p>Google Drive مربوط، لكن الرفع لا يعمل في هذا التشغيل، لأن الرفع يجري على السيرفر وحده حتى لا تختلط فواتير التجربة على جهازك بفواتيرك الحقيقية.</p>
+        <p class="help">لتشغيله هنا رغم ذلك أضف <code class="mono" dir="ltr">DRIVE_BACKUP=on</code>. وعلى السيرفر يوقفه <code class="mono" dir="ltr">DRIVE_BACKUP=off</code>.</p>
+        <% } else if (d.state === 'off') { %>
+        <p>اربط حساب Google Drive، فنحفظ فيه كل فاتورة تصدرها ملف PDF بنفس شكلها المطبوع، ونحدث الملف كلما عدلتها. تبقى الفواتير هناك مهما حدث للموقع أو لقاعدة البيانات.</p>
+        <ol class="pm-steps" style="margin-top:0">
+          <li>فعل <a class="link" href="https://console.cloud.google.com/apis/library/drive.googleapis.com" target="_blank" rel="noopener">Google Drive API</a> في مشروع Google Cloud الذي فيه عميل البريد.</li>
+          <li>على جهازك شغل <code class="mono" dir="ltr">npm run drive-auth</code> ووافق بحساب Google الذي تريد حفظ الفواتير فيه.</li>
+          <li>انسخ قيمة <code class="mono" dir="ltr">DRIVE_REFRESH_TOKEN</code> من ملف .env إلى Variables في Railway، ثم اضغط Deploy.</li>
+        </ol>
+        <% } else { %>
+        <p>كل فاتورة تصدرها أو تعدلها تحفظ ملف PDF في مجلد «<%= d.folderName %>»<% if (d.health.account) { %> في حساب <bdi dir="ltr"><%= d.health.account %></bdi><% } %>. يحتفظ Drive بالنسخ السابقة من كل ملف، وملف الفاتورة المحذوفة ينتقل إلى مجلد «فواتير محذوفة» ولا يحذف.</p>
+        <% if (d.state === 'failed') { %>
+        <div class="alert alert-danger">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div class="grow"><b><%= d.problem.title %></b> <%= d.problem.fix %><% if (d.problem.link) { %> <a class="link" href="<%= d.problem.link %>" target="_blank" rel="noopener"><%= d.problem.linkText %></a><% } %></div>
+        </div>
+        <details class="help"><summary>التفاصيل كما وصلت من Google</summary><code class="mono" dir="ltr" style="display:block;white-space:pre-wrap;word-break:break-word;margin-top:6px"><%= d.health.error %></code></details>
+        <% } else if (d.state === 'checking') { %>
+        <p class="help">نتصل بـ Google Drive الآن. حدث الصفحة بعد لحظات.</p>
+        <% } %>
+        <p><b>الفواتير المحفوظة:</b> <%= d.counts.done %> من <%= d.counts.total %><% if (d.counts.pending) { %>، والباقي في الطريق<% } %>.<% if (d.syncedAt && !d.counts.pending) { %> آخر رفع <%= timeAgo(d.syncedAt) %>.<% } %></p>
+        <% if (d.failing.length) { %>
+        <div class="alert alert-warning">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <div class="grow">لم ترفع هذه الفواتير بعد، ونعيد المحاولة وحدنا:
+            <% for (const f of d.failing) { %><br><a class="link" href="/seller/invoices/<%= f.id %>"><bdi dir="ltr"><%= f.number %></bdi></a> <span class="help"><bdi dir="ltr"><%= f.drive_error %></bdi></span><% } %>
+          </div>
+        </div>
+        <% } %>
+        <% if (!d.chrome && d.health.reason !== 'no-chrome') { %><p class="help">Chromium غير موجود على هذا السيرفر، فالفواتير الجديدة لن تتحول إلى PDF حتى يثبت.</p><% } %>
+        <div class="flex flex-wrap gap-8">
+          <% if (d.folderUrl) { %><a class="btn btn-soft" href="<%= d.folderUrl %>" target="_blank" rel="noopener"><i class="fa-solid fa-folder-open"></i> افتح المجلد</a><% } %>
+          <% if (d.registerUrl) { %><a class="btn btn-soft" href="<%= d.registerUrl %>" target="_blank" rel="noopener"><i class="fa-solid fa-table"></i> سجل الفواتير</a><% } %>
+          <form method="post" action="/seller/backups/drive/sync" data-ajax><button class="btn btn-primary" type="submit"><i class="fa-solid fa-cloud-arrow-up"></i> ارفع الآن</button></form>
+        </div>
+        <p class="help">يرفع الموقع وحده بعد ثوان من كل حفظ أو حذف، والزر لتتأكد بنفسك عندما تريد.</p>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-envelope"></i> نسخة يومية إلى بريدك</h2><span class="badge <%= emailOn ? 'badge-success' : 'badge-muted' %>"><%= emailOn ? 'مفعلة' : 'متوقفة' %></span></div>
+      <div class="card-body stack">
+        <p>عند تشغيلها نرسل كل يوم نسخة مضغوطة من قاعدة البيانات إلى <bdi dir="ltr"><%= emailTo %></bdi>، فتبقى نسخة من بياناتك خارج الاستضافة دائما.</p>
+        <p class="help">الإيصالات والملفات لا تدخل في الرسالة لكبر حجمها، فنزل النسخة الكاملة من وقت لآخر.</p>
+        <% if (emailOn && emailLast) { %><p class="help">آخر نسخة خرجت يوم <bdi dir="ltr"><%= emailLast %></bdi>.</p><% } %>
+        <% if (!mailReady) { %><p class="help">البريد متوقف الآن، فلن تخرج الرسائل حتى يعود. راجع بطاقة البريد في الإعدادات.</p><% } %>
+        <form method="post" action="/seller/backups/email" data-ajax>
+          <input type="hidden" name="on" value="<%= emailOn ? '0' : '1' %>">
+          <button class="btn <%= emailOn ? 'btn-soft' : 'btn-primary' %>" type="submit"><%= emailOn ? 'أوقف النسخة اليومية' : 'شغل النسخة اليومية وأرسل أول نسخة الآن' %></button>
+        </form>
+      </div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2><i class="fa-solid fa-life-ring"></i> الاستعادة</h2></div>
+      <div class="card-body">
+        <ol class="pm-steps" style="margin-top:0">
+          <li>على السيرفر الجديد، فك ملف النسخة الكاملة داخل مجلد البيانات، فيظهر فيه store.db ومجلد uploads.</li>
+          <li>شغل الموقع، فيعود بكل الحسابات والطلبات والإيصالات والفواتير.</li>
+          <li>للتراجع بنسخة يومية: ضعها مكان store.db وأعد تشغيل الموقع.</li>
+        </ol>
+      </div>
+    </section>
+  </div>
+</div>
+
+<%- include('../partials/bottom') %>

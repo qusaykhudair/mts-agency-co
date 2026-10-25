@@ -311,6 +311,8 @@ function toJSON(inv) {
     service: inv.service,
     note: inv.note,
     project: inv.project_id ? { id: inv.project_id, code: inv.project_code, title: inv.project_title } : null,
+    // The PDF copy in Google Drive: up to date once this version went up.
+    drive: { saved: inv.drive_done >= inv.drive_rev, url: inv.drive_file_id ? `https://drive.google.com/file/d/${inv.drive_file_id}/view` : null },
     created_at: inv.created_at,
     updated_at: inv.updated_at,
   };
@@ -483,12 +485,12 @@ function create(values, actor) {
   });
 }
 
-// The number (and its year) never changes after creation.
+// The number (and its year) never changes after creation. Every save makes the Drive copy out of date.
 function update(id, values) {
   const current = byId(id);
   if (!current) throw new InvoiceError('الفاتورة غير موجودة', 404);
   run(
-    `UPDATE invoices SET ${COLUMNS.map((c) => `${c} = ?`).join(', ')}, search_text = ?, updated_at = datetime('now') WHERE id = ?`,
+    `UPDATE invoices SET ${COLUMNS.map((c) => `${c} = ?`).join(', ')}, search_text = ?, updated_at = datetime('now'), drive_rev = drive_rev + 1, drive_error = NULL WHERE id = ?`,
     ...COLUMNS.map((c) => values[c]),
     searchText({ ...values, number: current.number }),
     id,
@@ -496,10 +498,22 @@ function update(id, values) {
   return byId(id);
 }
 
+// The invoice's Drive copy stays: drive_removed tells the backup to move it to the deleted folder.
 function remove(id) {
   const current = byId(id);
   if (!current) throw new InvoiceError('الفاتورة غير موجودة', 404);
-  run('DELETE FROM invoices WHERE id = ?', id);
+  tx(() => {
+    run(
+      'INSERT INTO drive_removed (file_id, number, client_name, currency, total, issued_on) VALUES (?, ?, ?, ?, ?, ?)',
+      current.drive_file_id || null,
+      current.number,
+      current.client_name,
+      current.currency,
+      current.total,
+      current.issued_on,
+    );
+    run('DELETE FROM invoices WHERE id = ?', id);
+  });
   return current;
 }
 

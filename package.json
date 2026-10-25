@@ -9,6 +9,7 @@
     "dev": "node --disable-warning=ExperimentalWarning --watch-path=src --watch-path=server.js server.js",
     "reset-db": "node --disable-warning=ExperimentalWarning scripts/reset-db.js",
     "gmail-auth": "node scripts/gmail-auth.js",
+    "drive-auth": "node scripts/gmail-auth.js --drive",
     "mail-test": "node --disable-warning=ExperimentalWarning scripts/mail-test.js",
     "test": "node --disable-warning=ExperimentalWarning --test \"test/**/*.test.js\""
   },

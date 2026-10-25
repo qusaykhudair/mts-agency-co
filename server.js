@@ -9,6 +9,7 @@ const { purgeExpiredSessions } = require('./src/lib/auth');
 const orders = require('./src/lib/orders');
 const services = require('./src/lib/services');
 const sellerFees = require('./src/lib/seller-fees');
+const backups = require('./src/lib/backups');
 const { createApp } = require('./src/app');
 
 async function main() {
@@ -29,6 +30,11 @@ async function main() {
       if (s) console.log(`[jobs] auto-completed ${s} delivered service request(s)`);
       const r = sellerFees.remind();
       if (r) console.log(`[jobs] sent ${r} seller fee reminder(s)`);
+      // A database snapshot a day on the server, and a copy by e-mail when the admin turned that on.
+      if (backups.daily()) console.log('[jobs] took the daily database snapshot');
+      backups
+        .emailDaily({ to: settings.get('support_email') || config.admin.email, storeName: settings.get('store_name') })
+        .catch((err) => console.error('[jobs] backup e-mail failed', err));
     } catch (err) {
       console.error('[jobs] housekeeping failed', err);
     }
@@ -47,6 +53,8 @@ async function main() {
     require('./src/lib/mail').startChecks();
     // The Google button is offered only while Google accepts its client ID.
     require('./src/lib/google-login').startChecks();
+    // Invoices go up to Google Drive as PDF files once DRIVE_REFRESH_TOKEN is set.
+    require('./src/lib/invoice-backup').start();
   });
   const shutdown = () => server.close(() => process.exit(0));
   process.on('SIGINT', shutdown);

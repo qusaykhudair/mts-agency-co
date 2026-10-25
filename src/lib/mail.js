@@ -63,10 +63,10 @@ function reasonOf(err) {
   if (/invalid_grant/i.test(text)) return 'revoked';
   if (/invalid_client|unauthorized_client|deleted_client/i.test(text)) return 'client';
   if (/failedPrecondition|Mail service not enabled/i.test(text)) return 'mailbox';
-  if (/dailyLimitExceeded|quotaExceeded|rateLimitExceeded|Gmail API 429/i.test(text)) return 'quota';
+  if (/dailyLimitExceeded|quotaExceeded|rateLimitExceeded|(Gmail|Drive) API 429/i.test(text)) return 'quota';
   if (/EAUTH|Invalid login|\b53[45]\b/i.test(text)) return 'login';
-  if (/Gmail API 401|UNAUTHENTICATED|invalid_token/i.test(text)) return 'revoked';
-  if (/ECONN|ETIMEDOUT|ESOCKET|ENOTFOUND|EAI_AGAIN|ENETUNREACH|timeout|timed out|aborted|fetch failed|socket hang up|Gmail API 5\d\d/i.test(text)) return 'network';
+  if (/(Gmail|Drive) API 401|UNAUTHENTICATED|invalid_token/i.test(text)) return 'revoked';
+  if (/ECONN|ETIMEDOUT|ESOCKET|ENOTFOUND|EAI_AGAIN|ENETUNREACH|timeout|timed out|aborted|fetch failed|socket hang up|(Gmail|Drive) API 5\d\d/i.test(text)) return 'network';
   return 'other';
 }
 

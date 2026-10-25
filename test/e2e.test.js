@@ -158,7 +158,7 @@ test('brand homepage shows live catalogue data and agency services', async () =>
 
   const health = await stranger.get('/healthz');
   assert.equal(health.status, 200);
-  assert.deepEqual(await health.json(), { ok: true, storage: 'persistent', version: 'dev', mail: 'off' });
+  assert.deepEqual(await health.json(), { ok: true, storage: 'persistent', version: 'dev', mail: 'off', drive: 'off' });
 
   const legacy = await stranger.get('/index.html');
   assert.equal(legacy.status, 301);

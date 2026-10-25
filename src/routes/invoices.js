@@ -5,6 +5,7 @@
 const express = require('express');
 const money = require('../lib/money');
 const invoices = require('../lib/invoices');
+const invoiceBackup = require('../lib/invoice-backup');
 const { int } = require('../lib/util');
 const { paginate, requireAdmin } = require('../middleware');
 
@@ -60,6 +61,7 @@ api.post('/', (req, res) => {
   const { values, errors } = invoices.validate(req.body);
   if (Object.keys(errors).length) return invalid(res, errors);
   const inv = invoices.create(values, req.user);
+  invoiceBackup.kick();
   res.status(201).json({ ok: true, message: `حفظنا الفاتورة ${inv.number}`, invoice: invoices.toJSON(inv) });
 });
 
@@ -75,6 +77,7 @@ api.put('/:id', (req, res) => {
   const { values, errors } = invoices.validate(req.body, { current });
   if (Object.keys(errors).length) return invalid(res, errors);
   const inv = invoices.update(current.id, values);
+  invoiceBackup.kick();
   res.json({ ok: true, message: `حفظنا التعديلات على ${inv.number}`, invoice: invoices.toJSON(inv) });
 });
 
@@ -82,6 +85,7 @@ api.delete('/:id', (req, res) => {
   const current = invoices.byId(idOf(req));
   if (!current) throw notFound();
   invoices.remove(current.id);
+  invoiceBackup.kick();
   res.json({ ok: true, message: `حذفنا الفاتورة ${current.number}. رقمها لن يستخدم مرة أخرى` });
 });
 
@@ -156,6 +160,8 @@ function editor(req, res, inv, { duplicateFrom = null } = {}) {
       ...invoices.suggestions(),
     },
     projects: invoices.projects(),
+    // The PDF copy in Google Drive, once the invoice has one.
+    driveUrl: inv && inv.id && inv.drive_file_id && invoiceBackup.status() !== 'off' ? `https://drive.google.com/file/d/${inv.drive_file_id}/view` : null,
     services: sheet.SERVICES,
     currencyList: currencies(data.currency && data.currency.code),
     invSettings: st,

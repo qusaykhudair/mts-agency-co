@@ -146,4 +146,4 @@ function verify(user, input) {
 
 const markVerified = (userId) => run("UPDATE users SET email_verified_at = COALESCE(email_verified_at, datetime('now')) WHERE id = ?", userId);
 
-module.exports = { CODE_MINUTES, MAX_ATTEMPTS, COOLDOWN_SECONDS, required, requiredNow, maskEmail, cooldown, activeCode, sendCode, ensureCode, verify, markVerified, message };
+module.exports = { CODE_MINUTES, MAX_ATTEMPTS, COOLDOWN_SECONDS, hashCode, matches, attemptsLeft, required, requiredNow, maskEmail, cooldown, activeCode, sendCode, ensureCode, verify, markVerified, message };

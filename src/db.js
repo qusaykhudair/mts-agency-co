@@ -481,6 +481,41 @@ const MIGRATIONS = [
   );
   CREATE INDEX idx_mail_log_created ON mail_log(created_at);
   `,
+  // v10: "forgot password" codes, apart from the e-mail verification codes so neither can stand in for the other.
+  // Only a salted hash of each code is stored.
+  `
+  CREATE TABLE password_resets (
+    id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    code_hash  TEXT NOT NULL,
+    attempts   INTEGER NOT NULL DEFAULT 0,
+    expires_at TEXT NOT NULL,
+    used_at    TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  );
+  CREATE INDEX idx_password_resets_user ON password_resets(user_id, created_at);
+  `,
+  // v11: a PDF copy of every invoice in Google Drive. drive_rev goes up on every edit and drive_done is the
+  // revision last uploaded, so an invoice waits for upload while drive_done < drive_rev. A deleted invoice
+  // leaves a row in drive_removed: its file moves to a "deleted" folder instead of disappearing.
+  `
+  ALTER TABLE invoices ADD COLUMN drive_file_id TEXT;
+  ALTER TABLE invoices ADD COLUMN drive_rev INTEGER NOT NULL DEFAULT 1;
+  ALTER TABLE invoices ADD COLUMN drive_done INTEGER NOT NULL DEFAULT 0;
+  ALTER TABLE invoices ADD COLUMN drive_error TEXT;
+
+  CREATE TABLE drive_removed (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    file_id     TEXT,
+    number      TEXT NOT NULL,
+    client_name TEXT NOT NULL,
+    currency    TEXT NOT NULL,
+    total       INTEGER NOT NULL,
+    issued_on   TEXT NOT NULL,
+    removed_at  TEXT NOT NULL DEFAULT (datetime('now')),
+    moved_at    TEXT
+  );
+  `,
 ];
 
 function migrate() {

@@ -42,8 +42,15 @@ function createApp() {
   // Uptime/health check; also tells whether data survives redeploys (Railway volume attached).
   app.get('/healthz', (req, res) => {
     get('SELECT 1');
-    // mail: which transport sends verification codes ("off" until the keys are set); never any secret.
-    res.set('Cache-Control', 'no-store').json({ ok: true, storage: config.ephemeralStorage ? 'ephemeral' : 'persistent', version: config.commit || 'dev', mail: require('./lib/mail').status() });
+    // mail: which transport sends verification codes ("off" until the keys are set); drive: whether invoices
+    // reach Google Drive. Never any secret.
+    res.set('Cache-Control', 'no-store').json({
+      ok: true,
+      storage: config.ephemeralStorage ? 'ephemeral' : 'persistent',
+      version: config.commit || 'dev',
+      mail: require('./lib/mail').status(),
+      drive: require('./lib/invoice-backup').status(),
+    });
   });
   app.get('/robots.txt', (req, res) => res.type('text').set('Cache-Control', 'public, max-age=3600').send(seo.robots(req)));
   app.get('/sitemap.xml', (req, res) => res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(seo.sitemap(req)));
@@ -76,6 +83,7 @@ function createApp() {
   app.use('/seller', require('./routes/admin'));
   app.use('/seller', require('./routes/accounts'));
   app.use('/seller', require('./routes/invoices'));
+  app.use('/seller', require('./routes/backups'));
   app.use('/api', require('./routes/api'));
   app.use('/files', require('./routes/files'));
 

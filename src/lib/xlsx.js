@@ -4,7 +4,7 @@
 const zlib = require('zlib');
 
 // Cell styles (index into cellXfs below).
-const STYLE = { text: 0, head: 1, money: 2, total: 3, bold: 4, int: 5, title: 6, muted: 7, totalText: 8 };
+const STYLE = { text: 0, head: 1, money: 2, total: 3, bold: 4, int: 5, title: 6, muted: 7, totalText: 8, link: 9 };
 
 const NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
 const REL = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
@@ -30,10 +30,12 @@ function colName(i) {
   return s;
 }
 
-// A cell is a string, a number, null, or { v, s } with s one of the STYLE names.
+// A cell is a string, a number, null, or { v, s } with s one of the STYLE names. { f, v } is a formula with
+// v as the value shown until it is calculated (a HYPERLINK, for instance).
 function cellXml(cell, ref) {
   if (cell === null || cell === undefined || cell === '') return '';
   const c = typeof cell === 'object' ? cell : { v: cell };
+  if (c.f) return `<c r="${ref}" s="${STYLE[c.s] || 0}" t="str"><f>${xml(c.f)}</f><v>${xml(c.v ?? '')}</v></c>`;
   if (c.v === null || c.v === undefined || c.v === '') {
     return c.s ? `<c r="${ref}" s="${STYLE[c.s] || 0}"/>` : '';
   }
@@ -68,11 +70,12 @@ const STYLES =
   `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` +
   `<styleSheet xmlns="${NS}">` +
   `<numFmts count="1"><numFmt numFmtId="164" formatCode="#,##0.00"/></numFmts>` +
-  `<fonts count="4">` +
+  `<fonts count="5">` +
   `<font><sz val="11"/><name val="Arial"/><family val="2"/></font>` +
   `<font><b/><sz val="11"/><name val="Arial"/><family val="2"/></font>` +
   `<font><b/><sz val="13"/><name val="Arial"/><family val="2"/></font>` +
   `<font><sz val="10"/><color rgb="FF6B7280"/><name val="Arial"/><family val="2"/></font>` +
+  `<font><u/><sz val="11"/><color rgb="FF2457E8"/><name val="Arial"/><family val="2"/></font>` +
   `</fonts>` +
   `<fills count="4">` +
   `<fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill>` +
@@ -82,7 +85,7 @@ const STYLES =
   `<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border>` +
   `<border><left/><right/><top/><bottom style="thin"><color rgb="FFD1D5DB"/></bottom><diagonal/></border></borders>` +
   `<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>` +
-  `<cellXfs count="9">` +
+  `<cellXfs count="10">` +
   `<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>` +
   `<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>` +
   `<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>` +
@@ -92,6 +95,7 @@ const STYLES =
   `<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>` +
   `<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>` +
   `<xf numFmtId="0" fontId="1" fillId="3" borderId="0" xfId="0" applyFont="1" applyFill="1"/>` +
+  `<xf numFmtId="0" fontId="4" fillId="0" borderId="0" xfId="0" applyFont="1"/>` +
   `</cellXfs>` +
   `<cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles>` +
   `</styleSheet>`;
