@@ -21,7 +21,8 @@ Object.assign(process.env, {
   ADMIN_EMAIL: 'admin@test.local',
   ADMIN_PASSWORD: 'admin-pass-123',
   ADMIN_WHATSAPP: '+201093525956',
-  GOOGLE_CLIENT_ID: '',
+  // Shown on the sign-in pages (never checked with Google here): the app-browser test needs the button.
+  GOOGLE_CLIENT_ID: '1234567890-test.apps.googleusercontent.com',
   SEED_DEMO: 'true',
   TRUST_PROXY: '0',
   RATE_LIMIT: 'off',
@@ -97,9 +98,11 @@ async function launch() {
       ws.send(JSON.stringify({ id: n, method, params }));
     });
   await send('Page.enable');
+  const { userAgent } = await send('Browser.getVersion');
   return {
     send,
-    async open(url, { width, safari = false, cookies = [] }) {
+    async open(url, { width, safari = false, cookies = [], ua = userAgent }) {
+      await send('Network.setUserAgentOverride', { userAgent: ua });
       await send('Network.clearBrowserCookies');
       for (const [name, value] of cookies) await send('Network.setCookie', { name, value, url: base });
       const scripts = [];
@@ -230,4 +233,36 @@ test('the dashboard pages that were too wide now fit', { skip: CHROME ? false : 
   await chrome.open('/seller', { width: 390, cookies: adminCookies });
   const box = await chrome.evaluate(`(() => { document.querySelector('[data-notif] [data-dd-toggle]').click(); const r = document.querySelector('[data-notif] .dd-menu').getBoundingClientRect(); return { left: r.left, right: r.right }; })()`);
   assert.ok(box.left >= 0 && box.right <= 390, JSON.stringify(box));
+});
+
+test('inside Instagram, Facebook or TikTok the Google button says it cannot work there and opens the real browser', { skip: CHROME ? false : 'Chrome is not installed here' }, async () => {
+  const inApp = [
+    ['Instagram on iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 389.0.0.29.88 (iPhone15,2; iOS 18_5; ar_EG; ar; scale=3.00; 1179x2556; 754843247)', 'x-safari-http'],
+    ['Facebook on Android', 'Mozilla/5.0 (Linux; Android 14; SM-A546E Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/140.0.7339.207 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/512.0.0.45.103;]', 'intent://'],
+    ['TikTok on Android', 'Mozilla/5.0 (Linux; Android 14; SM-A546E Build/UP1A.231005.007; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/140.0.7339.207 Mobile Safari/537.36 trill_410005 AppName/musical_ly app_version/41.0.5', 'intent://'],
+  ];
+  for (const [name, ua, scheme] of inApp) {
+    for (const url of ['/login', '/register']) {
+      await chrome.open(url, { width: 390, ua });
+      const r = await chrome.evaluate(`(() => {
+        const note = document.querySelector('.g-inapp');
+        const open = note && note.querySelector('[data-open-outside]');
+        document.querySelector('a.g-btn').click();
+        return { note: !!note, text: note ? note.innerText : '', href: open ? open.getAttribute('href') : '', path: location.pathname };
+      })()`);
+      assert.ok(r.note && /لا يسمح بتسجيل الدخول/.test(r.text), `${name} ${url}: the note shows`);
+      assert.ok(r.href.startsWith(scheme) && r.href.includes(url), `${name} ${url}: ${r.href}`);
+      assert.equal(r.path, url, `${name}: the button does not lead to Google's "Access blocked" page`);
+      assert.equal(await extra(), 0, `${name} ${url}: the note fits the screen`);
+    }
+  }
+  const browsers = [
+    ['Safari on iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.5 Mobile/15E148 Safari/604.1'],
+    ['Chrome on iPhone', 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/141.0.7390.41 Mobile/15E148 Safari/604.1'],
+    ['Chrome on Android', 'Mozilla/5.0 (Linux; Android 14; SM-A546E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.7339.207 Mobile Safari/537.36'],
+  ];
+  for (const [name, ua] of browsers) {
+    await chrome.open('/login', { width: 390, ua });
+    assert.equal(await chrome.evaluate(`!!document.querySelector('.g-inapp')`), false, `${name}: Google sign-in works as usual`);
+  }
 });

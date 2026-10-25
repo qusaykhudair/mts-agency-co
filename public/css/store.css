@@ -4515,6 +4515,20 @@ code,
     background: #1d1e20;
   }
 }
+/* Inside an app's own browser (Instagram, Facebook…) Google refuses to sign in: why, and the way out. */
+.g-inapp {
+  margin-top: 10px;
+  text-align: start;
+}
+.g-inapp p {
+  margin: 0 0 8px;
+}
+.g-inapp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 6px;
+}
 .g-callback {
   text-align: center;
 }
