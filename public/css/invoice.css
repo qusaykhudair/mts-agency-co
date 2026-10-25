@@ -482,6 +482,8 @@
 .inv-paid-row .input {
   flex: 1 1 160px;
   width: auto;
+  /* A field's natural width is about 20 characters; without this it would not shrink on a narrow phone. */
+  min-width: 0;
 }
 .inv-quick {
   display: flex;
@@ -792,5 +794,13 @@ fieldset.field > legend {
   }
   .inv-row-actions {
     flex-wrap: wrap;
+  }
+}
+
+/* Fields on touch screens stay at 16px, so Safari does not zoom the page in (see store.css). */
+@media (hover: none) and (pointer: coarse) {
+  .inv-filters .input,
+  .inv-filters .select {
+    font-size: 16px;
   }
 }

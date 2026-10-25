@@ -62,13 +62,25 @@
       active = -1;
     }
 
+    // On a phone the field often sits low on the screen, and the list opened under the bottom bar (and then
+    // under the keyboard). When it does not fit, the page moves up until the field is just below the header.
+    function reveal() {
+      const bar = document.querySelector('.bottom-nav');
+      const barHeight = bar && getComputedStyle(bar).display !== 'none' ? bar.offsetHeight : 0;
+      if (pop.getBoundingClientRect().bottom <= window.innerHeight - barHeight - 8) return;
+      const header = document.querySelector('.topbar');
+      const top = header ? header.getBoundingClientRect().bottom : 0;
+      window.scrollBy(0, wrap.getBoundingClientRect().top - top - 12);
+    }
+
     function open() {
       pop.hidden = false;
       search.value = '';
       render('');
       const sel = list.querySelector('.is-active');
       if (sel) sel.scrollIntoView({ block: 'nearest' });
-      setTimeout(() => search.focus(), 10);
+      reveal();
+      setTimeout(() => search.focus({ preventScroll: true }), 10);
     }
     function close() {
       pop.hidden = true;

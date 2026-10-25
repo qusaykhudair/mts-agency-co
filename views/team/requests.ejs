@@ -1,12 +1,12 @@
 <%- include('../partials/top') %>
-<% const tabParam = scope === 'admin' ? 'status' : 'tab'; %>
+<% const tabParam = area === 'admin' ? 'status' : 'tab'; %>
 
 <div class="page-head">
   <div>
     <h1>طلبات الخدمات</h1>
-    <p><%= scope === 'admin' ? 'وزع الطلبات الجديدة على فريق التنفيذ وتابع التسليم حتى الاعتماد.' : 'استلم الطلبات الجديدة، تواصل مع العملاء وسلم أعمالك من هنا.' %></p>
+    <p><%= area === 'admin' ? 'وزع الطلبات الجديدة على فريق التنفيذ وتابع التسليم حتى الاعتماد.' : 'استلم الطلبات الجديدة، تواصل مع العملاء وسلم أعمالك من هنا.' %></p>
   </div>
-  <% if (scope === 'admin') { %><div class="actions"><a class="btn btn-soft" href="/seller/services"><i class="fa-solid fa-briefcase"></i> الخدمات المعروضة</a></div><% } %>
+  <% if (area === 'admin') { %><div class="actions"><a class="btn btn-soft" href="/seller/services"><i class="fa-solid fa-briefcase"></i> الخدمات المعروضة</a></div><% } %>
 </div>
 
 <nav class="tabs" aria-label="حالات الطلبات">
@@ -18,7 +18,7 @@
 <form class="filters" method="get">
   <% if (tab) { %><input type="hidden" name="<%= tabParam %>" value="<%= tab %>"><% } %>
   <div class="input-wrap"><i class="fa-solid fa-magnifying-glass"></i><input class="input" type="search" name="q" value="<%= q %>" placeholder="ابحث برقم الطلب أو العنوان أو اسم العميل…"></div>
-  <% if (scope === 'admin') { %>
+  <% if (area === 'admin') { %>
   <select class="select" name="member" data-autosubmit-field aria-label="المنفذ">
     <option value="">كل المنفذين</option>
     <% team.forEach((m) => { %><option value="<%= m.id %>"<%= memberId === m.id ? ' selected' : '' %>><%= m.name %><%= m.role === 'admin' ? ' (مدير)' : '' %></option><% }) %>
@@ -32,7 +32,7 @@
   <% if (items.length) { %>
   <div class="table-wrap">
     <table class="table responsive">
-      <thead><tr><th>الطلب</th><th>العميل</th><% if (scope === 'admin') { %><th>المنفذ</th><% } %><th>الحالة</th><th>آخر تحديث</th><th></th></tr></thead>
+      <thead><tr><th>الطلب</th><th>العميل</th><% if (area === 'admin') { %><th>المنفذ</th><% } %><th>الحالة</th><th>آخر تحديث</th><th></th></tr></thead>
       <tbody>
         <% items.forEach((r) => { %>
         <tr>
@@ -43,7 +43,7 @@
             </div>
           </td>
           <td data-label="العميل"><%= r.client_name %></td>
-          <% if (scope === 'admin') { %><td data-label="المنفذ"><%= r.assignee_name || '-' %></td><% } %>
+          <% if (area === 'admin') { %><td data-label="المنفذ"><%= r.assignee_name || '-' %></td><% } %>
           <td data-label="الحالة"><%- include('../partials/service-badge', { status: r.status }) %></td>
           <td data-label="آخر تحديث" class="nowrap"><%= timeAgo(r.updated_at) %></td>
           <td><div class="t-actions"><a class="btn btn-<%= r.status === 'pending' || r.status === 'revision' ? 'primary' : 'soft' %> btn-sm" href="<%= base %>/<%= r.code %>">فتح <i class="fa-solid fa-arrow-left"></i></a></div></td>

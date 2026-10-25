@@ -209,6 +209,11 @@ bdi,
   font-family: ui-monospace, 'SFMono-Regular', Consolas, monospace;
   letter-spacing: 0.3px;
 }
+/* Links, client IDs and codes have no spaces: they break anywhere rather than push a phone screen wider. */
+code,
+.mono {
+  overflow-wrap: anywhere;
+}
 
 /* ---------- Utilities ---------- */
 .muted {
@@ -320,12 +325,12 @@ bdi,
 .grid-2 {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 .grid-3 {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 @media (min-width: 640px) {
   .grid-2 {
@@ -1348,6 +1353,17 @@ bdi,
   width: min(380px, calc(100vw - 24px));
   padding: 0;
 }
+/* On phones the bell sits in the middle of the header, and a popover hung from it ran off the side of the
+   screen. There it hangs from the whole header instead, with a small margin on both sides. */
+@media (max-width: 640px) {
+  .dd[data-notif] {
+    position: static;
+  }
+  .notif-menu {
+    inset-inline: 10px;
+    width: auto;
+  }
+}
 .notif-menu .dd-head {
   padding: 14px 16px;
   margin: 0;
@@ -1559,11 +1575,11 @@ bdi,
 .footer-grid {
   display: grid;
   gap: 28px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 @media (min-width: 768px) {
   .footer-grid {
-    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+    grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr));
   }
 }
 .footer-title {
@@ -1744,7 +1760,7 @@ bdi,
 .form-grid {
   display: grid;
   gap: 16px;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
 }
 @media (min-width: 640px) {
   .form-grid.cols-2 {
@@ -1790,6 +1806,8 @@ bdi,
 .select,
 .textarea {
   width: 100%;
+  /* Never wider than their box, even with width: auto and a long option. */
+  max-width: 100%;
   height: 48px;
   padding: 0 14px;
   border-radius: 12px;
@@ -2317,7 +2335,7 @@ bdi,
 }
 @media (min-width: 900px) {
   .rep-row.pair-row {
-    grid-template-columns: 1fr 1.6fr auto auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.6fr) auto auto;
     align-items: end;
   }
 }
@@ -3143,7 +3161,7 @@ bdi,
 /* Steps (how to buy) */
 .steps {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   counter-reset: step;
 }
@@ -3501,7 +3519,7 @@ bdi,
 /* ---------- Product page ---------- */
 .pd {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -3521,7 +3539,7 @@ bdi,
 }
 .pd-hero {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 20px;
   padding: 18px;
 }
@@ -3957,13 +3975,13 @@ bdi,
 }
 .rating-sum {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: center;
 }
 @media (min-width: 640px) {
   .rating-sum {
-    grid-template-columns: 180px 1fr;
+    grid-template-columns: 180px minmax(0, 1fr);
   }
 }
 .rating-big {
@@ -3985,7 +4003,7 @@ bdi,
 }
 .rbar {
   display: grid;
-  grid-template-columns: 34px 1fr 34px;
+  grid-template-columns: 34px minmax(0, 1fr) 34px;
   align-items: center;
   gap: 8px;
   font-size: 12.5px;
@@ -4033,7 +4051,7 @@ bdi,
 /* ---------- Checkout ---------- */
 .checkout {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -4123,7 +4141,7 @@ bdi,
 }
 .pm-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 @media (min-width: 640px) {
@@ -4311,6 +4329,7 @@ bdi,
 .pm-steps {
   list-style: none;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
   margin-top: 14px;
   counter-reset: p;
@@ -4382,6 +4401,7 @@ bdi,
 /* ---------- Auth ---------- */
 .auth-page {
   min-height: calc(100vh - var(--topbar-h));
+  min-height: calc(100svh - var(--topbar-h));
   display: grid;
   place-items: center;
   padding: 26px 14px 60px;
@@ -4694,7 +4714,7 @@ bdi,
 
 .dash-grid {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   margin-top: 16px;
   align-items: start;
@@ -4851,6 +4871,9 @@ bdi,
 
 .table-wrap {
   overflow-x: auto;
+  /* Holds absolutely placed things inside the table (the screen-reader labels of row buttons) too: without it
+     they escaped the scrolling box and made the whole page wider on tablets. */
+  position: relative;
 }
 .table {
   width: 100%;
@@ -5024,7 +5047,7 @@ bdi,
 /* Order detail */
 .od {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
 }
@@ -5458,6 +5481,8 @@ bdi,
 dialog.modal {
   width: min(560px, calc(100vw - 24px));
   max-height: calc(100vh - 40px);
+  /* The height between the phone browser's bars, so the buttons at the bottom stay on screen. */
+  max-height: calc(100dvh - 40px);
   padding: 0;
   border: 1px solid var(--border);
   border-radius: 22px;
@@ -5848,13 +5873,15 @@ dialog.modal[open] {
   padding: 96px 0;
 }
 /* Sections below the first screen are laid out only when the visitor scrolls near them, which keeps the first
-   paint quick on phones. "auto" makes the browser remember each section's real height, so nothing jumps. */
+   paint quick on phones. "auto" makes the browser remember each section's real height, so nothing jumps.
+   Only the height has a placeholder: a placeholder width would become the section's minimum width in Safari
+   and stretch the grid column it sits in past the screen (the product page did that on iPhones). */
 .h-section,
 .h-logos,
 .cv-auto,
 .footer {
   content-visibility: auto;
-  contain-intrinsic-size: auto 640px;
+  contain-intrinsic-height: auto 640px;
 }
 .h-alt {
   background: var(--surface-2);
@@ -7344,5 +7371,23 @@ a.kv-row:hover > span:first-child {
   }
   .fee-banner {
     flex-wrap: wrap;
+  }
+}
+
+/* ---------- Touch screens ---------- */
+/* iPhone and iPad Safari zoom the whole page in when a field whose text is under 16px gets focus, and leave it
+   zoomed, so the page looks wider than the screen afterwards. On touch screens fields use 16px (the large
+   6-digit code field keeps its own size). */
+@media (hover: none) and (pointer: coarse) {
+  input:not([type='checkbox'], [type='radio'], [type='range'], [type='file'], [type='color'], .code-input),
+  .input:not(.code-input),
+  select,
+  .select,
+  .select.input-sm,
+  .toolbar .select,
+  .filters .select,
+  textarea,
+  .textarea {
+    font-size: 16px;
   }
 }

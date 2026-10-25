@@ -659,7 +659,8 @@ router.get('/service-requests', (req, res) => {
   res.render('team/requests', {
     active: 'admin-service-requests',
     pageTitle: 'طلبات الخدمات',
-    scope: 'admin',
+    // Not "scope": EJS reads a "scope" key in the data as one of its own options.
+    area: 'admin',
     tabs: SERVICE_TABS.map((t) => ({
       key: t.key,
       label: t.label,

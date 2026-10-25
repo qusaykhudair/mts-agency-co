@@ -40,7 +40,8 @@ router.get('/', (req, res) => {
   res.render('team/requests', {
     active: 'prov-requests',
     pageTitle: 'طلبات الخدمات',
-    scope: 'provider',
+    // Not "scope": EJS reads a "scope" key in the data as one of its own options.
+    area: 'provider',
     tabs: TABS.map((t) => ({ key: t.key, label: t.label, count: counts[t.key] })),
     tab: tab.key,
     q,
