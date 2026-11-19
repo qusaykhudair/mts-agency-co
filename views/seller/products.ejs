@@ -51,6 +51,7 @@
             <div class="t-actions">
               <a class="btn btn-ghost btn-icon btn-sm" href="/store/product/<%= p.slug %>" target="_blank" title="عرض في المتجر" aria-label="عرض في المتجر"><i class="fa-solid fa-up-right-from-square"></i></a>
               <a class="btn btn-soft btn-sm" href="/seller/products/<%= p.id %>/edit"><i class="fa-solid fa-pen"></i> تعديل</a>
+              <a class="btn btn-ghost btn-sm" href="/seller/products/new?from=<%= p.id %>" title="نسخ المنتج وتكراره"><i class="fa-solid fa-copy"></i> تكرار</a>
               <form method="post" action="/seller/products/<%= p.id %>/delete" data-ajax data-confirm="حذف المنتج «<%= p.title %>»؟ إذا كان مرتبطا بطلبات سيتم إخفاؤه فقط." data-confirm-danger>
                 <button class="btn btn-danger-soft btn-icon btn-sm" type="submit" aria-label="حذف"><i class="fa-solid fa-trash-can"></i></button>
               </form>

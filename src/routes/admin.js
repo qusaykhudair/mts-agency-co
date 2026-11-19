@@ -377,6 +377,17 @@ router.post('/currencies/:code/delete', (req, res) => {
   res.reply({ ok: true, message: 'تم حذف العملة', reload: true });
 });
 
+router.post('/currencies/:code/toggle', (req, res) => {
+  const code = clean(req.params.code, 8).toUpperCase();
+  const cur = money.byCode(code);
+  if (!cur) throw notFound('العملة');
+  if (cur.is_base) return res.reply({ ok: false, message: 'لا يمكن تعطيل العملة الأساسية' });
+  const next = cur.is_active ? 0 : 1;
+  run('UPDATE currencies SET is_active = ? WHERE code = ?', next, code);
+  money.load();
+  res.reply({ ok: true, message: next ? `تم تفعيل عملة ${cur.name} على الموقع` : `تم إيقاف عملة ${cur.name} من الموقع`, reload: true });
+});
+
 // Re-price the whole catalogue in another currency and make it the base.
 router.post('/currencies/:code/make-base', (req, res) => {
   const target = money.byCode(String(req.params.code || '').toUpperCase());
@@ -799,6 +810,12 @@ router.get('/settings', (req, res) => {
       problem: mail.health.status === 'failed' ? mailProblem(mail.health, transport) : null,
       recent: mail.recent(),
     },
+    currenciesList: all(
+      `SELECT c.*, (SELECT COUNT(*) FROM payment_methods pm WHERE pm.currency_code = c.code) AS methods_count
+       FROM currencies c ORDER BY c.is_base DESC, c.sort_order, c.code`,
+    ),
+    baseCurrency: money.base(),
+    defaultCurrency: settings.get('default_currency'),
   });
 });
 
@@ -868,6 +885,7 @@ router.post('/settings', async (req, res) => {
     service_auto_complete_days: String(int(b.service_auto_complete_days, { min: 1, max: 90, fallback: 7 })),
     max_quantity: String(int(b.max_quantity, { min: 1, max: 100, fallback: 10 })),
     sellers_can_approve: bool(b.sellers_can_approve) ? '1' : '0',
+    ...(b.default_currency !== undefined ? { default_currency: clean(b.default_currency, 8).toUpperCase() } : {}),
   });
   // Saving asks Google again, so a client fixed or replaced in Google Cloud is picked up at once.
   await googleLogin.checkAll();

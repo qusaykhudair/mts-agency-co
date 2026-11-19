@@ -400,7 +400,49 @@ function ownProduct(req) {
   return product;
 }
 
-router.get('/products/new', (req, res) => res.render('seller/product-form', productFormData(req, null)));
+router.get('/products/new', (req, res) => {
+  let duplicateFrom = null;
+  let clonedProduct = null;
+  let plans = [];
+
+  if (req.query.from) {
+    const fromId = int(req.query.from, { fallback: 0 });
+    const source = get('SELECT * FROM products WHERE id = ?', fromId);
+    if (source && (isAdminUser(req.user) || source.seller_id === req.user.id)) {
+      duplicateFrom = source;
+      clonedProduct = {
+        ...source,
+        id: null,
+        title: `${source.title} (نسخة)`,
+        slug: '',
+        cover_url: source.cover_url,
+        is_featured: 0,
+        is_active: 1,
+      };
+      plans = all('SELECT * FROM product_plans WHERE product_id = ? ORDER BY sort_order, id', source.id).map((pl) => ({
+        ...pl,
+        id: '',
+      }));
+    }
+  }
+
+  const pScope = productScope(req.user);
+  const existingProducts = all(
+    `SELECT p.id, p.title FROM products p WHERE ${pScope.sql} ORDER BY p.title`,
+    ...pScope.params,
+  );
+
+  const data = productFormData(req, null);
+  data.duplicateFrom = duplicateFrom;
+  data.clonedProduct = clonedProduct;
+  if (plans.length) data.plans = plans;
+  data.existingProducts = existingProducts;
+  if (duplicateFrom) {
+    data.pageTitle = `نسخ منتج: ${duplicateFrom.title}`;
+    if (clonedProduct.offer_ends_at) data.offerLocal = zonedLocal(clonedProduct.offer_ends_at);
+  }
+  res.render('seller/product-form', data);
+});
 router.get('/products/:id/edit', (req, res) => res.render('seller/product-form', productFormData(req, ownProduct(req))));
 
 function uniqueSlug(base, excludeId) {
@@ -488,8 +530,8 @@ function saveProduct(req, res, existing) {
     const s = get("SELECT id FROM users WHERE id = ? AND role IN ('seller', 'admin')", int(b.seller_id, { fallback: 0 }));
     if (s) sellerId = s.id;
   }
-  let coverUrl = existing ? existing.cover_url : null;
-  const oldCover = coverUrl;
+  let coverUrl = existing ? existing.cover_url : (clean(b.cloned_cover, 300) || null);
+  const oldCover = existing ? existing.cover_url : null;
   if (req.file) coverUrl = publicUrl('products', req.file.filename);
   else if (bool(b.remove_cover)) coverUrl = null;
 
@@ -592,6 +634,66 @@ router.post('/products/:id/delete', (req, res) => {
   run('DELETE FROM products WHERE id = ?', p.id);
   if (p.cover_url) removePublic(p.cover_url);
   res.reply({ ok: true, message: 'تم حذف المنتج', redirect: '/seller/products' });
+});
+
+router.post('/products/:id/duplicate', (req, res) => {
+  const source = ownProduct(req);
+  const plans = all('SELECT * FROM product_plans WHERE product_id = ? ORDER BY sort_order, id', source.id);
+  const newTitle = clean(`${source.title} (نسخة)`, 120);
+  const newSlug = uniqueSlug(`${source.slug || source.title}-copy`);
+
+  const newId = tx(() => {
+    const resInsert = run(
+      `INSERT INTO products (
+        seller_id, category_id, platform_id, title, slug, short_description, description,
+        features, activation_steps, cover_url, badge, delivery_method, delivery_time,
+        warranty, region_note, buyer_input_label, buyer_input_placeholder, offer_ends_at,
+        is_active, is_featured
+      ) VALUES (
+        $seller_id, $category_id, $platform_id, $title, $slug, $short_description, $description,
+        $features, $activation_steps, $cover_url, $badge, $delivery_method, $delivery_time,
+        $warranty, $region_note, $buyer_input_label, $buyer_input_placeholder, $offer_ends_at,
+        $is_active, $is_featured
+      )`,
+      {
+        seller_id: source.seller_id,
+        category_id: source.category_id,
+        platform_id: source.platform_id,
+        title: newTitle,
+        slug: newSlug,
+        short_description: source.short_description,
+        description: source.description,
+        features: source.features,
+        activation_steps: source.activation_steps,
+        cover_url: source.cover_url,
+        badge: source.badge,
+        delivery_method: source.delivery_method,
+        delivery_time: source.delivery_time,
+        warranty: source.warranty,
+        region_note: source.region_note,
+        buyer_input_label: source.buyer_input_label,
+        buyer_input_placeholder: source.buyer_input_placeholder,
+        offer_ends_at: null,
+        is_active: 0,
+        is_featured: 0,
+      },
+    );
+    const prodId = Number(resInsert.lastInsertRowid);
+    for (const pl of plans) {
+      run(
+        `INSERT INTO product_plans (product_id, name, duration_days, price, cost_price, old_price, stock, is_active, sort_order)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        prodId, pl.name, pl.duration_days, pl.price, pl.cost_price, pl.old_price, pl.stock, pl.is_active, pl.sort_order,
+      );
+    }
+    return prodId;
+  });
+
+  res.reply({
+    ok: true,
+    message: 'تم تكرار المنتج بنجاح، يمكنك الآن تعديل الاختلافات وحفظه',
+    redirect: `/seller/products/${newId}/edit`,
+  });
 });
 
 module.exports = router;

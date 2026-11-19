@@ -105,6 +105,107 @@
   </div>
 </form>
 
+<% if (locals.currenciesList) { %>
+<section class="card mt-16" id="currencies">
+  <div class="card-head flex flex-wrap gap-12 between">
+    <div>
+      <h2><i class="fa-solid fa-coins"></i> العملات المتاحة على الموقع</h2>
+      <p class="help mb-0">حدد العملات المتاحة للزوار في المتجر وصفحة الدفع. يمكنك تفعيل أو إيقاف أو حذف أو إضافة أي عملة.</p>
+    </div>
+    <div class="actions">
+      <a class="btn btn-ghost btn-sm" href="/seller/currencies"><i class="fa-solid fa-arrow-up-right-from-square"></i> إدارة أسعار الصرف بالكامل</a>
+    </div>
+  </div>
+
+  <div class="card-body stack">
+    <div class="table-wrap">
+      <table class="table responsive">
+        <thead>
+          <tr>
+            <th>العملة</th>
+            <th>الاسم والرمز</th>
+            <th>سعر الصرف</th>
+            <th>الظهور في الموقع</th>
+            <th>الإجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% currenciesList.forEach((c) => { %>
+          <tr>
+            <td class="t-first">
+              <b class="mono"><%= c.code %></b>
+              <% if (c.is_base) { %><span class="badge badge-brand">الأساسية</span><% } %>
+              <% if (c.methods_count) { %><span class="badge badge-muted"><%= c.methods_count %> طرق دفع</span><% } %>
+            </td>
+            <td data-label="الاسم"><%= c.name %> (<span class="mono"><%= c.symbol %></span>)</td>
+            <td data-label="سعر الصرف">
+              <% if (c.is_base) { %>
+                <span class="mono">1 <%= c.code %></span>
+              <% } else { %>
+                <span>1 <%= baseCurrency.code %> = <b class="mono"><%= c.rate %></b> <%= c.symbol %></span>
+              <% } %>
+            </td>
+            <td data-label="الظهور في الموقع">
+              <% if (c.is_base) { %>
+                <span class="badge badge-success"><i class="fa-solid fa-check"></i> مفعلة (الأساسية)</span>
+              <% } else { %>
+                <form method="post" action="/seller/currencies/<%= c.code %>/toggle" data-ajax style="display:inline">
+                  <button class="badge <%= c.is_active ? 'badge-success' : 'badge-muted' %>" type="submit" title="اضغط للتفعيل أو الإيقاف" style="cursor:pointer;border:0">
+                    <i class="fa-solid <%= c.is_active ? 'fa-eye' : 'fa-eye-slash' %>"></i>
+                    <%= c.is_active ? 'مفعلة على الموقع' : 'معطلة' %>
+                  </button>
+                </form>
+              <% } %>
+            </td>
+            <td>
+              <% if (!c.is_base) { %>
+              <div class="t-actions">
+                <form method="post" action="/seller/currencies/<%= c.code %>/toggle" data-ajax style="display:inline">
+                  <button class="btn btn-ghost btn-sm" type="submit">
+                    <i class="fa-solid <%= c.is_active ? 'fa-toggle-on text-success' : 'fa-toggle-off text-muted' %>"></i>
+                    <%= c.is_active ? 'إيقاف' : 'تفعيل' %>
+                  </button>
+                </form>
+                <form method="post" action="/seller/currencies/<%= c.code %>/delete" data-ajax data-confirm="حذف عملة <%= c.name %>؟" data-confirm-danger style="display:inline">
+                  <button class="btn btn-danger-soft btn-icon btn-sm" type="submit" aria-label="حذف" title="حذف العملة"><i class="fa-solid fa-trash-can"></i></button>
+                </form>
+              </div>
+              <% } %>
+            </td>
+          </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card-foot flex flex-wrap gap-12 between" style="border-top:1px solid var(--border);padding-top:12px">
+      <form method="post" action="/seller/currencies" data-ajax class="flex flex-wrap gap-8" style="align-items:center">
+        <label class="label" for="default_currency" style="white-space:nowrap">عملة العرض الافتراضية للزوار:</label>
+        <select class="select input-sm" id="default_currency" name="default_currency" style="width:auto">
+          <option value="">العملة الأساسية (<%= baseCurrency.name %>)</option>
+          <% currenciesList.filter((c) => c.is_active).forEach((c) => { %>
+            <option value="<%= c.code %>"<%= defaultCurrency === c.code ? ' selected' : '' %>><%= c.name %> (<%= c.symbol %>)</option>
+          <% }) %>
+        </select>
+        <button class="btn btn-soft btn-sm" type="submit"><i class="fa-solid fa-floppy-disk"></i> حفظ العملة الافتراضية</button>
+      </form>
+    </div>
+
+    <details style="margin-top:8px">
+      <summary class="btn btn-soft btn-sm" style="display:inline-flex;cursor:pointer"><i class="fa-solid fa-plus"></i> إضافة عملة جديدة إلى الموقع</summary>
+      <form class="form-grid cols-3 mt-12" method="post" action="/seller/currencies/add" data-ajax novalidate style="background:var(--bg-subtle, rgba(0,0,0,0.02));padding:16px;border-radius:var(--radius);border:1px solid var(--border)">
+        <div class="field"><label class="label" for="ncode_s">رمز ISO (3 أحرف بالإنجليزية)</label><input class="input" id="ncode_s" name="code" maxlength="3" placeholder="SAR" dir="ltr" style="text-transform:uppercase" required><span class="field-error"></span></div>
+        <div class="field"><label class="label" for="nname_s">الاسم بالعربية</label><input class="input" id="nname_s" name="name" maxlength="40" placeholder="ريال سعودي" required><span class="field-error"></span></div>
+        <div class="field"><label class="label" for="nsymbol_s">رمز العرض</label><input class="input" id="nsymbol_s" name="symbol" maxlength="8" placeholder="ر.س" required><span class="field-error"></span></div>
+        <div class="field"><label class="label" for="nrate_s">سعر الصرف مقابل 1 <%= baseCurrency.code %></label><input class="input" id="nrate_s" name="rate" inputmode="decimal" dir="ltr" placeholder="3.75" required><span class="field-error"></span></div>
+        <div class="field"><label class="label" for="ndec_s">الكسور العشرية</label><select class="select" id="ndec_s" name="decimals"><option>0</option><option>1</option><option selected>2</option></select></div>
+        <div class="field" style="align-self:end"><button class="btn btn-primary btn-block" type="submit"><i class="fa-solid fa-plus"></i> إضافة العملة</button></div>
+      </form>
+    </details>
+  </div>
+</section>
+<% } %>
+
 <% const m = mailInfo; const live = m.transport === 'gmail' || m.transport === 'smtp'; %>
 <section class="card mt-16" id="mail">
   <div class="card-head">

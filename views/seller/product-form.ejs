@@ -1,8 +1,9 @@
 <%- include('../partials/top') %>
 <%
-  const p = product || {};
-  const features = product ? (JSON.parse(product.features || '[]') || []).join('\n') : '';
-  const steps = product ? (JSON.parse(product.activation_steps || '[]') || []).join('\n') : '';
+  const p = product || locals.clonedProduct || {};
+  const isDuplicate = !!locals.duplicateFrom;
+  const features = p.features ? (Array.isArray(p.features) ? p.features : JSON.parse(p.features || '[]') || []).join('\n') : '';
+  const steps = p.activation_steps ? (Array.isArray(p.activation_steps) ? p.activation_steps : JSON.parse(p.activation_steps || '[]') || []).join('\n') : '';
   const major = (minor) => (minor === null || minor === undefined ? '' : (minor / 100).toFixed(2).replace(/\.00$/, ''));
   const rows = plans.length ? plans : [{ id: '', name: 'شهر', duration_days: 30, price: null, cost_price: null, old_price: null, stock: null, is_active: 1 }];
   const groups = {};
@@ -10,15 +11,59 @@
 %>
 
 <nav class="crumbs" aria-label="مسار التنقل">
-  <a href="/seller">لوحة البائع</a><i class="fa-solid fa-chevron-left"></i><a href="/seller/products">المنتجات</a><i class="fa-solid fa-chevron-left"></i><span><%= product ? 'تعديل' : 'منتج جديد' %></span>
+  <a href="/seller">لوحة البائع</a><i class="fa-solid fa-chevron-left"></i><a href="/seller/products">المنتجات</a><i class="fa-solid fa-chevron-left"></i><span><%= product ? 'تعديل' : isDuplicate ? 'تكرار منتج' : 'منتج جديد' %></span>
 </nav>
 
 <div class="page-head">
-  <div><h1><%= product ? product.title : 'إضافة منتج جديد' %></h1><p>الأسعار بالعملة الأساسية للمتجر (<%= baseCurrency.name %> <%= baseCurrency.symbol %>) وتحول تلقائيا لعملات الدفع.</p></div>
-  <% if (product) { %><div class="actions"><a class="btn btn-ghost" href="/store/product/<%= product.slug %>" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> عرض في المتجر</a></div><% } %>
+  <div>
+    <h1><%= product ? product.title : isDuplicate ? `نسخ منتج: ${duplicateFrom.title}` : 'إضافة منتج جديد' %></h1>
+    <p><%= isDuplicate ? `نسخة من «${duplicateFrom.title}». يمكنك تعديل الاختلافات وحفظه كمنتج جديد.` : `الأسعار بالعملة الأساسية للمتجر (${baseCurrency.name} ${baseCurrency.symbol}) وتحول تلقائيا لعملات الدفع.` %></p>
+  </div>
+  <% if (product) { %>
+    <div class="actions">
+      <a class="btn btn-ghost" href="/seller/products/new?from=<%= product.id %>" title="نسخ هذا المنتج وتكراره لإنشاء منتج مشابه"><i class="fa-solid fa-copy"></i> تكرار هذا المنتج</a>
+      <a class="btn btn-ghost" href="/store/product/<%= product.slug %>" target="_blank"><i class="fa-solid fa-up-right-from-square"></i> عرض في المتجر</a>
+    </div>
+  <% } %>
 </div>
 
+<% if (!product && !isDuplicate && locals.existingProducts && existingProducts.length) { %>
+<div class="card mb-16" style="padding:14px 18px;background:var(--bg-subtle, rgba(0,0,0,0.02));border:1px dashed var(--border)">
+  <div class="flex flex-wrap gap-12 between" style="align-items:center">
+    <div class="flex gap-12" style="align-items:center">
+      <i class="fa-solid fa-copy" style="color:var(--brand);font-size:20px"></i>
+      <div>
+        <b style="display:block">نسخ بيانات منتج سابق وتكراره</b>
+        <small class="text-muted">هل لديك منتج مشابه؟ اختره لنسخ كافة تفاصيله وباقاته وتعديل الاختلافات فقط دون الحاجة للبدء من الصفر.</small>
+      </div>
+    </div>
+    <div class="flex gap-8" style="align-items:center">
+      <select class="select input-sm" style="min-width:240px" onchange="if(this.value) location.href='/seller/products/new?from=' + this.value" aria-label="اختر منتجاً لنسخه">
+        <option value="">-- اختر منتجاً لنسخ بياناته --</option>
+        <% existingProducts.forEach((ep) => { %>
+        <option value="<%= ep.id %>"><%= ep.title %></option>
+        <% }) %>
+      </select>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<% if (isDuplicate) { %>
+<div class="alert alert-brand mb-16">
+  <i class="fa-solid fa-copy"></i>
+  <div class="grow">
+    <b>تم نسخ بيانات «<%= duplicateFrom.title %>» بنجاح!</b>
+    تم استيراد كافة المعلومات والباقات والأسعار. عدّل البيانات المطلوبة ثم اضغط «إضافة المنتج المنسوخ» بالأسفل.
+  </div>
+  <a class="btn btn-ghost btn-sm" href="/seller/products/new"><i class="fa-solid fa-rotate-left"></i> بدء بنموذج فارغ</a>
+</div>
+<% } %>
+
 <form method="post" action="<%= product ? '/seller/products/' + product.id : '/seller/products' %>" enctype="multipart/form-data" data-ajax novalidate>
+  <% if (isDuplicate && p.cover_url) { %>
+    <input type="hidden" name="cloned_cover" value="<%= p.cover_url %>">
+  <% } %>
   <div class="dash-grid" style="margin-top:0">
     <div class="stack">
       <section class="card">
@@ -175,7 +220,7 @@
           </select>
         </div>
         <% } %>
-        <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid fa-floppy-disk"></i> <%= product ? 'حفظ التعديلات' : 'إضافة المنتج' %></button>
+        <button class="btn btn-primary btn-lg btn-block" type="submit"><i class="fa-solid <%= product ? 'fa-floppy-disk' : isDuplicate ? 'fa-copy' : 'fa-plus' %>"></i> <%= product ? 'حفظ التعديلات' : isDuplicate ? 'إضافة المنتج المنسوخ' : 'إضافة المنتج' %></button>
       </section>
 
       <section class="card card-body stack">
