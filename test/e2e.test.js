@@ -109,7 +109,7 @@ before(async () => {
   base = `http://127.0.0.1:${server.address().port}`;
   product = get("SELECT * FROM products WHERE slug = 'chatgpt-plus'");
   plan = get('SELECT * FROM product_plans WHERE product_id = ? ORDER BY sort_order LIMIT 1', product.id);
-  bankMethod = get("SELECT * FROM payment_methods WHERE name = 'بنك فلسطين'");
+  bankMethod = get("SELECT * FROM payment_methods WHERE type = 'bank' ORDER BY id LIMIT 1");
   walletMethod = get("SELECT * FROM payment_methods WHERE currency_code = 'EGP'");
 });
 
@@ -127,10 +127,10 @@ test('seed creates the four payment methods with the right accounts', () => {
   const methods = require('../src/db').all('SELECT * FROM payment_methods ORDER BY sort_order');
   assert.equal(methods.length, 4);
   const all = JSON.stringify(methods.map((m) => JSON.parse(m.details)));
-  for (const needle of ['3056855', 'PS21PALS045230568550993100000', '01093525956', 'قصي خضير']) assert.ok(all.includes(needle), needle);
+  for (const needle of ['01093525956', '01093525956@instapay', 'mts.agency.co@gmail.com', '109352595601']) assert.ok(all.includes(needle), needle);
   assert.deepEqual(
     methods.map((m) => m.currency_code),
-    ['ILS', 'ILS', 'ILS', 'EGP'],
+    ['EGP', 'EGP', 'USD', 'EGP'],
   );
 });
 
@@ -154,7 +154,7 @@ test('brand homepage shows live catalogue data and agency services', async () =>
   assert.ok(html.includes('/static/img/clients/'), 'clients render');
   assert.ok(html.includes('/store/product/chatgpt-plus'), 'links to real products');
   // Every active payment method is listed with its currency.
-  assert.ok(html.includes('فودافون كاش') && html.includes('بنك فلسطين'));
+  assert.ok(html.includes('فودافون كاش') && html.includes('انستا باي'));
 
   const health = await stranger.get('/healthz');
   assert.equal(health.status, 200);
@@ -210,7 +210,7 @@ test('checkout page shows all payment methods with converted amounts', async () 
   const res = await buyer.get(`/store/checkout?product=chatgpt-plus&plan=${plan.id}&qty=1`);
   assert.equal(res.status, 200);
   const html = await res.text();
-  for (const needle of ['بنك فلسطين', 'جوال باي', 'بال باي', 'فودافون كاش', '3056855', 'PS21PALS045230568550993100000', '01093525956', 'iBURAQ']) {
+  for (const needle of ['فودافون كاش', 'انستا باي', '01093525956']) {
     assert.ok(html.includes(needle), `checkout should include ${needle}`);
   }
   // $12 at 3.1 ILS -> 37.2 rounded up to 38; at 53 EGP -> 636.
@@ -238,8 +238,8 @@ test('buyer places an order with a receipt', async () => {
   orderCode = res.body.redirect.split('/').pop().split('?')[0];
   const o = get('SELECT * FROM orders WHERE code = ?', orderCode);
   assert.equal(o.status, 'under_review');
-  assert.equal(o.pay_currency, 'ILS');
-  assert.equal(o.pay_amount, 3800);
+  assert.equal(o.pay_currency, 'EGP');
+  assert.equal(o.pay_amount, 63600);
   assert.equal(o.sender_account, '0599111222');
   assert.equal(o.buyer_input, 'me@gmail.com');
   assert.ok(fs.existsSync(path.join(TMP, 'uploads', 'private', 'receipts', o.receipt_file)));
@@ -474,7 +474,7 @@ test('admin edits payment details and exchange rates', async () => {
   assert.equal(rates.body.ok, true, JSON.stringify(rates.body));
   assert.equal(money.convert(1200, money.byCode('ILS')), 42);
   // Completed order keeps its original amount.
-  assert.equal(get('SELECT pay_amount FROM orders WHERE code = ?', orderCode).pay_amount, 3800);
+  assert.equal(get('SELECT pay_amount FROM orders WHERE code = ?', orderCode).pay_amount, 63600);
 });
 
 test('changing the base currency re-prices the catalogue', async () => {
@@ -492,7 +492,7 @@ test('changing the base currency re-prices the catalogue', async () => {
 });
 
 test('every dashboard page renders for the admin', async () => {
-  for (const url of ['/seller', '/seller/orders', '/seller/products', '/seller/products/new', `/seller/products/${product.id}/edit`, '/seller/platforms', '/seller/platforms/new', '/seller/categories', '/seller/payment-methods', '/seller/payment-methods/new', `/seller/payment-methods/${bankMethod.id}/edit`, '/seller/currencies', '/seller/users', '/seller/applications', '/seller/reviews', '/seller/settings', '/account', '/account/orders', '/account/subscriptions', '/account/notifications', '/account/profile']) {
+  for (const url of ['/seller', '/seller/orders', '/seller/products', '/seller/products/new', `/seller/products/${product.id}/edit`, '/seller/platforms', '/seller/platforms/new', '/seller/categories', '/seller/payment-methods', '/seller/payment-methods/new', `/seller/payment-methods/${bankMethod.id}/edit`, '/seller/currencies', '/seller/content', '/seller/users', '/seller/applications', '/seller/reviews', '/seller/settings', '/account', '/account/orders', '/account/subscriptions', '/account/notifications', '/account/profile']) {
     const res = await admin.get(url);
     assert.equal(res.status, 200, url);
   }

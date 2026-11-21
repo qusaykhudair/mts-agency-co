@@ -11,80 +11,18 @@ const { fromInternational } = require('./lib/phone');
 const settings = require('./lib/settings');
 const { SERVICES } = require('./lib/content');
 
-const IBAN = 'PS21PALS045230568550993100000';
-
 const CURRENCIES = [
-  { code: 'USD', name: 'دولار أمريكي', symbol: '$', rate: 1, decimals: 2, is_base: 1, sort_order: 1 },
-  { code: 'ILS', name: 'شيكل', symbol: '₪', rate: 3.1, decimals: 0, is_base: 0, sort_order: 2 },
-  { code: 'EGP', name: 'جنيه مصري', symbol: 'ج.م', rate: 53, decimals: 0, is_base: 0, sort_order: 3 },
+  { code: 'USD', name: 'دولار أمريكي', symbol: '$', rate: 1, decimals: 2, is_base: 1, is_active: 1, sort_order: 1 },
+  { code: 'EGP', name: 'جنيه مصري', symbol: 'ج.م', rate: 53, decimals: 0, is_base: 0, is_active: 1, sort_order: 2 },
+  { code: 'ILS', name: 'شيكل', symbol: '₪', rate: 3.1, decimals: 0, is_base: 0, is_active: 0, sort_order: 3 },
 ];
 
 const PAYMENT_METHODS = [
   {
-    name: 'بنك فلسطين',
-    subtitle: 'تحويل بنكي مباشر إلى الحساب',
-    type: 'bank',
-    icon: 'fa-solid fa-building-columns',
-    color: '#0F766E',
-    currency_code: 'ILS',
-    details: [
-      { label: 'البنك', value: 'بنك فلسطين (Bank of Palestine)', copy: false },
-      { label: 'رقم الحساب', value: '3056855', copy: true },
-      { label: 'اسم صاحب الحساب', value: 'قصي خضير', copy: true },
-      { label: 'رقم الآيبان (IBAN)', value: IBAN, copy: true },
-    ],
-    instructions: [
-      'حول المبلغ المطلوب إلى رقم الحساب الموضح عبر تطبيق بنك فلسطين أو من أي فرع.',
-      'عند التحويل من بنك آخر استخدم رقم الآيبان (IBAN).',
-      'التقط صورة واضحة لإيصال التحويل تظهر المبلغ والتاريخ واسم المستفيد.',
-    ],
-    sender_account_label: 'رقم الحساب الذي حولت منه',
-  },
-  {
-    name: 'جوال باي (Jawwal Pay)',
-    subtitle: 'من المحفظة إلى الآيبان عبر خدمة iBURAQ',
-    type: 'wallet',
-    icon: 'fa-solid fa-mobile-screen-button',
-    color: '#16A34A',
-    currency_code: 'ILS',
-    details: [
-      { label: 'طريقة التحويل', value: 'نظام الدفع الفوري iBURAQ، تحويل إلى حساب بنكي', copy: false },
-      { label: 'رقم الآيبان (IBAN)', value: IBAN, copy: true },
-      { label: 'اسم المستفيد', value: 'قصي خضير', copy: true },
-      { label: 'البنك المستفيد', value: 'بنك فلسطين', copy: false },
-    ],
-    instructions: [
-      'افتح تطبيق جوال باي واختر التحويل إلى حساب بنكي عبر خدمة الدفع الفوري iBURAQ.',
-      'أدخل رقم الآيبان الموضح وتأكد أن اسم المستفيد: قصي خضير.',
-      'أرسل المبلغ المطلوب ثم التقط صورة لشاشة نجاح العملية.',
-    ],
-    sender_account_label: 'رقم محفظة جوال باي التي حولت منها',
-  },
-  {
-    name: 'بال باي (PalPay)',
-    subtitle: 'من المحفظة إلى الآيبان عبر خدمة iBURAQ',
-    type: 'wallet',
-    icon: 'fa-solid fa-wallet',
-    color: '#2563EB',
-    currency_code: 'ILS',
-    details: [
-      { label: 'طريقة التحويل', value: 'نظام الدفع الفوري iBURAQ، تحويل إلى حساب بنكي', copy: false },
-      { label: 'رقم الآيبان (IBAN)', value: IBAN, copy: true },
-      { label: 'اسم المستفيد', value: 'قصي خضير', copy: true },
-      { label: 'البنك المستفيد', value: 'بنك فلسطين', copy: false },
-    ],
-    instructions: [
-      'افتح تطبيق بال باي واختر التحويل إلى حساب بنكي عبر خدمة الدفع الفوري iBURAQ.',
-      'أدخل رقم الآيبان الموضح وتأكد أن اسم المستفيد: قصي خضير.',
-      'أرسل المبلغ المطلوب ثم التقط صورة لشاشة نجاح العملية.',
-    ],
-    sender_account_label: 'رقم محفظة بال باي التي حولت منها',
-  },
-  {
     name: 'فودافون كاش',
     subtitle: 'تحويل إلى محفظة فودافون كاش (مصر)',
     type: 'wallet',
-    icon: 'fa-solid fa-money-bill-transfer',
+    icon: 'fa-solid fa-mobile-screen-button',
     color: '#E60000',
     currency_code: 'EGP',
     details: [
@@ -97,6 +35,61 @@ const PAYMENT_METHODS = [
       'التقط صورة لرسالة أو إيصال التحويل وأرفقها في النموذج.',
     ],
     sender_account_label: 'رقم المحفظة الذي حولت منه',
+  },
+  {
+    name: 'انستا باي (InstaPay)',
+    subtitle: 'تحويل فوري عبر شبكة المدفوعات اللحظية (مصر)',
+    type: 'bank',
+    icon: 'fa-solid fa-bolt',
+    color: '#6B21A8',
+    currency_code: 'EGP',
+    details: [
+      { label: 'عنوان الدفع اللحظي (IPA)', value: '01093525956@instapay', copy: true },
+      { label: 'رقم الهاتف المسجل', value: '01093525956', copy: true },
+      { label: 'اسم المستفيد', value: 'شيماء ... ز ... ق', copy: false },
+    ],
+    instructions: [
+      'افتح تطبيق InstaPay واختر إرسال نقود عبر عنوان الدفع اللحظي (IPA) أو رقم الهاتف.',
+      'أدخل بيانات التحويل الموضحة وتأكد من صحة اسم المستفيد.',
+      'حول المبلغ المطلوب ثم التقط لقطة شاشة لنجاح عملية التحويل وأرفقها في النموذج.',
+    ],
+    sender_account_label: 'عنوان الدفع اللحظي أو رقم الهاتف الذي حولت منه',
+  },
+  {
+    name: 'بطاقات بنكية ودفع عالمي (Global / PayPal)',
+    subtitle: 'دفع دولي بالدولار عبر البطاقات أو PayPal',
+    type: 'wallet',
+    icon: 'fa-solid fa-credit-card',
+    color: '#2563EB',
+    currency_code: 'USD',
+    details: [
+      { label: 'طريقة الدفع', value: 'بطاقات Visa / MasterCard / PayPal', copy: false },
+      { label: 'حساب الدفع / PayPal', value: 'mts.agency.co@gmail.com', copy: true },
+      { label: 'العملة المعتمدة', value: 'الدولار الأمريكي (USD)', copy: false },
+    ],
+    instructions: [
+      'حول المبلغ المطلوب بالدولار إلى حساب PayPal الموضح أو تواصل معنا عبر واتساب لإتمام الدفع بالبطاقة.',
+      'التقط صورة واضحة لإشعار أو إيصال نجاح عملية الدفع وأرفقها في النموذج.',
+    ],
+    sender_account_label: 'البريد الإلكتروني لحساب PayPal أو رقم المعاملة',
+  },
+  {
+    name: 'تحويل بنكي (Bank Transfer)',
+    subtitle: 'تحويل بنكي مباشر إلى الحساب (مصر)',
+    type: 'bank',
+    icon: 'fa-solid fa-building-columns',
+    color: '#0F766E',
+    currency_code: 'EGP',
+    details: [
+      { label: 'البنك', value: 'البنك الأهلي المصري / CIB', copy: false },
+      { label: 'رقم الحساب', value: '109352595601', copy: true },
+      { label: 'اسم صاحب الحساب', value: 'MTS Agency', copy: true },
+    ],
+    instructions: [
+      'حول المبلغ المطلوب إلى رقم الحساب البنكي الموضح من تطبيق البنك أو من أي فرع.',
+      'التقط صورة واضحة لإيصال التحويل تظهر المبلغ والتاريخ واسم المستفيد.',
+    ],
+    sender_account_label: 'رقم الحساب أو اسم صاحب الحساب الذي حولت منه',
   },
 ];
 
@@ -502,4 +495,4 @@ async function seed() {
   }
 }
 
-module.exports = { seed };
+module.exports = { seed, PAYMENT_METHODS, CURRENCIES };

@@ -792,6 +792,75 @@ function googleProblem(status, origin) {
   }[status] || '';
 }
 
+/* =====================================================================
+   Website Content Management (إدارة نصوص الموقع)
+   ===================================================================== */
+router.get('/content', (req, res) => {
+  res.render('seller/content', {
+    active: 'admin-content',
+    pageTitle: 'إدارة نصوص الموقع',
+    s: settings.getAll(),
+  });
+});
+
+router.post('/content', (req, res) => {
+  const b = req.body;
+  const updates = {};
+  const textKeys = [
+    // Home
+    'home_hero_badge', 'home_hero_title', 'home_hero_subtitle', 'home_search_placeholder',
+    'home_feature_1', 'home_feature_2', 'home_feature_3',
+    'home_platforms_title', 'home_popular_title',
+    'home_services_label', 'home_services_title', 'home_services_desc',
+    'home_steps_title', 'home_step1_title', 'home_step1_desc',
+    'home_step2_title', 'home_step2_desc',
+    'home_step3_title', 'home_step3_desc',
+    'home_clients_title', 'home_reviews_title', 'home_reviews_desc',
+
+    // Store & Trust
+    'announcement', 'hero_title', 'hero_subtitle', 'checkout_note',
+    'store_trust_1_title', 'store_trust_1_desc',
+    'store_trust_2_title', 'store_trust_2_desc',
+    'store_trust_3_title', 'store_trust_3_desc',
+    'store_trust_4_title', 'store_trust_4_desc',
+
+    // FAQ
+    'faq_how_to_buy_q', 'faq_how_to_buy_a',
+    'faq_pay_q', 'faq_pay_a',
+    'faq_delivery_q', 'faq_delivery_a',
+    'faq_currency_q', 'faq_currency_a',
+
+    // Footer & Identity
+    'store_name', 'store_tagline', 'footer_about', 'store_address', 'footer_copyright',
+    'whatsapp_number', 'support_email',
+  ];
+
+  for (const k of textKeys) {
+    if (b[k] !== undefined) {
+      if (k.endsWith('_desc') || k.endsWith('_subtitle') || k.endsWith('_about') || k.endsWith('_a') || k === 'checkout_note') {
+        updates[k] = cleanText(b[k], 2000);
+      } else {
+        updates[k] = clean(b[k], 500);
+      }
+    }
+  }
+
+  if (updates.support_email && !isEmail(updates.support_email)) {
+    return res.reply({ ok: false, errors: { support_email: 'بريد إلكتروني غير صالح' }, message: 'بريد إلكتروني غير صالح' });
+  }
+
+  if (updates.whatsapp_number) {
+    const wa = fromInternational(updates.whatsapp_number);
+    if (wa.error) {
+      return res.reply({ ok: false, errors: { whatsapp_number: 'اكتب رقم واتساب بالصيغة الدولية مثل +201093525956' }, message: 'رقم واتساب غير صالح' });
+    }
+    updates.whatsapp_number = wa.e164;
+  }
+
+  settings.set(updates);
+  res.reply({ ok: true, message: 'تم حفظ نصوص الموقع بنجاح', reload: true });
+});
+
 router.get('/settings', (req, res) => {
   const transport = mail.transportName();
   const origin = config.appUrl || `${req.protocol}://${req.get('host')}`;

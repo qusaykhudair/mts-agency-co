@@ -82,7 +82,7 @@
         </select>
         <span class="help">نحسبه بسعر الصرف الحالي إن لم يكن بـ<%= baseCurrency.name %>.</span>
       </div>
-      <div class="field"><label class="label" for="po_method">طريقة التحويل</label><input class="input" id="po_method" name="method" maxlength="60" placeholder="مثال: فودافون كاش" list="poMethods"><datalist id="poMethods"><option value="بنك فلسطين"><option value="جوال باي"><option value="بال باي"><option value="فودافون كاش"><option value="نقدا"></datalist></div>
+      <div class="field"><label class="label" for="po_method">طريقة التحويل</label><input class="input" id="po_method" name="method" maxlength="60" placeholder="مثال: فودافون كاش، انستا باي" list="poMethods"><datalist id="poMethods"><option value="فودافون كاش"><option value="انستا باي"><option value="تحويل بنكي"><option value="PayPal"><option value="بطاقة بنكية"><option value="نقدا"></datalist></div>
       <div class="field"><label class="label" for="po_ref">رقم العملية</label><input class="input" id="po_ref" name="reference" maxlength="80" dir="ltr"></div>
       <div class="field span-2"><label class="label" for="po_note">ملاحظة</label><input class="input" id="po_note" name="note" maxlength="300"></div>
       <button class="btn btn-success" type="submit" style="justify-self:start"><i class="fa-solid fa-check"></i> تسجيل التحويل</button>

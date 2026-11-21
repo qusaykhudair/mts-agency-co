@@ -25,7 +25,10 @@
       </section>
 
       <section class="card">
-        <div class="card-head"><h2><i class="fa-solid fa-pen-nib"></i> نصوص الواجهة</h2></div>
+        <div class="card-head flex flex-wrap gap-12 between">
+          <h2><i class="fa-solid fa-pen-nib"></i> نصوص الواجهة</h2>
+          <a class="btn btn-soft btn-sm" href="/seller/content"><i class="fa-solid fa-pen-to-square"></i> لوحة التحكم بكافة نصوص الموقع</a>
+        </div>
         <div class="card-body form-grid">
           <div class="field"><label class="label" for="announcement">شريط الإعلان أعلى المتجر</label><input class="input" id="announcement" name="announcement" value="<%= s.announcement %>" maxlength="200"><span class="help">اتركه فارغا لإخفاء الشريط.</span></div>
           <div class="field"><label class="label" for="hero_title">عنوان البانر الرئيسي</label><input class="input" id="hero_title" name="hero_title" value="<%= s.hero_title %>" maxlength="120"><span class="help">استخدم «…» لتقسيم العنوان إلى سطرين بلون مميز.</span></div>

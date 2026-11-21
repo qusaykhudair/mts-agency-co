@@ -3,6 +3,7 @@ const express = require('express');
 const { get, all } = require('../db');
 const catalog = require('../lib/catalog');
 const content = require('../lib/content');
+const settings = require('../lib/settings');
 
 const router = express.Router();
 
@@ -16,12 +17,13 @@ router.get('/', (req, res) => {
   const popular = catalog.listProducts({ sort: 'popular', limit: 8 }).items;
   const platforms = catalog.platformsWithCounts().filter((p) => p.logo_url && p.product_count > 0);
   const rating = get(`SELECT COUNT(*) AS n, ROUND(AVG(r.rating), 1) AS avg ${PUBLIC_REVIEWS}`);
+  const s = res.locals.settings || settings.getAll();
 
   res.render('home', {
     nav: 'site',
     active: 'home',
     pageTitle: null,
-    pageDesc: 'اشتراكات ChatGPT وClaude وCanva وCapCut وغيرها، تدفع ثمنها من بنك فلسطين أو جوال باي أو بال باي أو فودافون كاش. ومن MTS Agency أيضا تصميم وبرمجة وتسويق لمشروعك.',
+    pageDesc: s.home_hero_subtitle || 'اشتراكات ChatGPT وClaude وCanva وCapCut وغيرها، ادفع بسهولة عبر فودافون كاش أو انستا باي أو بطرق الدفع العالمية. ومن MTS Agency أيضا تصميم وبرمجة وتسويق لمشروعك.',
     // The hero card shows plan choices, so prefer a best-seller that has several plans.
     heroProduct: popular.find((p) => p.plans.length >= 2) || popular[0] || null,
     popular,
@@ -34,7 +36,7 @@ router.get('/', (req, res) => {
        AND r.comment IS NOT NULL AND r.comment <> '' ORDER BY r.rating DESC, r.id DESC LIMIT 3`,
     ),
     clients: content.CLIENTS,
-    faq: content.STORE_FAQ.slice(0, 5),
+    faq: content.getStoreFaq(s).slice(0, 5),
   });
 });
 

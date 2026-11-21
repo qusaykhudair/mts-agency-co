@@ -6,9 +6,9 @@
           <img src="/static/img/logo-96.png" alt="MTS" width="46" height="46" loading="lazy" decoding="async">
           <span><b>MTS Agency</b><small>اشتراكات رقمية وخدمات تقنية</small></span>
         </a>
-        <p>نوفر اشتراكات المنصات العالمية بالدفع المحلي. ولأصحاب المشاريع نبني المواقع ونصمم الهويات وندير الحملات الإعلانية.</p>
+        <p><%= settings.footer_about || 'نوفر اشتراكات المنصات العالمية بالدفع المحلي بالجنيه أو بالدولار عالمياً. ولأصحاب المشاريع نبني المواقع ونصمم الهويات وندير الحملات الإعلانية.' %></p>
         <ul class="footer-contact">
-          <li><i class="fa-solid fa-location-dot"></i> جسر السويس، القاهرة، مصر</li>
+          <li><i class="fa-solid fa-location-dot"></i> <%= settings.store_address || 'جسر السويس، القاهرة، مصر' %></li>
           <li><i class="fa-brands fa-whatsapp"></i> <a href="<%= waLink(storeWa) %>" target="_blank" rel="noopener"><bdi dir="ltr"><%= displayWhatsapp(storeWa) %></bdi></a></li>
           <% if (settings.support_email) { %><li><i class="fa-solid fa-envelope"></i> <a href="mailto:<%= settings.support_email %>"><%= settings.support_email %></a></li><% } %>
         </ul>
@@ -48,7 +48,7 @@
       </div>
     </div>
     <div class="footer-bottom">
-      <span>© <%= new Date().getFullYear() %> MTS Agency. جميع الحقوق محفوظة</span>
+      <span>© <%= new Date().getFullYear() %> <%= settings.store_name %>. <%= settings.footer_copyright || 'جميع الحقوق محفوظة' %></span>
       <span class="flex gap-16"><a href="/store/terms">الشروط والأحكام</a><a href="/store/privacy">الخصوصية</a></span>
     </div>
   </div>

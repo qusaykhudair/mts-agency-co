@@ -42,7 +42,7 @@ router.get('/', (req, res) => {
   const spotlight = catalog.pickSpotlight(deals);
   res.render('store/home', {
     active: 'home',
-    fullTitle: `${settings.get('store_name')} | اشتراك ChatGPT وCanva وNetflix بالشيكل والجنيه`,
+    fullTitle: `${settings.get('store_name')} | اشتراكات ChatGPT وCanva وNetflix بالجنيه والدولار`,
     platforms,
     newest: catalog.listProducts({ sort: 'newest', limit: 10 }).items,
     deals,
@@ -55,9 +55,9 @@ router.get('/', (req, res) => {
       `SELECT r.*, p.title AS product_title, p.slug AS product_slug FROM reviews r JOIN products p ON p.id = r.product_id
        WHERE r.is_visible = 1 AND p.is_active = 1 AND r.comment IS NOT NULL AND r.comment <> '' ORDER BY r.id DESC LIMIT 6`,
     ),
-    faq: content.STORE_FAQ,
-    steps: content.HOW_TO_BUY,
-    trust: content.TRUST,
+    faq: content.getStoreFaq(res.locals.settings),
+    steps: content.getHowToBuy(res.locals.settings),
+    trust: content.getTrust(res.locals.settings),
   });
 });
 
@@ -195,7 +195,7 @@ router.get('/product/:slug', (req, res, next) => {
     // Price and local payment first, so they show in the search result even when the description is long.
     pageDesc: seo.clip(
       [
-        `اشتراك ${p.title.split('—')[0].trim()}${ar ? ` (${ar})` : ''}${from ? ` بسعر يبدأ من ${from}` : ''}، وتدفع بتحويل بنكي أو من محفظتك بالشيكل أو الجنيه.`,
+        `اشتراك ${p.title.split('—')[0].trim()}${ar ? ` (${ar})` : ''}${from ? ` بسعر يبدأ من ${from}` : ''}، وتدفع بسهولة بفودافون كاش أو انستا باي أو بطرق الدفع العالمية بالجنيه والدولار.`,
         p.short_description || '',
       ]
         .filter(Boolean)
@@ -319,13 +319,15 @@ router.get('/currency/:code', (req, res) => {
 });
 
 router.get('/help', (req, res) => {
+  const s = res.locals.settings || settings.getAll();
+  const faqList = content.getStoreFaq(s);
   res.render('store/help', {
     active: 'help',
     pageTitle: 'كيف أشتري؟ خطوات الشراء والدفع',
-    pageDesc: 'خطوات شراء اشتراكك من المتجر، وطرق الدفع المتاحة بالشيكل والجنيه، وإجابات أكثر الأسئلة التي تصلنا.',
-    ld: [seo.faq(content.STORE_FAQ)],
-    steps: content.HOW_TO_BUY,
-    faq: content.STORE_FAQ,
+    pageDesc: 'خطوات شراء اشتراكك من المتجر، وطرق الدفع المتاحة بفودافون كاش وانستا باي والبطاقات البنكية، وإجابات أكثر الأسئلة التي تصلنا.',
+    ld: [seo.faq(faqList)],
+    steps: content.getHowToBuy(s),
+    faq: faqList,
     methods: activeMethods(),
   });
 });
